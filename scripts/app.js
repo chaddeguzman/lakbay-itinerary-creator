@@ -44,9 +44,36 @@
     const s =
       x && Array.isArray(x.trips) ? x : { trips: [], activeTripId: null };
     s.trips.forEach(normalizeTrip);
-    s.ui = s.ui || {};
+    s.ui =
+      s.ui && typeof s.ui === "object" && !Array.isArray(s.ui) ? s.ui : {};
     s.ui.navCollapsed = !!s.ui.navCollapsed;
     s.ui.theme = s.ui.theme === "dark" ? "dark" : "light";
+    const collapsedDays =
+        s.ui.collapsedDaysByTrip &&
+        typeof s.ui.collapsedDaysByTrip === "object" &&
+        !Array.isArray(s.ui.collapsedDaysByTrip)
+          ? s.ui.collapsedDaysByTrip
+          : {},
+      validDaysByTrip = new Map(
+        s.trips.map((trip) => [
+          trip.id,
+          new Set(trip.days.map((day) => day.id)),
+        ]),
+      );
+    s.ui.collapsedDaysByTrip = Object.fromEntries(
+      Object.entries(collapsedDays)
+        .filter(([tripId, dayIds]) =>
+          Boolean(validDaysByTrip.has(tripId) && Array.isArray(dayIds)),
+        )
+        .map(([tripId, dayIds]) => [
+          tripId,
+          [...new Set(dayIds)].filter(
+            (dayId) =>
+              typeof dayId === "string" &&
+              validDaysByTrip.get(tripId).has(dayId),
+          ),
+        ]),
+    );
     return s;
   }
   const Storage = {
@@ -356,6 +383,9 @@
         .join("") || "<small>No matching journeys.</small>";
   }
   function itineraryPanel(t) {
+    const collapsedDays = new Set(
+      Storage.read().ui.collapsedDaysByTrip[t.id] || [],
+    );
     return `<section
       class="panel ${tab === "itinerary" ? "active" : ""}"
       data-panel="itinerary">
@@ -364,7 +394,7 @@
           ? `<p class="trip-description">${esc(t.description)}</p>`
           : ""
       }
-      ${t.days.map((d, i) => dayHtml(d, i)).join("")}
+      ${t.days.map((d, i) => dayHtml(d, i, collapsedDays.has(d.id))).join("")}
       <button class="btn no-print" data-action="add-day">＋ Add day</button>
     </section>`;
   }
@@ -627,9 +657,78 @@
         .join(" · ") || "No expenses yet"
     );
   }
-  function dayHtml(d, i) {
+
+  function countCharacters(value) {
+    return [...String(value || "")].length;
+  }
+
+  function minutesFromTime(value) {
+    if (!/^\d{2}:\d{2}$/.test(value || "")) return null;
+    const [hours, minutes] = value.split(":").map(Number);
+    if (hours > 23 || minutes > 59) return null;
+    return hours * 60 + minutes;
+  }
+
+  function entryTimeParts(entry) {
+    const start = minutesFromTime(entry.time);
+    if (start === null) return null;
+
+    const usesRange = entry.kind === "tour" || entry.timeMode === "range";
+    if (!usesRange) return { point: start, segments: [] };
+
+    const end = minutesFromTime(entry.endTime);
+    if (end === null) return null;
+    if (end === start) return { point: start, segments: [] };
+    if (end > start) return { point: null, segments: [[start, end]] };
+
+    return {
+      point: null,
+      segments: [
+        [start, 1440],
+        [0, end],
+      ].filter(([segmentStart, segmentEnd]) => segmentStart < segmentEnd),
+    };
+  }
+
+  function entriesOverlap(first, second) {
+    const a = entryTimeParts(first),
+      b = entryTimeParts(second);
+    if (!a || !b) return false;
+
+    if (a.point !== null && b.point !== null) return a.point === b.point;
+    if (a.point !== null)
+      return b.segments.some(
+        ([start, end]) => start <= a.point && a.point < end,
+      );
+    if (b.point !== null)
+      return a.segments.some(
+        ([start, end]) => start <= b.point && b.point < end,
+      );
+
+    return a.segments.some(([aStart, aEnd]) =>
+      b.segments.some(
+        ([bStart, bEnd]) => Math.max(aStart, bStart) < Math.min(aEnd, bEnd),
+      ),
+    );
+  }
+
+  function overlappingEntryIds(day) {
+    const overlapping = new Set();
+    day.stops.forEach((entry, index) => {
+      day.stops.slice(index + 1).forEach((candidate) => {
+        if (!entriesOverlap(entry, candidate)) return;
+        overlapping.add(entry.id);
+        overlapping.add(candidate.id);
+      });
+    });
+    return overlapping;
+  }
+
+  function dayHtml(d, i, isCollapsed = false) {
     const last = Storage.active().days.length - 1,
       draggable = i > 0 && i < last,
+      overlapping = overlappingEntryIds(d),
+      isToday = d.date === today(),
       dayDragButton = draggable
         ? [
             '<button type="button" class="drag-handle day-drag-handle"',
@@ -638,22 +737,35 @@
             "⋮⋮</button>",
           ].join("")
         : "";
-    return `<article class="day" data-day="${d.id}">
+    return `<article class="day ${isCollapsed ? "collapsed" : ""}"
+          data-day="${d.id}">
         <header class="day-head">
         <div class="stamp">Day<span class="day-number">${i}</span></div>
         <div>
         <input class="day-title" data-field="title" value="${esc(d.title)}"
           aria-label="Day title">
         <small>${fmt(d.date)}</small>
+        ${isToday ? '<span class="today-badge">Today</span>' : ""}
         </div>
-        <div class="icon-actions no-print">${dayDragButton}</div>
-        </header>${d.stops.map((s, j) => entryHtml(s, j)).join("")}<footer
+        <div class="icon-actions no-print">${dayDragButton}
+        <button type="button" class="day-collapse-button"
+          data-action="toggle-day" aria-expanded="${!isCollapsed}"
+          title="${isCollapsed ? "Expand day" : "Collapse day"}"
+          aria-label="${isCollapsed ? "Expand day" : "Collapse day"}">
+          ${isCollapsed ? "⌄" : "⌃"}
+        </button>
+        </div>
+        </header>
+        <div class="day-content">${d.stops
+          .map((s, j) => entryHtml(s, j, overlapping.has(s.id)))
+          .join("")}<footer
           class="day-foot">
         <div class="add-choice no-print">
         <button class="btn small" data-action="add-activity">＋ Activity</button>
         <button class="btn small" data-action="add-tour">＋ Tour</button>
         </div>
         </footer>
+        </div>
         </article>`;
   }
   function durationLabel(start, end) {
@@ -671,13 +783,23 @@
       period = hour >= 12 ? "PM" : "AM";
     return `${hour % 12 || 12}:${String(minute).padStart(2, "0")} ${period}`;
   }
-  function stopHtml(s, j) {
+
+  function overlapBadge(hasOverlap) {
+    return hasOverlap
+      ? '<span class="overlap-badge" title="This entry overlaps another time">' +
+          "Time overlap</span>"
+      : "";
+  }
+
+  function stopHtml(s, j, hasOverlap = false) {
     const map = mapsUrl(s.location),
       range = s.timeMode === "range",
       duration = range ? durationLabel(s.time, s.endTime) : "",
-      start = s.time ? formatTime12(s.time) : "Time not set",
-      time =
-        range && s.endTime
+      isUnscheduled = !s.time,
+      start = s.time ? formatTime12(s.time) : "Unscheduled",
+      time = isUnscheduled
+        ? start
+        : range && s.endTime
           ? `${start} – ${formatTime12(s.endTime)}${duration ? ` (${duration})` : ""}`
           : start,
       actions = `<div class="icon-actions activity-actions no-print">
@@ -689,25 +811,34 @@
           title="Drag activity"
           aria-label="Drag activity">⋮⋮</button>`;
     if (!editingActivities.has(s.id))
-      return `<div class="stop activity-compact" data-stop="${s.id}">
+      return `<div class="stop activity-compact
+          ${hasOverlap ? "time-overlap" : ""}"
+          data-stop="${s.id}">
         <div class="activity-summary">
         <div class="activity-summary-line">
-        <strong>${esc(time)}</strong>
+        <strong class="${isUnscheduled ? "unscheduled-label" : ""}">
+          ${esc(time)}
+        </strong>
         <span>—</span>
         <span>${esc(s.activity || "Untitled activity")}</span>
         <span>·</span>
         <span>${esc(s.location || "Location not set")}</span>
         </div>
+        ${overlapBadge(hasOverlap)}
         <div class="activity-notes">${esc(s.notes || "No notes")}</div>
         </div>${actions}<button type="button" class="btn small secondary"
+          data-action="copy-entry" title="Copy activity" aria-label="Copy activity">⧉</button>
+        <button type="button" class="btn small secondary"
           data-action="edit-activity" title="Edit activity" aria-label="Edit activity">✎</button>
         <button class="btn small danger" data-action="remove-stop" title="Remove activity"
           aria-label="Remove activity">×</button>
         </div>
         </div>`;
-    return `<div class="stop" data-stop="${s.id}">
+    return `<div class="stop ${hasOverlap ? "time-overlap" : ""}"
+          data-stop="${s.id}">
         <div class="stop-schedule">
         <label class="eyebrow">Activity ${j + 1}</label>
+        ${overlapBadge(hasOverlap)}
         <label class="time-label">Time option</label>
         <select class="stop-time" data-field="timeMode">
         <option value="single" ${!range ? "selected" : ""}>Start time only</option>
@@ -745,6 +876,9 @@
         <textarea
           data-field="notes"
           placeholder="Reservation details, reminders…">${esc(s.notes)}</textarea>
+        <small class="note-character-count" data-note-character-count>
+          ${countCharacters(s.notes)} characters
+        </small>
         </div>
         </div>${actions}<button type="button" class="btn small save-activity"
           data-action="save-activity" title="Save activity" aria-label="Save activity">✓</button>
@@ -1119,6 +1253,16 @@
           expenses: [],
         });
       });
+    } else if (act === "toggle-day" && dayEl) {
+      Storage.mutate((state) => {
+        const collapsedByTrip = state.ui.collapsedDaysByTrip,
+          collapsed = new Set(collapsedByTrip[t.id] || []),
+          dayId = dayEl.dataset.day;
+        if (collapsed.has(dayId)) collapsed.delete(dayId);
+        else collapsed.add(dayId);
+        collapsedByTrip[t.id] = [...collapsed];
+      });
+      render();
     } else if (dayEl) {
       if (act === "remove-stop" && stopEl) {
         const day = t.days.find((item) => item.id === dayEl.dataset.day),
@@ -1156,12 +1300,20 @@
           const j = d.stops.findIndex((x) => x.id === stopEl.dataset.stop);
           if (act === "remove-stop") {
             d.stops.splice(j, 1);
+          } else if (act === "copy-entry" && j >= 0) {
+            const copy = structuredClone(d.stops[j]),
+              type = copy.kind === "tour" ? "tour" : "activity",
+              name = copy.activity?.trim() || `Untitled ${type}`;
+            copy.id = uid();
+            copy.activity = `${name} (Copy)`;
+            d.stops.splice(j + 1, 0, copy);
           } else if (act === "stop-up" && j > 0)
             [d.stops[j - 1], d.stops[j]] = [d.stops[j], d.stops[j - 1]];
           else if (act === "stop-down" && j < d.stops.length - 1)
             [d.stops[j + 1], d.stops[j]] = [d.stops[j], d.stops[j + 1]];
         }
       });
+      if (act === "copy-entry") toast("Entry copied");
     } else if (act === "remove-item") {
       changeTrip(
         (t) =>
@@ -1494,6 +1646,13 @@
   main.addEventListener("input", (e) => {
     if (e.target.matches("textarea,input[data-field],select[data-field]"))
       updateField(e, false);
+    if (e.target.matches('textarea[data-field="notes"]')) {
+      const counter = e.target
+        .closest("[data-stop]")
+        ?.querySelector("[data-note-character-count]");
+      if (counter)
+        counter.textContent = `${countCharacters(e.target.value)} characters`;
+    }
   });
   function updateField(e, rerender = true) {
     const el = e.target,
@@ -1664,9 +1823,11 @@
           href="${mapsUrl(s.location)}">${esc(s.location)}</a>`,
     );
   }
-  function entryHtml(s, j) {
+  function entryHtml(s, j, hasOverlap = false) {
     let html =
-      s.kind === "tour" ? tourHtml(s, tourOrdinal(s) - 1) : stopHtml(s, j);
+      s.kind === "tour"
+        ? tourHtml(s, tourOrdinal(s) - 1, hasOverlap)
+        : stopHtml(s, j, hasOverlap);
     if (!editingActivities.has(s.id)) html = addCompactMapLinks(html, s);
     return editingActivities.has(s.id)
       ? html.replace(
@@ -1681,37 +1842,49 @@
         )
       : html;
   }
-  function tourHtml(s, j) {
+  function tourHtml(s, j, hasOverlap = false) {
     const duration = durationLabel(s.time, s.endTime),
-      start = s.time ? formatTime12(s.time) : "Time not set",
-      time = s.endTime
-        ? `${start} – ${formatTime12(s.endTime)}${duration ? ` (${duration})` : ""}`
-        : start,
+      isUnscheduled = !s.time,
+      start = s.time ? formatTime12(s.time) : "Unscheduled",
+      time = isUnscheduled
+        ? start
+        : s.endTime
+          ? `${start} – ${formatTime12(s.endTime)}${duration ? ` (${duration})` : ""}`
+          : start,
       locations = (s.tourLocations || []).filter(Boolean),
       locationText = locations.join(" → ") || "No locations added",
       actions = `<div class="icon-actions activity-actions no-print">
         <button type="button" class="drag-handle activity-drag-handle" draggable="true"
           data-drag-kind="activity" title="Drag tour" aria-label="Drag tour">⋮⋮</button>`;
     if (!editingActivities.has(s.id))
-      return `<div class="stop activity-compact tour-compact" data-stop="${s.id}">
+      return `<div class="stop activity-compact tour-compact
+          ${hasOverlap ? "time-overlap" : ""}"
+          data-stop="${s.id}">
         <div class="activity-summary">
         <div class="activity-summary-line">
-        <strong>${esc(time)}</strong>
+        <strong class="${isUnscheduled ? "unscheduled-label" : ""}">
+          ${esc(time)}
+        </strong>
         <span>—</span>
         <span>${esc(s.activity || "Untitled tour")}</span>
         <span>·</span>
         <span>${esc(locationText)}</span>
         </div>
+        ${overlapBadge(hasOverlap)}
         <div class="activity-notes">${esc(s.notes || "No notes")}</div>
         </div>${actions}<button type="button" class="btn small secondary"
+          data-action="copy-entry" title="Copy tour" aria-label="Copy tour">⧉</button>
+        <button type="button" class="btn small secondary"
           data-action="edit-activity" title="Edit tour" aria-label="Edit tour">✎</button>
         <button class="btn small danger" data-action="remove-stop" title="Remove tour"
           aria-label="Remove tour">×</button>
         </div>
         </div>`;
-    return `<div class="stop tour-editor" data-stop="${s.id}">
+    return `<div class="stop tour-editor ${hasOverlap ? "time-overlap" : ""}"
+          data-stop="${s.id}">
         <div class="stop-schedule">
         <label class="eyebrow">Tour ${j + 1}</label>
+        ${overlapBadge(hasOverlap)}
         <label class="time-label">Start time <span class="required">*</span>
         </label>
         <input class="stop-time" type="time" data-field="time" value="${esc(s.time)}"
@@ -1760,6 +1933,9 @@
         <textarea
           data-field="notes"
           placeholder="Guide, pickup point, reminders…">${esc(s.notes)}</textarea>
+        <small class="note-character-count" data-note-character-count>
+          ${countCharacters(s.notes)} characters
+        </small>
         </div>
         </div>${actions}<button type="button" class="btn small save-activity"
           data-action="save-activity" title="Save tour" aria-label="Save tour">✓</button>

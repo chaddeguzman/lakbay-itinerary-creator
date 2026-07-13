@@ -1750,3 +1750,115 @@ html[data-theme="dark"] .packing-group {
     width: min(100%, 135px);
   }
 }
+
+.day-content {
+  display: block;
+}
+.day.collapsed .day-content {
+  display: none;
+}
+.day.collapsed .day-head {
+  margin-bottom: 0;
+}
+.day-collapse-button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--teal);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--teal);
+  font:
+    700 1.1rem Arial,
+    sans-serif;
+  line-height: 1;
+}
+.day-collapse-button:hover {
+  background: color-mix(in srgb, var(--teal) 10%, transparent);
+}
+.day-collapse-button:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+.today-badge,
+.overlap-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  font:
+    700 0.68rem Arial,
+    sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.today-badge {
+  margin-left: 7px;
+  padding: 3px 8px;
+  background: var(--teal);
+  color: var(--paper2);
+}
+.overlap-badge {
+  margin-top: 7px;
+  padding: 3px 7px;
+  border: 1px solid var(--terra);
+  background: color-mix(in srgb, var(--terra) 13%, var(--paper2));
+  color: var(--terra);
+}
+.day .stop.time-overlap {
+  border-color: var(--terra);
+  box-shadow:
+    inset 4px 0 var(--terra),
+    0 3px 12px #16332d0d;
+}
+.unscheduled-label {
+  padding: 3px 7px;
+  border: 1px dashed var(--muted);
+  border-radius: 999px;
+  color: var(--muted) !important;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.note-character-count {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font:
+    0.72rem Arial,
+    sans-serif;
+  text-align: right;
+}
+.activity-compact > .activity-actions {
+  grid-template-columns: repeat(3, 34px);
+}
+html[data-theme="dark"] .day-collapse-button {
+  border-color: #79c5bb;
+  color: #a5e4da;
+}
+html[data-theme="dark"] .today-badge {
+  background: #79c5bb;
+  color: #102421;
+}
+html[data-theme="dark"] .overlap-badge {
+  background: #4a2924;
+  color: #ffad98;
+}
+html[data-theme="dark"] .day .stop.time-overlap {
+  border-color: #d97b65;
+  box-shadow:
+    inset 4px 0 #d97b65,
+    0 3px 12px #0003;
+}
+@media print {
+  .day-content {
+    display: block !important;
+  }
+  .overlap-badge {
+    border-color: #777;
+    background: transparent;
+    color: #333;
+  }
+}
