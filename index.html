@@ -9,11 +9,123 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <button class="mobile-menu no-print" aria-label="Open trip menu">☰</button>
-  <button class="theme-toggle no-print" id="themeToggle" type="button" aria-label="Toggle light/dark mode" title="Switch to dark theme" aria-pressed="false"><span class="theme-toggle-track" aria-hidden="true"><span class="theme-toggle-thumb"><span class="theme-toggle-icon theme-toggle-icon--dark">🌙</span><span class="theme-toggle-icon theme-toggle-icon--light">☀️</span></span></span></button>
-  <div class="app"><aside class="sidebar no-print"><h1 class="brand">LAKBAY <span>✦</span></h1><p class="tagline">Journeys, thoughtfully mapped.</p><input class="search" id="tripSearch" placeholder="Search trips…" aria-label="Search trips"><div class="trip-list" id="tripList"></div><div class="side-actions"><button class="btn" id="newTrip">＋ New trip</button><button class="btn secondary" id="downloadBackup">Download backup</button><button class="btn secondary" id="importBackup">Import backup</button><input type="file" id="backupFile" accept="application/json,.json" hidden></div></aside><main class="main" id="main"></main></div>
-  <dialog class="modal" id="tripModal"><form method="dialog" class="modal-body" id="tripForm"><h2 id="modalTitle">Create a journey</h2><input type="hidden" id="editTripId"><div class="form-field"><label for="tripName">Trip name <span class="required">*</span></label><input id="tripName" required placeholder="Summer in Palawan"></div><div class="form-field"><label for="tripDestination">Destination <span class="required">*</span></label><input id="tripDestination" required placeholder="El Nido, Palawan"></div><div class="form-field"><label for="tripDescription">Description <span class="optional">(optional)</span></label><textarea id="tripDescription" rows="3" placeholder="What is this journey about?"></textarea></div><div class="form-row"><div class="form-field"><label for="tripStart">Start date <span class="required">*</span></label><input id="tripStart" type="date" required></div><div class="form-field"><label for="tripEnd">End date <span class="required">*</span></label><input id="tripEnd" type="date" required></div></div><div class="modal-actions"><button class="btn secondary" type="button" id="cancelTrip">Cancel</button><button class="btn" type="submit" id="saveTrip">Save trip</button></div></form></dialog>
+  <button class="mobile-menu no-print" aria-label="Open trip menu">
+    ☰
+  </button>
+
+  <button
+    class="theme-toggle no-print"
+    id="themeToggle"
+    type="button"
+    aria-label="Toggle light/dark mode"
+    title="Switch to dark theme"
+    aria-pressed="false"
+  >
+    <span class="theme-toggle-track" aria-hidden="true">
+      <span class="theme-toggle-thumb">
+        <span class="theme-toggle-icon theme-toggle-icon--dark">🌙</span>
+        <span class="theme-toggle-icon theme-toggle-icon--light">☀️</span>
+      </span>
+    </span>
+  </button>
+
+  <div class="app">
+    <aside class="sidebar no-print">
+      <h1 class="brand">LAKBAY <span>✦</span></h1>
+      <p class="tagline">Journeys, thoughtfully mapped.</p>
+
+      <input
+        class="search"
+        id="tripSearch"
+        placeholder="Search trips…"
+        aria-label="Search trips"
+      >
+
+      <div class="trip-list" id="tripList"></div>
+
+      <div class="side-actions">
+        <button class="btn" id="newTrip">＋ New trip</button>
+        <button class="btn secondary" id="downloadBackup">
+          Download backup
+        </button>
+        <button class="btn secondary" id="importBackup">
+          Import backup
+        </button>
+        <input
+          type="file"
+          id="backupFile"
+          accept="application/json,.json"
+          hidden
+        >
+      </div>
+    </aside>
+
+    <main class="main" id="main"></main>
+  </div>
+
+  <dialog class="modal" id="tripModal">
+    <form method="dialog" class="modal-body" id="tripForm">
+      <h2 id="modalTitle">Create a journey</h2>
+      <input type="hidden" id="editTripId">
+
+      <div class="form-field">
+        <label for="tripName">
+          Trip name <span class="required">*</span>
+        </label>
+        <input id="tripName" required placeholder="Summer in Palawan">
+      </div>
+
+      <div class="form-field">
+        <label for="tripDestination">
+          Destination <span class="required">*</span>
+        </label>
+        <input
+          id="tripDestination"
+          required
+          placeholder="El Nido, Palawan"
+        >
+      </div>
+
+      <div class="form-field">
+        <label for="tripDescription">
+          Description <span class="optional">(optional)</span>
+        </label>
+        <textarea
+          id="tripDescription"
+          rows="3"
+          placeholder="What is this journey about?"
+        ></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label for="tripStart">
+            Start date <span class="required">*</span>
+          </label>
+          <input id="tripStart" type="date" required>
+        </div>
+
+        <div class="form-field">
+          <label for="tripEnd">
+            End date <span class="required">*</span>
+          </label>
+          <input id="tripEnd" type="date" required>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn secondary" type="button" id="cancelTrip">
+          Cancel
+        </button>
+        <button class="btn" type="submit" id="saveTrip">
+          Save trip
+        </button>
+      </div>
+    </form>
+  </dialog>
+
   <div class="toast" id="toast" role="status"></div>
+
   <script src="scripts/app.js"></script>
 </body>
 </html>
