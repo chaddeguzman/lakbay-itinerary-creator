@@ -8,11 +8,23 @@ The collapsible trip navigation keeps each planning area together. Costs entered
 
 Open `index.html` in any modern browser. No installation or local server is required.
 
-To publish with GitHub Pages, push these files to a GitHub repository, open **Settings → Pages**, choose **Deploy from a branch**, and select the branch and root folder containing `index.html`. The site works as static files with zero configuration.
+## Deploy to GitHub Pages
+
+The included `.github/workflows/deploy-pages.yml` workflow publishes the static app whenever changes are pushed to `main`. It can also be started manually from the repository's **Actions** tab. There is no build command and no deployment secret to configure.
+
+For the first deployment:
+
+1. Push the repository to GitHub.
+2. Open **Settings → Pages** in the GitHub repository.
+3. Under **Build and deployment**, choose **GitHub Actions** as the source.
+4. Push to `main`, or run **Deploy Lakbay to GitHub Pages** from the **Actions** tab.
+5. When the workflow finishes, use the Pages URL shown in the deployment job or in **Settings → Pages**.
+
+Trip information is not uploaded to GitHub or included in the deployment artifact. The published app saves data under `itineraryApp:v1` in the visitor's browser `localStorage`. Data is therefore specific to that browser, device, and GitHub Pages address; clearing site data removes it, and a different browser starts with an empty planner.
 
 ## Back up and move your data
 
-Trip data is tied to the browser and device where it was created. Use **Download backup** in the trip menu to save all trips as a JSON file. On another device, open Lakbay and choose **Import backup**, then select that JSON file; importing replaces the data currently stored in that browser.
+Trip data is tied to the browser and device where it was created. Use **Download** in the trip menu to save all trips as a JSON file. On another device, open Lakbay and choose **Import**, then select that JSON file; importing replaces the data currently stored in that browser.
 
 The JSON file is the app's cross-device transfer method. Keep copies somewhere safe because clearing browser storage can remove the working data.
 
@@ -20,7 +32,7 @@ The JSON file is the app's cross-device transfer method. Keep copies somewhere s
 
 - **Print / PDF** opens the browser print dialog with a clean itinerary layout; choose “Save as PDF.”
 - **Export PNG** renders the current trip to a downloadable image using the browser Canvas API.
-- **Download backup** exports editable data for later restoration, unlike PDF and PNG.
+- **Download** exports editable data for later restoration, unlike PDF and PNG.
 
 ## Gemini module and API-key safety
 
@@ -31,8 +43,11 @@ The JSON file is the app's cross-device transfer method. Keep copies somewhere s
 ## Project structure
 
 ```text
-index.html             Entire application: markup, styles, and logic
-gemini_travel_api.js   Future Gemini integration (not wired into the app)
-README.md              Setup, transfer, and safety notes
-assets/                Reserved for future screenshots
+index.html                         Application markup and file references
+css/styles.css                     Application and print styles
+scripts/app.js                     Itinerary logic and localStorage persistence
+gemini_travel_api.js               Future Gemini integration (not wired in)
+.github/workflows/deploy-pages.yml GitHub Pages deployment workflow
+README.md                          Setup, transfer, and safety notes
+assets/                            Static assets and future screenshots
 ```

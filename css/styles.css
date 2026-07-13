@@ -245,6 +245,16 @@ button {
   transform: rotate(-5deg);
   text-transform: uppercase;
 }
+.day-number {
+  display: block;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.day .stamp {
+  align-content: center;
+  row-gap: 0;
+  line-height: 1;
+}
 .day-title {
   border: 0;
   border-bottom: 1px dashed var(--line);
@@ -425,6 +435,73 @@ button {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 18px;
+}
+.delete-entry-modal {
+  max-width: 430px;
+  border: 1px solid var(--line);
+  background: var(--paper2);
+}
+.delete-entry-modal[open] {
+  animation: stamp-arrival 0.18s ease-out;
+}
+.delete-entry-body {
+  border-top: 6px double var(--terra);
+  text-align: center;
+}
+.delete-entry-stamp {
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 14px;
+  border: 3px double var(--terra);
+  border-radius: 50%;
+  color: var(--terra);
+  font:
+    700 2rem Arial,
+    sans-serif;
+  transform: rotate(-6deg);
+}
+.delete-entry-body .eyebrow {
+  margin: 0 0 6px;
+}
+.delete-entry-body h2 {
+  margin-bottom: 10px;
+}
+.delete-entry-message {
+  min-height: 48px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+.delete-entry-actions {
+  justify-content: center;
+  gap: 14px;
+}
+.delete-entry-button {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border-radius: 6px;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+.delete-entry-modal[data-stage="final"] .delete-entry-stamp {
+  color: #fff;
+  background: var(--terra);
+  transform: rotate(6deg);
+}
+@keyframes stamp-arrival {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 .toast {
   position: fixed;

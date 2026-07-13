@@ -205,6 +205,50 @@
   });
   const activitySnapshots = new Map(),
     newActivityEntries = new Set();
+
+  function showEntryDeleteStage(stage, title, message, confirmLabel) {
+    const dialog = $("#deleteEntryModal"),
+      confirmButton = $("#confirmEntryDelete");
+
+    dialog.dataset.stage = stage;
+    dialog.returnValue = "cancel";
+    $("#deleteEntryStep").textContent =
+      stage === "final" ? "Final checkpoint" : "Deletion warning";
+    $("#deleteEntryTitle").textContent = title;
+    $("#deleteEntryMessage").textContent = message;
+    confirmButton.title = confirmLabel;
+    confirmButton.setAttribute("aria-label", confirmLabel);
+    dialog.showModal();
+
+    return new Promise((resolve) => {
+      dialog.addEventListener(
+        "close",
+        () => resolve(dialog.returnValue === "confirm"),
+        { once: true },
+      );
+    });
+  }
+
+  async function confirmEntryDeletion(item) {
+    const type = item.kind === "tour" ? "tour" : "activity",
+      name = item.activity?.trim() || `Untitled ${type}`,
+      shouldContinue = await showEntryDeleteStage(
+        "initial",
+        `Remove this ${type}?`,
+        `“${name}” will be removed from this day. Select ✓ to continue.`,
+        "Continue to final warning",
+      );
+
+    if (!shouldContinue) return false;
+
+    return showEntryDeleteStage(
+      "final",
+      "Final warning",
+      `This ${type} will be permanently deleted and cannot be restored.`,
+      `Permanently delete ${type}`,
+    );
+  }
+
   function blankStop() {
     return {
       id: uid(),
@@ -596,7 +640,7 @@
         : "";
     return `<article class="day" data-day="${d.id}">
         <header class="day-head">
-        <div class="stamp">Day<br>${i}</div>
+        <div class="stamp">Day<span class="day-number">${i}</span></div>
         <div>
         <input class="day-title" data-field="title" value="${esc(d.title)}"
           aria-label="Day title">
@@ -1026,7 +1070,7 @@
     },
     true,
   );
-  main.addEventListener("click", (e) => {
+  main.addEventListener("click", async (e) => {
     const a = e.target.closest("[data-action]");
     if (!a) return;
     const t = Storage.active(),
@@ -1076,6 +1120,14 @@
         });
       });
     } else if (dayEl) {
+      if (act === "remove-stop" && stopEl) {
+        const day = t.days.find((item) => item.id === dayEl.dataset.day),
+          item = day?.stops.find((entry) => entry.id === stopEl.dataset.stop),
+          isNew = item && newActivityEntries.has(item.id);
+
+        if (item && !isNew && !(await confirmEntryDeletion(item))) return;
+      }
+
       changeTrip((t) => {
         const i = t.days.findIndex((x) => x.id === dayEl.dataset.day),
           d = t.days[i];
@@ -1102,8 +1154,9 @@
           );
         else if (stopEl) {
           const j = d.stops.findIndex((x) => x.id === stopEl.dataset.stop);
-          if (act === "remove-stop") d.stops.splice(j, 1);
-          else if (act === "stop-up" && j > 0)
+          if (act === "remove-stop") {
+            d.stops.splice(j, 1);
+          } else if (act === "stop-up" && j > 0)
             [d.stops[j - 1], d.stops[j]] = [d.stops[j], d.stops[j - 1]];
           else if (act === "stop-down" && j < d.stops.length - 1)
             [d.stops[j + 1], d.stops[j]] = [d.stops[j], d.stops[j + 1]];
@@ -1617,14 +1670,13 @@
     if (!editingActivities.has(s.id)) html = addCompactMapLinks(html, s);
     return editingActivities.has(s.id)
       ? html.replace(
-          '<button class="btn small danger" data-action="remove-stop"',
+          /<button class="btn small danger" data-action="remove-stop"[^>]*>\s*×\s*<\/button>/,
           [
             '<button type="button"',
             ' class="btn small secondary cancel-activity"',
             ' data-action="cancel-activity"',
             ' title="Cancel editing" aria-label="Cancel editing">',
             "↩</button>",
-            '<button class="btn small danger" data-action="remove-stop"',
           ].join(""),
         )
       : html;

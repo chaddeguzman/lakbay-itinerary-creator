@@ -1,131 +1,152 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#174f4b">
-  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <title>Lakbay Itinerary Creator</title>
-  <link rel="stylesheet" href="css/styles.css">
-</head>
-<body>
-  <button class="mobile-menu no-print" aria-label="Open trip menu">
-    ☰
-  </button>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#174f4b" />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <title>Lakbay Itinerary Creator</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <button class="mobile-menu no-print" aria-label="Open trip menu">☰</button>
 
-  <button
-    class="theme-toggle no-print"
-    id="themeToggle"
-    type="button"
-    aria-label="Toggle light/dark mode"
-    title="Switch to dark theme"
-    aria-pressed="false"
-  >
-    <span class="theme-toggle-track" aria-hidden="true">
-      <span class="theme-toggle-thumb">
-        <span class="theme-toggle-icon theme-toggle-icon--dark">🌙</span>
-        <span class="theme-toggle-icon theme-toggle-icon--light">☀️</span>
+    <button
+      class="theme-toggle no-print"
+      id="themeToggle"
+      type="button"
+      aria-label="Toggle light/dark mode"
+      title="Switch to dark theme"
+      aria-pressed="false"
+    >
+      <span class="theme-toggle-track" aria-hidden="true">
+        <span class="theme-toggle-thumb">
+          <span class="theme-toggle-icon theme-toggle-icon--dark">🌙</span>
+          <span class="theme-toggle-icon theme-toggle-icon--light">☀️</span>
+        </span>
       </span>
-    </span>
-  </button>
+    </button>
 
-  <div class="app">
-    <aside class="sidebar no-print">
-      <h1 class="brand">LAKBAY <span>✦</span></h1>
-      <p class="tagline">Journeys, thoughtfully mapped.</p>
+    <div class="app">
+      <aside class="sidebar no-print">
+        <h1 class="brand">LAKBAY <span>✦</span></h1>
+        <p class="tagline">Journeys, thoughtfully mapped.</p>
 
-      <input
-        class="search"
-        id="tripSearch"
-        placeholder="Search trips…"
-        aria-label="Search trips"
-      >
-
-      <div class="trip-list" id="tripList"></div>
-
-      <div class="side-actions">
-        <button class="btn" id="newTrip">＋ New trip</button>
-        <button class="btn secondary" id="downloadBackup">
-          Download backup
-        </button>
-        <button class="btn secondary" id="importBackup">
-          Import backup
-        </button>
         <input
-          type="file"
-          id="backupFile"
-          accept="application/json,.json"
-          hidden
-        >
-      </div>
-    </aside>
+          class="search"
+          id="tripSearch"
+          placeholder="Search trips…"
+          aria-label="Search trips"
+        />
 
-    <main class="main" id="main"></main>
-  </div>
+        <div class="trip-list" id="tripList"></div>
 
-  <dialog class="modal" id="tripModal">
-    <form method="dialog" class="modal-body" id="tripForm">
-      <h2 id="modalTitle">Create a journey</h2>
-      <input type="hidden" id="editTripId">
+        <div class="side-actions">
+          <button class="btn" id="newTrip">＋ New trip</button>
+          <button class="btn secondary" id="downloadBackup">
+            Download backup
+          </button>
+          <button class="btn secondary" id="importBackup">Import backup</button>
+          <input
+            type="file"
+            id="backupFile"
+            accept="application/json,.json"
+            hidden
+          />
+        </div>
+      </aside>
 
-      <div class="form-field">
-        <label for="tripName">
-          Trip name <span class="required">*</span>
-        </label>
-        <input id="tripName" required placeholder="Summer in Palawan">
-      </div>
+      <main class="main" id="main"></main>
+    </div>
 
-      <div class="form-field">
-        <label for="tripDestination">
-          Destination <span class="required">*</span>
-        </label>
-        <input
-          id="tripDestination"
-          required
-          placeholder="El Nido, Palawan"
-        >
-      </div>
+    <dialog class="modal" id="tripModal">
+      <form method="dialog" class="modal-body" id="tripForm">
+        <h2 id="modalTitle">Create a journey</h2>
+        <input type="hidden" id="editTripId" />
 
-      <div class="form-field">
-        <label for="tripDescription">
-          Description <span class="optional">(optional)</span>
-        </label>
-        <textarea
-          id="tripDescription"
-          rows="3"
-          placeholder="What is this journey about?"
-        ></textarea>
-      </div>
-
-      <div class="form-row">
         <div class="form-field">
-          <label for="tripStart">
-            Start date <span class="required">*</span>
+          <label for="tripName">
+            Trip name <span class="required">*</span>
           </label>
-          <input id="tripStart" type="date" required>
+          <input id="tripName" required placeholder="Summer in Palawan" />
         </div>
 
         <div class="form-field">
-          <label for="tripEnd">
-            End date <span class="required">*</span>
+          <label for="tripDestination">
+            Destination <span class="required">*</span>
           </label>
-          <input id="tripEnd" type="date" required>
+          <input id="tripDestination" required placeholder="El Nido, Palawan" />
         </div>
-      </div>
 
-      <div class="modal-actions">
-        <button class="btn secondary" type="button" id="cancelTrip">
-          Cancel
-        </button>
-        <button class="btn" type="submit" id="saveTrip">
-          Save trip
-        </button>
-      </div>
-    </form>
-  </dialog>
+        <div class="form-field">
+          <label for="tripDescription">
+            Description <span class="optional">(optional)</span>
+          </label>
+          <textarea
+            id="tripDescription"
+            rows="3"
+            placeholder="What is this journey about?"
+          ></textarea>
+        </div>
 
-  <div class="toast" id="toast" role="status"></div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="tripStart">
+              Start date <span class="required">*</span>
+            </label>
+            <input id="tripStart" type="date" required />
+          </div>
 
-  <script src="scripts/app.js"></script>
-</body>
+          <div class="form-field">
+            <label for="tripEnd">
+              End date <span class="required">*</span>
+            </label>
+            <input id="tripEnd" type="date" required />
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn secondary" type="button" id="cancelTrip">
+            Cancel
+          </button>
+          <button class="btn" type="submit" id="saveTrip">Save trip</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal delete-entry-modal" id="deleteEntryModal">
+      <form method="dialog" class="modal-body delete-entry-body">
+        <div class="delete-entry-stamp" aria-hidden="true">!</div>
+        <p class="eyebrow" id="deleteEntryStep">Deletion warning</p>
+        <h2 id="deleteEntryTitle">Remove activity?</h2>
+        <p class="delete-entry-message" id="deleteEntryMessage"></p>
+
+        <div class="modal-actions delete-entry-actions">
+          <button
+            class="btn small danger delete-entry-button"
+            type="submit"
+            value="cancel"
+            title="Cancel deletion"
+            aria-label="Cancel deletion"
+          >
+            ×
+          </button>
+          <button
+            class="btn small save-activity delete-entry-button"
+            id="confirmEntryDelete"
+            type="submit"
+            value="confirm"
+            title="Continue"
+            aria-label="Continue"
+          >
+            ✓
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status"></div>
+
+    <script src="scripts/app.js"></script>
+  </body>
 </html>
