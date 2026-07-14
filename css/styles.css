@@ -2125,13 +2125,15 @@ html[data-theme="dark"] .day .stop.time-overlap {
   overflow-y: auto;
   padding: 16px;
   background: color-mix(in srgb, var(--paper) 48%, var(--paper2));
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.84rem;
 }
 .travel-chat-message {
   width: fit-content;
   max-width: 86%;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-radius: 15px;
-  line-height: 1.42;
+  line-height: 1.38;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
@@ -2154,13 +2156,13 @@ html[data-theme="dark"] .day .stop.time-overlap {
   margin-bottom: 0;
 }
 .bot-message h1 {
-  font-size: 1.18rem;
+  font-size: 1.05rem;
 }
 .bot-message h2 {
-  font-size: 1.08rem;
+  font-size: 0.98rem;
 }
 .bot-message h3 {
-  font-size: 1rem;
+  font-size: 0.91rem;
 }
 .bot-message ul,
 .bot-message ol {
