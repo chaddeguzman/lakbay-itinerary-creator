@@ -563,6 +563,9 @@ html[data-theme="dark"] .empty-day-notice {
   opacity: 1;
   transform: none;
 }
+html[data-theme="dark"] .toast {
+  color: #102421;
+}
 .mobile-menu {
   display: none;
 }

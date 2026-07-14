@@ -178,7 +178,8 @@
     t.hotels.forEach((r) => syncRecordExpense(t, "hotel", r));
     t.foodPlaces.forEach((r) => syncRecordExpense(t, "food", r));
   }
-  let tab = "itinerary";
+  let tab = "itinerary",
+    toastTimer;
   const main = $("#main"),
     list = $("#tripList"),
     editingActivities = new Set(),
@@ -208,7 +209,8 @@
     const el = $("#toast");
     el.textContent = msg;
     el.classList.add("show");
-    setTimeout(() => el.classList.remove("show"), 1800);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("show"), 1800);
   }
   function applyTheme(theme) {
     const dark = theme === "dark",
@@ -1278,12 +1280,15 @@
       });
       render();
     } else if (dayEl) {
+      let removedEntryType = "";
       if (act === "remove-stop" && stopEl) {
         const day = t.days.find((item) => item.id === dayEl.dataset.day),
           item = day?.stops.find((entry) => entry.id === stopEl.dataset.stop),
           isNew = item && newActivityEntries.has(item.id);
 
         if (item && !isNew && !(await confirmEntryDeletion(item))) return;
+        if (item)
+          removedEntryType = item.kind === "tour" ? "Tour" : "Activity";
       }
 
       changeTrip((t) => {
@@ -1328,6 +1333,8 @@
         }
       });
       if (act === "copy-entry") toast("Entry copied");
+      else if (act === "remove-stop" && removedEntryType)
+        toast(`${removedEntryType} deleted`);
     } else if (act === "remove-item") {
       changeTrip(
         (t) =>
@@ -1588,6 +1595,9 @@
         choosingAddForDays.delete(day.dataset.day);
         changeTrip((t) =>
           t.days.find((x) => x.id === day.dataset.day).stops.push(item),
+        );
+        toast(
+          item.kind === "tour" ? "New tour added" : "New activity added",
         );
         return;
       }
