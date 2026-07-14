@@ -13,7 +13,9 @@ function buildPrompt(userInput, memories = []) {
   // Replace this block when a future project needs its own reusable prompt.
   const memoryBlock = formatMemoryPrompt(memories);
 
-  return `You are Lakbay, a helpful and practical travel itinerary assistant familiar with the user's active trip. Give clear, concise, culturally respectful planning advice, account for saved preferences when relevant, and flag details that should be verified locally.
+  return `You are Lakbay, a helpful and practical travel itinerary assistant familiar with the user's active trip. Give culturally respectful planning advice, account for saved preferences when relevant, and flag details that should be verified locally.
+Keep answers simple and concise by default. Use 1-3 sentences for straightforward answers and 3-5 sentences when a summary or explanation is needed. Do not exceed 5 sentences unless the user explicitly asks for a detailed, comprehensive, step-by-step, or long-form response; when they do, provide the requested detail.
+When formatting improves readability, use Markdown. Supported formatting includes # to ### headings, **bold**, *italic*, ++underlined text++, bulleted or numbered lists, and [clickable link text](https://example.com). Do not use raw HTML.
 ${memoryBlock}
 User: ${userInput}`;
   // --- Custom Prompt End ---
@@ -234,6 +236,89 @@ ${context}
 Traveler message: ${message}`;
 }
 
+// Render a deliberately small Markdown subset without inserting raw HTML.
+// This keeps Gemini output expressive while preventing script injection.
+function appendInlineMarkdown(parent, source) {
+  const pattern = /(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\*\*([^*\n]+)\*\*|\*([^*\n]+)\*|_([^_\n]+)_|\+\+([^+\n]+)\+\+|<u>([^<\n]+)<\/u>)/gi;
+  let cursor = 0;
+
+  for (const match of source.matchAll(pattern)) {
+    parent.append(document.createTextNode(source.slice(cursor, match.index)));
+    let element;
+
+    if (match[2] && match[3]) {
+      element = document.createElement('a');
+      element.href = match[3];
+      element.target = '_blank';
+      element.rel = 'noopener noreferrer';
+      element.textContent = match[2];
+    } else if (match[4]) {
+      element = document.createElement('strong');
+      element.textContent = match[4];
+    } else if (match[5] || match[6]) {
+      element = document.createElement('em');
+      element.textContent = match[5] || match[6];
+    } else {
+      element = document.createElement('u');
+      element.textContent = match[7] || match[8];
+    }
+
+    parent.append(element);
+    cursor = match.index + match[0].length;
+  }
+
+  parent.append(document.createTextNode(source.slice(cursor)));
+}
+
+function renderTravelChatMarkdown(container, markdown) {
+  container.textContent = '';
+  const lines = String(markdown || '').replace(/\r\n?/g, '\n').split('\n');
+  let activeList = null;
+  let activeListType = '';
+
+  function closeList() {
+    activeList = null;
+    activeListType = '';
+  }
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      closeList();
+      continue;
+    }
+
+    const heading = line.match(/^(#{1,3})\s+(.+)$/);
+    if (heading) {
+      closeList();
+      const element = document.createElement(`h${heading[1].length}`);
+      appendInlineMarkdown(element, heading[2]);
+      container.append(element);
+      continue;
+    }
+
+    const unorderedItem = line.match(/^[-*]\s+(.+)$/);
+    const orderedItem = line.match(/^\d+[.)]\s+(.+)$/);
+    if (unorderedItem || orderedItem) {
+      const listType = orderedItem ? 'ol' : 'ul';
+      if (!activeList || activeListType !== listType) {
+        activeList = document.createElement(listType);
+        activeListType = listType;
+        container.append(activeList);
+      }
+      const item = document.createElement('li');
+      appendInlineMarkdown(item, (orderedItem || unorderedItem)[1]);
+      activeList.append(item);
+      continue;
+    }
+
+    closeList();
+    const paragraph = document.createElement('p');
+    appendInlineMarkdown(paragraph, line);
+    container.append(paragraph);
+  }
+}
+
 function initializeTravelChat() {
   if (typeof document === 'undefined') return;
   const toggle = document.querySelector('#travelChatToggle');
@@ -261,7 +346,8 @@ function initializeTravelChat() {
   function addMessage(text, type = 'bot') {
     const message = document.createElement('div');
     message.className = `travel-chat-message ${type === 'user' ? 'user-message' : 'bot-message'}`;
-    message.textContent = text;
+    if (type === 'user') message.textContent = text;
+    else renderTravelChatMarkdown(message, text);
     messages.append(message);
     scrollToLatest();
     return message;

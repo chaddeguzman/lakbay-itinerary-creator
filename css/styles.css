@@ -2140,6 +2140,40 @@ html[data-theme="dark"] .day .stop.time-overlap {
   border-bottom-left-radius: 4px;
   background: var(--paper2);
   border: 1px solid var(--line);
+  white-space: normal;
+}
+.bot-message h1,
+.bot-message h2,
+.bot-message h3,
+.bot-message p,
+.bot-message ul,
+.bot-message ol {
+  margin: 0 0 8px;
+}
+.bot-message > :last-child {
+  margin-bottom: 0;
+}
+.bot-message h1 {
+  font-size: 1.18rem;
+}
+.bot-message h2 {
+  font-size: 1.08rem;
+}
+.bot-message h3 {
+  font-size: 1rem;
+}
+.bot-message ul,
+.bot-message ol {
+  padding-left: 20px;
+}
+.bot-message a {
+  color: var(--teal);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.bot-message a:hover {
+  color: var(--terra);
 }
 .user-message {
   align-self: flex-end;
