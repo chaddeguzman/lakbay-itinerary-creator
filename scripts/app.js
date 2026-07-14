@@ -280,7 +280,7 @@
     return {
       id: uid(),
       kind: "activity",
-      time: "09:00",
+      time: "",
       timeMode: "single",
       endTime: "",
       activity: "",
@@ -293,7 +293,7 @@
     return {
       id: uid(),
       kind: "tour",
-      time: "09:00",
+      time: "",
       timeMode: "range",
       endTime: "17:00",
       activity: "",
@@ -825,7 +825,7 @@
         <span>${esc(s.location || "Location not set")}</span>
         </div>
         ${overlapBadge(hasOverlap)}
-        <div class="activity-notes">${esc(s.notes || "No notes")}</div>
+        <div class="activity-notes">${esc(s.notes)}</div>
         </div>${actions}<button type="button" class="btn small secondary"
           data-action="copy-entry" title="Copy activity" aria-label="Copy activity">⧉</button>
         <button type="button" class="btn small secondary"
@@ -1871,7 +1871,7 @@
         <span>${esc(locationText)}</span>
         </div>
         ${overlapBadge(hasOverlap)}
-        <div class="activity-notes">${esc(s.notes || "No notes")}</div>
+        <div class="activity-notes">${esc(s.notes)}</div>
         </div>${actions}<button type="button" class="btn small secondary"
           data-action="copy-entry" title="Copy tour" aria-label="Copy tour">⧉</button>
         <button type="button" class="btn small secondary"
