@@ -177,7 +177,70 @@
     <!-- Non-blocking status messages are announced by assistive technology. -->
     <div class="toast" id="toast" role="status"></div>
 
+    <!-- Floating Gemini-powered travel assistant -->
+    <section class="travel-chat no-print" aria-label="Lakbay travel assistant">
+      <div class="travel-chat-panel" id="travelChatPanel" hidden>
+        <header class="travel-chat-header">
+          <div>
+            <strong>Lakbay TravelBot</strong>
+            <small>Ask about your active trip</small>
+          </div>
+          <button
+            class="travel-chat-close"
+            id="travelChatClose"
+            type="button"
+            aria-label="Close travel assistant"
+          >
+            ×
+          </button>
+        </header>
+
+        <div
+          class="travel-chat-messages"
+          id="travelChatMessages"
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions"
+        >
+          <div class="travel-chat-message bot-message">
+            Hi! I’m Lakbay. Ask me for practical ideas about your active trip.
+          </div>
+        </div>
+
+        <form class="travel-chat-form" id="travelChatForm">
+          <label class="visually-hidden" for="travelChatInput">
+            Message Lakbay TravelBot
+          </label>
+          <textarea
+            id="travelChatInput"
+            rows="2"
+            maxlength="1200"
+            placeholder="Ask about your trip"
+            required
+          ></textarea>
+          <button class="travel-chat-send" type="submit">Send</button>
+        </form>
+        <small class="travel-chat-disclaimer">
+          AI suggestions may need local verification.
+        </small>
+      </div>
+
+      <button
+        class="travel-chat-toggle"
+        id="travelChatToggle"
+        type="button"
+        aria-label="Open Lakbay travel assistant"
+        aria-controls="travelChatPanel"
+        aria-expanded="false"
+      >
+        <span class="chat-dot" aria-hidden="true"></span>
+        <span class="chat-dot" aria-hidden="true"></span>
+        <span class="chat-dot" aria-hidden="true"></span>
+      </button>
+    </section>
+
     <!-- App logic is loaded last so every referenced DOM element already exists. -->
+    <script src="gemini_travel_api.js"></script>
     <script src="scripts/app.js"></script>
   </body>
 </html>
