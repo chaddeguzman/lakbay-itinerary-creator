@@ -2216,6 +2216,9 @@ html[data-theme="dark"] .day .stop.time-overlap {
   background: #fffdf8;
   color: var(--ink);
   padding: 9px 10px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.84rem;
+  line-height: 1.38;
 }
 .travel-chat-send {
   min-height: 42px;
