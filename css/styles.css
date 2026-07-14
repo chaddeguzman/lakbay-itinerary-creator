@@ -1,3 +1,11 @@
+/* ==========================================================================
+   Design tokens and global element defaults
+   ========================================================================== */
+/*
+  The file starts with broad component defaults, then applies responsive,
+  theme, and feature-specific refinements later in the cascade. Repeated
+  selectors in those later sections intentionally override the base rules.
+*/
 :root {
   --paper: #f4ead5;
   --paper2: #fffaf0;
@@ -44,6 +52,9 @@ select {
 button {
   cursor: pointer;
 }
+/* ==========================================================================
+   Application shell and sidebar
+   ========================================================================== */
 .app {
   min-height: 100vh;
   display: grid;
@@ -142,6 +153,7 @@ button {
 .data-actions[hidden] {
   display: none;
 }
+/* Shared button variants used throughout static and rendered markup. */
 .btn {
   border: 1px solid var(--teal);
   background: var(--teal);
@@ -169,6 +181,9 @@ button {
   padding: 6px 9px;
   font-size: 0.85rem;
 }
+/* ==========================================================================
+   Main trip header, tabs, and panel visibility
+   ========================================================================== */
 .main {
   padding: 38px clamp(18px, 4vw, 58px) 80px;
   min-width: 0;
@@ -237,6 +252,9 @@ button {
 .panel.active {
   display: block;
 }
+/* ==========================================================================
+   Itinerary day cards and activity editors
+   ========================================================================== */
 .day {
   background: var(--paper2);
   border: 1px solid var(--line);
@@ -314,6 +332,7 @@ button {
 .field {
   min-width: 0;
 }
+/* Shared form controls inside cards and modal dialogs. */
 .field label,
 .form-field label {
   display: block;
@@ -389,6 +408,9 @@ html[data-theme="dark"] .empty-day-notice {
   flex: 1;
   min-width: 160px;
 }
+/* ==========================================================================
+   Packing list and expense summaries
+   ========================================================================== */
 .packing-list {
   list-style: none;
   padding: 0;
@@ -450,6 +472,9 @@ html[data-theme="dark"] .empty-day-notice {
   background: var(--terra);
   border-radius: 10px;
 }
+/* ==========================================================================
+   Dialogs, deletion confirmation, and toast feedback
+   ========================================================================== */
 .modal {
   border: 0;
   border-radius: 8px;
@@ -590,6 +615,9 @@ html[data-theme="dark"] .toast {
   padding: 8px;
   resize: vertical;
 }
+/* ==========================================================================
+   Inner trip workspace navigation and record panels
+   ========================================================================== */
 .trip-description {
   max-width: 760px;
   margin: 0 0 18px;
@@ -597,6 +625,9 @@ html[data-theme="dark"] .toast {
   font-style: italic;
   white-space: pre-wrap;
 }
+/* ==========================================================================
+   Workspace sizing refinements
+   ========================================================================== */
 .trip-workspace {
   display: grid;
   grid-template-columns: 190px minmax(0, 1fr);
@@ -736,6 +767,7 @@ html[data-theme="dark"] .toast {
   align-items: center;
   margin-top: 12px;
 }
+/* Primary tablet and mobile layout adjustments. */
 @media (max-width: 900px) {
   .app {
     grid-template-columns: 1fr;
@@ -859,6 +891,7 @@ html[data-theme="dark"] .toast {
     font-size: 2.25rem;
   }
 }
+/* Print rules keep the itinerary readable and hide interactive controls. */
 @media print {
   body {
     background: #fff;
@@ -925,6 +958,8 @@ html[data-theme="dark"] .toast {
     color: #333;
   }
 }
+
+/* Later workspace refinements preserve a compact navigation width on desktop. */
 .trip-workspace {
   grid-template-columns: auto minmax(0, 1fr);
 }
@@ -948,6 +983,7 @@ html[data-theme="dark"] .toast {
     display: none !important;
   }
 }
+/* SVG icons inherit the current navigation color. */
 .section-icon svg {
   display: block;
   width: 21px;
@@ -976,6 +1012,9 @@ html[data-theme="dark"] .toast {
 .theme-toggle:hover {
   transform: translateY(-1px);
 }
+/* ==========================================================================
+   Dark theme palette and component overrides
+   ========================================================================== */
 html[data-theme="dark"] {
   color-scheme: dark;
   --paper: #14201f;
@@ -1023,6 +1062,9 @@ html[data-theme="dark"] .stop-time {
 html[data-theme="dark"] .day-title {
   color: var(--ink);
 }
+/* ==========================================================================
+   Theme switch: track, thumb, icons, and focus treatment
+   ========================================================================== */
 .theme-toggle {
   left: 202px;
   right: auto;
@@ -1186,6 +1228,9 @@ html[data-theme="dark"] .theme-toggle-icon--dark {
   font-size: inherit;
   font-style: normal;
 }
+/* ==========================================================================
+   Detailed activity/tour scheduling layout
+   ========================================================================== */
 .stop {
   grid-template-columns: 150px 1fr auto;
 }
@@ -1254,6 +1299,7 @@ html[data-theme="dark"] .theme-toggle-icon--dark {
     grid-template-columns: repeat(3, 34px);
   }
 }
+/* Drag handles and temporary drag/drop states. */
 .drag-handle {
   display: grid;
   place-items: center;
@@ -1302,6 +1348,7 @@ html[data-theme="dark"] .day-drag-handle {
   color: #ffad98;
   border-color: #d97b65;
 }
+/* Compact saved-entry presentation. */
 .activity-compact {
   grid-template-columns: 1fr auto;
   align-items: center;
@@ -1380,6 +1427,7 @@ html[data-theme="dark"] .day-drag-handle {
     grid-row: auto;
   }
 }
+/* Tour editor and add-entry controls. */
 .add-choice {
   display: flex;
   gap: 8px;
@@ -1483,6 +1531,9 @@ html[data-theme="dark"] .day .stop {
 .compact-location-link:hover {
   color: var(--terra);
 }
+/* ==========================================================================
+   Categorized packing cards and responsive group layout
+   ========================================================================== */
 .packing-legend {
   display: flex;
   gap: 7px;
@@ -1796,6 +1847,9 @@ html[data-theme="dark"] .packing-group {
   }
 }
 
+/* ==========================================================================
+   Day collapsing, status badges, and schedule warnings
+   ========================================================================== */
 .day-content {
   display: block;
 }

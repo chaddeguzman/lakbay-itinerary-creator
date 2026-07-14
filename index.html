@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <!-- Document metadata and global assets -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#174f4b" />
@@ -9,6 +10,7 @@
     <link rel="stylesheet" href="css/styles.css" />
   </head>
   <body>
+    <!-- Mobile navigation and theme controls stay outside the app grid so they remain fixed. -->
     <button class="mobile-menu no-print" aria-label="Open trip menu">☰</button>
 
     <button
@@ -27,7 +29,9 @@
       </span>
     </button>
 
+    <!-- Primary application shell -->
     <div class="app">
+      <!-- Trip search, trip selection, and local data-management actions -->
       <aside class="sidebar no-print">
         <h1 class="brand">LAKBAY <span>✦</span></h1>
         <p class="tagline">Journeys, thoughtfully mapped.</p>
@@ -41,6 +45,7 @@
 
         <div class="trip-list" id="tripList"></div>
 
+        <!-- Manage Data is collapsed by default; app.js toggles the nested actions. -->
         <div class="side-actions">
           <button class="btn" id="newTrip">＋ New trip</button>
           <button
@@ -69,9 +74,11 @@
         </div>
       </aside>
 
+      <!-- All trip panels are rendered into this container by scripts/app.js. -->
       <main class="main" id="main"></main>
     </div>
 
+    <!-- Create/edit trip dialog -->
     <dialog class="modal" id="tripModal">
       <form method="dialog" class="modal-body" id="tripForm">
         <h2 id="modalTitle">Create a journey</h2>
@@ -135,6 +142,7 @@
       </form>
     </dialog>
 
+    <!-- Reusable two-stage confirmation dialog for activity and tour deletion -->
     <dialog class="modal delete-entry-modal" id="deleteEntryModal">
       <form method="dialog" class="modal-body delete-entry-body">
         <div class="delete-entry-stamp" aria-hidden="true">!</div>
@@ -166,8 +174,10 @@
       </form>
     </dialog>
 
+    <!-- Non-blocking status messages are announced by assistive technology. -->
     <div class="toast" id="toast" role="status"></div>
 
+    <!-- App logic is loaded last so every referenced DOM element already exists. -->
     <script src="scripts/app.js"></script>
   </body>
 </html>

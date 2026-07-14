@@ -1,5 +1,10 @@
 (() => {
   "use strict";
+
+  // ---------------------------------------------------------------------------
+  // Data model, defaults, and storage normalization
+  // ---------------------------------------------------------------------------
+  // The app is intentionally client-only. All trip data lives in localStorage.
   const KEY = "itineraryApp:v1",
     CATEGORIES = ["food", "transport", "activities", "lodging"],
     PACK_CATEGORIES = ["essentials", "electronics", "toiletries", "misc"],
@@ -76,6 +81,8 @@
     );
     return s;
   }
+  // Keep persistence behind this small API so rendering code never accesses
+  // localStorage directly and all loaded data passes through normalization.
   const Storage = {
     read() {
       try {
@@ -105,6 +112,9 @@
       this.write(s);
     },
   };
+  // ---------------------------------------------------------------------------
+  // Shared formatting, escaping, date, and identifier helpers
+  // ---------------------------------------------------------------------------
   const $ = (s) => document.querySelector(s),
     esc = (s) =>
       String(s ?? "").replace(
@@ -189,6 +199,9 @@
     t.hotels.forEach((r) => syncRecordExpense(t, "hotel", r));
     t.foodPlaces.forEach((r) => syncRecordExpense(t, "food", r));
   }
+  // ---------------------------------------------------------------------------
+  // Runtime UI state and reusable interface feedback
+  // ---------------------------------------------------------------------------
   let tab = "itinerary",
     toastTimer;
   const main = $("#main"),
@@ -243,9 +256,12 @@
     });
     applyTheme(theme);
   });
+  // Snapshots allow existing entries to be restored when an edit is cancelled.
+  // New-entry IDs are tracked separately so cancellation can remove draft rows.
   const activitySnapshots = new Map(),
     newActivityEntries = new Set();
 
+  // Activity/tour deletion uses two explicit confirmation stages.
   function showEntryDeleteStage(stage, title, message, confirmLabel) {
     const dialog = $("#deleteEntryModal"),
       confirmButton = $("#confirmEntryDelete");
@@ -289,6 +305,9 @@
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Factories for new itinerary entries
+  // ---------------------------------------------------------------------------
   function blankStop() {
     return {
       id: uid(),
@@ -314,6 +333,11 @@
       notes: "",
     };
   }
+  // ---------------------------------------------------------------------------
+  // Main application rendering
+  // ---------------------------------------------------------------------------
+  // Panels are rendered as HTML strings; event delegation below keeps their
+  // controls functional after every full render.
   function render() {
     renderTrips();
     const t = Storage.active();
@@ -408,6 +432,9 @@
       ${t.days.map((d, i) => dayHtml(d, i, collapsedDays.has(d.id))).join("")}
     </section>`;
   }
+  // ---------------------------------------------------------------------------
+  // Travel-record panels and expense synchronization
+  // ---------------------------------------------------------------------------
   function mapsUrl(location) {
     return location
       ? "https://www.google.com/maps/search/?api=1&query=" +
@@ -668,6 +695,9 @@
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Itinerary schedule calculations and overlap detection
+  // ---------------------------------------------------------------------------
   function countCharacters(value) {
     return [...String(value || "")].length;
   }
@@ -911,6 +941,9 @@
         </div>
         </div>`;
   }
+  // ---------------------------------------------------------------------------
+  // Expense and packing-list panels
+  // ---------------------------------------------------------------------------
   function expensesPanel(t) {
     const all = t.days.flatMap((d) => d.expenses || []),
       byCur = {};
@@ -1038,6 +1071,11 @@
         }).join("")}</div>
         </section>`;
   }
+  // ---------------------------------------------------------------------------
+  // Trip mutation and create/edit dialog
+  // ---------------------------------------------------------------------------
+  // Most controls mutate the active trip through this helper, which persists
+  // and redraws the interface in one operation.
   function changeTrip(mut, shouldRender = true) {
     const id = Storage.active()?.id;
     Storage.mutate((s) => {
@@ -1100,6 +1138,9 @@
     toast(id ? "Trip updated" : "Trip created");
   });
   $("#cancelTrip").addEventListener("click", () => $("#tripModal").close());
+  // ---------------------------------------------------------------------------
+  // Delegated record and itinerary actions
+  // ---------------------------------------------------------------------------
   main.addEventListener(
     "click",
     (e) => {
@@ -1330,6 +1371,9 @@
     },
     true,
   );
+  // ---------------------------------------------------------------------------
+  // Drag-and-drop ordering for days and itinerary entries
+  // ---------------------------------------------------------------------------
   let dragState = null;
   main.addEventListener("pointerdown", (e) => {
     const compact = e.target.closest(".activity-compact");
@@ -1424,6 +1468,9 @@
       .querySelectorAll(".dragging,.drag-over")
       .forEach((x) => x.classList.remove("dragging", "drag-over"));
   });
+  // ---------------------------------------------------------------------------
+  // Activity/tour editor lifecycle: snapshot, add, cancel, save, and delete
+  // ---------------------------------------------------------------------------
   main.addEventListener(
     "click",
     (e) => {
@@ -1567,6 +1614,11 @@
     },
     true,
   );
+  // ---------------------------------------------------------------------------
+  // Form field synchronization
+  // ---------------------------------------------------------------------------
+  // Input events persist typing without a redraw; change events redraw derived
+  // labels, maps, totals, and other values once the edit is committed.
   function updateRecordField(e, rerender) {
     const el = e.target,
       card = el.closest("[data-record]");
@@ -1619,6 +1671,9 @@
       obj[field] = el.type === "checkbox" ? el.checked : el.value;
     }, rerender);
   }
+  // ---------------------------------------------------------------------------
+  // Packing, tab navigation, trip selection, and global sidebar controls
+  // ---------------------------------------------------------------------------
   main.addEventListener("submit", (e) => {
     if (e.target.id === "packForm") {
       e.preventDefault();
@@ -1653,6 +1708,7 @@
     e.currentTarget.setAttribute("aria-expanded", String(!expanded));
     actions.hidden = expanded;
   };
+  // Data export/import moves the complete normalized application state as JSON.
   $("#downloadBackup").onclick = () =>
     download(
       JSON.stringify(
@@ -1683,6 +1739,9 @@
     }
     e.target.value = "";
   };
+  // ---------------------------------------------------------------------------
+  // File export helpers
+  // ---------------------------------------------------------------------------
   function download(data, name, type) {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([data], { type }));
@@ -1744,6 +1803,9 @@
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     });
   }
+  // ---------------------------------------------------------------------------
+  // Tour-specific rendering and location editing
+  // ---------------------------------------------------------------------------
   function tourOrdinal(s) {
     return (
       Storage.active()
@@ -1928,6 +1990,8 @@
     },
     true,
   );
+  // Final labels and first paint. These assignments also normalize text from
+  // older cached markup before the application becomes interactive.
   $("#downloadBackup").textContent = "Export";
   $("#importBackup").textContent = "Import";
   render();
