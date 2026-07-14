@@ -729,6 +729,13 @@
       draggable = i > 0 && i < last,
       overlapping = overlappingEntryIds(d),
       isToday = d.date === today(),
+      emptyDayNotice =
+        d.stops.length === 0
+          ? `<div class="empty-day-notice no-print" role="note">
+        <strong>Day is empty</strong>
+        <span>No activities or tours have been added yet. Add details below.</span>
+        </div>`
+          : "",
       dayDragButton = draggable
         ? [
             '<button type="button" class="drag-handle day-drag-handle"',
@@ -758,7 +765,7 @@
         </header>
         <div class="day-content">${d.stops
           .map((s, j) => entryHtml(s, j, overlapping.has(s.id)))
-          .join("")}<footer
+          .join("")}${emptyDayNotice}<footer
           class="day-foot">
         <div class="add-choice no-print">
         <button class="btn small" data-action="add-activity">＋ Activity</button>

@@ -354,6 +354,27 @@ button {
   justify-content: space-between;
   margin-top: 12px;
 }
+.empty-day-notice {
+  display: grid;
+  gap: 4px;
+  padding: 11px 13px;
+  border: 1px solid #c26958;
+  border-left-width: 4px;
+  border-radius: 6px;
+  background: #a43e2b0d;
+  color: #a43e2b;
+}
+.empty-day-notice strong {
+  font-size: 0.88rem;
+}
+.empty-day-notice span {
+  font-size: 0.84rem;
+}
+html[data-theme="dark"] .empty-day-notice {
+  border-color: #d97b65;
+  background: #4a2924;
+  color: #ffad98;
+}
 .total {
   font-weight: bold;
   color: var(--teal);
