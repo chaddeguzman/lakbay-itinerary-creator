@@ -1850,6 +1850,28 @@ html[data-theme="dark"] .packing-group {
 /* ==========================================================================
    Day collapsing, status badges, and schedule warnings
    ========================================================================== */
+/* Rounded itinerary surfaces distinguish day groups without sharp box edges. */
+.panel[data-panel="itinerary"] .day {
+  border-radius: 18px;
+}
+.panel[data-panel="itinerary"] .day .stop {
+  border-radius: 14px;
+}
+.panel[data-panel="itinerary"] .empty-day-notice {
+  border-radius: 12px;
+}
+.panel[data-panel="itinerary"] .stop-time,
+.panel[data-panel="itinerary"] .field input,
+.panel[data-panel="itinerary"] .field select,
+.panel[data-panel="itinerary"] .field textarea,
+.panel[data-panel="itinerary"] .tour-location-row input {
+  border-radius: 10px;
+}
+.panel[data-panel="itinerary"] .day-collapse-button,
+.panel[data-panel="itinerary"] .activity-actions .btn,
+.panel[data-panel="itinerary"] .drag-handle {
+  border-radius: 9px;
+}
 .day-content {
   display: block;
 }
