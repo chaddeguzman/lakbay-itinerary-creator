@@ -27,13 +27,25 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
+      - name: Stage static site
+        shell: bash
+        run: |
+          mkdir _site
+          cp index.html gemini_travel_api.js _site/
+          cp -R assets css scripts _site/
+
+      - name: Configure TravelBot API key
+        env:
+          TRAVELBOT_API: ${{ secrets.TRAVELBOT_API }}
+        run: node .github/scripts/inject-travelbot-key.mjs _site/gemini_travel_api.js
+
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
       - name: Upload static site
         uses: actions/upload-pages-artifact@v4
         with:
-          path: .
+          path: _site
 
       - name: Deploy to GitHub Pages
         id: deployment
