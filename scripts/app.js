@@ -350,9 +350,7 @@
       </div>
       <div class="toolbar no-print">
         <button class="btn small secondary" data-action="rename">Edit trip</button>
-        <button class="btn small secondary" data-action="duplicate">Duplicate</button>
         <button class="btn small secondary" data-action="png">Export PNG</button>
-        <button class="btn small secondary" onclick="window.print()">Print / PDF</button>
         <button class="btn small danger" data-action="delete-trip">Delete</button>
       </div>
     </header>
@@ -1102,39 +1100,6 @@
     toast(id ? "Trip updated" : "Trip created");
   });
   $("#cancelTrip").addEventListener("click", () => $("#tripModal").close());
-  function duplicateFullTrip(t) {
-    const copy = structuredClone(t),
-      sourceIds = new Map();
-    copy.id = uid();
-    copy.name += " (Copy)";
-    copy.flights.forEach((r) => {
-      const old = r.id;
-      r.id = uid();
-      sourceIds.set(`flight:${old}`, r.id);
-    });
-    copy.hotels.forEach((r) => {
-      const old = r.id;
-      r.id = uid();
-      sourceIds.set(`hotel:${old}`, r.id);
-    });
-    copy.foodPlaces.forEach((r) => {
-      const old = r.id;
-      r.id = uid();
-      sourceIds.set(`food:${old}`, r.id);
-    });
-    copy.days.forEach((d) => {
-      d.id = uid();
-      d.stops.forEach((x) => (x.id = uid()));
-      d.expenses.forEach((x) => {
-        x.id = uid();
-        if (x.sourceType && x.sourceId)
-          x.sourceId =
-            sourceIds.get(`${x.sourceType}:${x.sourceId}`) || x.sourceId;
-      });
-    });
-    copy.packingList.forEach((x) => (x.id = uid()));
-    return copy;
-  }
   main.addEventListener(
     "click",
     (e) => {
@@ -1145,18 +1110,6 @@
         e.stopImmediatePropagation();
         Storage.mutate((s) => (s.ui.navCollapsed = !s.ui.navCollapsed));
         render();
-        return;
-      }
-      if (act === "duplicate") {
-        e.stopImmediatePropagation();
-        const t = Storage.active();
-        Storage.mutate((s) => {
-          const copy = duplicateFullTrip(t);
-          s.trips.push(copy);
-          s.activeTripId = copy.id;
-        });
-        render();
-        toast("Trip duplicated");
         return;
       }
       if (act === "add-record") {
@@ -1240,23 +1193,7 @@
       expenseEl = a.closest("[data-expense]");
     if (act === "new") openTripModal();
     else if (act === "rename") openTripModal(t);
-    else if (act === "duplicate") {
-      Storage.mutate((s) => {
-        const copy = structuredClone(t);
-        copy.id = uid();
-        copy.name += " (Copy)";
-        copy.days.forEach((d) => {
-          d.id = uid();
-          d.stops.forEach((x) => (x.id = uid()));
-          (d.expenses || []).forEach((x) => (x.id = uid()));
-        });
-        copy.packingList.forEach((x) => (x.id = uid()));
-        s.trips.push(copy);
-        s.activeTripId = copy.id;
-      });
-      render();
-      toast("Trip duplicated");
-    } else if (act === "delete-trip") {
+    else if (act === "delete-trip") {
       if (confirm(`Delete “${t.name}”? This cannot be undone.`)) {
         Storage.mutate((s) => {
           s.trips = s.trips.filter((x) => x.id !== t.id);
