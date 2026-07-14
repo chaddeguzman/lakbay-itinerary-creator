@@ -139,6 +139,17 @@
             year: "numeric",
           })
         : "",
+    dayDateLabel = (d) => {
+      if (!d) return "";
+      const date = parseDate(d),
+        calendarDate = date.toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        }),
+        weekday = date.toLocaleDateString("en-US", { weekday: "long" });
+      return `${calendarDate} (${weekday})`;
+    },
     money = (n) =>
       Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
   function calendarDates(start, end) {
@@ -397,7 +408,6 @@
           : ""
       }
       ${t.days.map((d, i) => dayHtml(d, i, collapsedDays.has(d.id))).join("")}
-      <button class="btn no-print" data-action="add-day">＋ Add day</button>
     </section>`;
   }
   function mapsUrl(location) {
@@ -763,7 +773,7 @@
         <div>
         <input class="day-title" data-field="title" value="${esc(d.title)}"
           aria-label="Day title">
-        <small>${fmt(d.date)}</small>
+        <small>${dayDateLabel(d.date)}</small>
         ${isToday ? '<span class="today-badge">Today</span>' : ""}
         </div>
         <div class="icon-actions no-print">${dayDragButton}
@@ -1254,21 +1264,6 @@
         });
         render();
       }
-    } else if (act === "add-day") {
-      changeTrip((t) => {
-        const last = t.days.at(-1),
-          date = last
-            ? new Date(last.date + "T00:00:00")
-            : new Date(t.startDate + "T00:00:00");
-        if (last) date.setDate(date.getDate() + 1);
-        t.days.push({
-          id: uid(),
-          date: date.toISOString().slice(0, 10),
-          title: "New day",
-          stops: [],
-          expenses: [],
-        });
-      });
     } else if (act === "toggle-day" && dayEl) {
       Storage.mutate((state) => {
         const collapsedByTrip = state.ui.collapsedDaysByTrip,
@@ -1347,25 +1342,6 @@
   main.addEventListener(
     "click",
     (e) => {
-      const add = e.target.closest('[data-action="add-day"]');
-      if (add) {
-        e.stopImmediatePropagation();
-        changeTrip((t) => {
-          const last = t.days.at(-1),
-            date = last ? parseDate(last.date) : parseDate(t.startDate);
-          if (last) date.setDate(date.getDate() + 1);
-          const value = localIso(date);
-          t.days.push({
-            id: uid(),
-            date: value,
-            title: "New day",
-            stops: [],
-            expenses: [],
-          });
-          t.endDate = value;
-        });
-        return;
-      }
       const section = e.target.closest(".section-tab");
       if (section && window.innerWidth <= 900)
         Storage.mutate((s) => (s.ui.navCollapsed = true));
@@ -1803,7 +1779,7 @@
       y += 38;
       x.fillStyle = "#586661";
       x.font = "19px Georgia";
-      x.fillText(fmt(d.date), 70, y);
+      x.fillText(dayDateLabel(d.date), 70, y);
       y += 32;
       d.stops.forEach((s) => {
         const time =
