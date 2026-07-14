@@ -1596,9 +1596,6 @@
         changeTrip((t) =>
           t.days.find((x) => x.id === day.dataset.day).stops.push(item),
         );
-        toast(
-          item.kind === "tour" ? "New tour added" : "New activity added",
-        );
         return;
       }
       if (act === "edit-activity") {
@@ -1619,9 +1616,18 @@
           toast("Tour needs start time, end time, and a location");
           return;
         }
+        const isNew = newActivityEntries.has(item.id);
         editingActivities.delete(stop.dataset.stop);
         render();
-        toast(item.kind === "tour" ? "Tour saved" : "Activity saved");
+        toast(
+          isNew
+            ? item.kind === "tour"
+              ? "New tour added"
+              : "New activity added"
+            : item.kind === "tour"
+              ? "Tour saved"
+              : "Activity saved",
+        );
         return;
       }
       if (act === "add-tour-location") {
