@@ -43,16 +43,29 @@
 
         <div class="side-actions">
           <button class="btn" id="newTrip">＋ New trip</button>
-          <button class="btn secondary" id="downloadBackup">
-            Download backup
+          <button
+            class="btn secondary manage-data-toggle"
+            id="manageData"
+            type="button"
+            aria-expanded="false"
+            aria-controls="dataActions"
+          >
+            Manage Data
           </button>
-          <button class="btn secondary" id="importBackup">Import backup</button>
-          <input
-            type="file"
-            id="backupFile"
-            accept="application/json,.json"
-            hidden
-          />
+          <div class="data-actions" id="dataActions" hidden>
+            <button class="btn secondary" id="importBackup" type="button">
+              Import
+            </button>
+            <button class="btn secondary" id="downloadBackup" type="button">
+              Export
+            </button>
+            <input
+              type="file"
+              id="backupFile"
+              accept="application/json,.json"
+              hidden
+            />
+          </div>
         </div>
       </aside>
 

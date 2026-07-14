@@ -1706,6 +1706,12 @@
   $("#tripSearch").addEventListener("input", renderTrips);
   $("#newTrip").onclick = () => openTripModal();
   $(".mobile-menu").onclick = () => $(".sidebar").classList.toggle("open");
+  $("#manageData").onclick = (e) => {
+    const actions = $("#dataActions"),
+      expanded = e.currentTarget.getAttribute("aria-expanded") === "true";
+    e.currentTarget.setAttribute("aria-expanded", String(!expanded));
+    actions.hidden = expanded;
+  };
   $("#downloadBackup").onclick = () =>
     download(
       JSON.stringify(
@@ -1981,7 +1987,7 @@
     },
     true,
   );
-  $("#downloadBackup").textContent = "Download";
+  $("#downloadBackup").textContent = "Export";
   $("#importBackup").textContent = "Import";
   render();
 })();
