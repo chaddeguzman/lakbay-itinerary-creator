@@ -822,7 +822,7 @@
         <span>—</span>
         <span>${esc(s.activity || "Untitled activity")}</span>
         <span>·</span>
-        <span>${esc(s.location || "Location not set")}</span>
+        <span>${esc(s.location)}</span>
         </div>
         ${overlapBadge(hasOverlap)}
         <div class="activity-notes">${esc(s.notes)}</div>
@@ -860,11 +860,13 @@
         <div class="fields">
         <div class="field">
         <label>Activity</label>
-        <input data-field="activity" value="${esc(s.activity)}" placeholder="Island hopping">
+        <input data-field="activity" value="${esc(s.activity)}"
+          placeholder="Enter the activity name">
         </div>
         <div class="field">
         <label>Location</label>
-        <input data-field="location" value="${esc(s.location)}" placeholder="Place or address">${
+        <input data-field="location" value="${esc(s.location)}"
+          placeholder="Enter a place or address">${
           map
             ? `<a
           class="map-link" target="_blank" rel="noopener" href="${map}">Open in Google Maps
@@ -875,7 +877,7 @@
         <label>Notes</label>
         <textarea
           data-field="notes"
-          placeholder="Reservation details, reminders…">${esc(s.notes)}</textarea>
+          placeholder="Add reservation details or reminders">${esc(s.notes)}</textarea>
         <small class="note-character-count" data-note-character-count>
           ${countCharacters(s.notes)} characters
         </small>
@@ -938,7 +940,7 @@
         <input
           data-field="description"
           value="${esc(x.description)}"
-          placeholder="Dinner, taxi, tickets…"
+          placeholder="Describe the expense"
           ${lock}>
         </div>
         <div class="field">
@@ -951,7 +953,7 @@
         <div class="field">
         <label>Amount</label>
         <input type="number" min="0" step="0.01" data-field="amount" value="${esc(x.amount)}"
-          placeholder="0" ${lock}>
+          placeholder="Enter an amount" ${lock}>
         </div>
         <div class="field">
         <label>Currency</label>
@@ -994,7 +996,7 @@
         <form class="form-row no-print" id="packForm">
         <div class="form-field">
         <label>New item</label>
-        <input id="packInput" required placeholder="Reusable water bottle">
+        <input id="packInput" required placeholder="Enter an item to pack">
         </div>
         <div class="form-field pack-category-field">
         <label>Category</label>
@@ -1896,7 +1898,8 @@
         <div class="fields">
         <div class="field notes">
         <label>Tour name</label>
-        <input data-field="activity" value="${esc(s.activity)}" placeholder="Old City highlights">
+        <input data-field="activity" value="${esc(s.activity)}"
+          placeholder="Enter the tour name">
         </div>
         <div class="field notes">
         <label>Locations</label>
@@ -1907,7 +1910,7 @@
         <input
           data-tour-location-index="${i}"
           value="${esc(location)}"
-          placeholder="Location ${i + 1}">${
+          placeholder="Enter a tour location">${
             location
               ? `<a
           class="map-link" target="_blank" rel="noopener" href="${mapsUrl(location)}"
@@ -1932,7 +1935,7 @@
         <label>Notes</label>
         <textarea
           data-field="notes"
-          placeholder="Guide, pickup point, reminders…">${esc(s.notes)}</textarea>
+          placeholder="Add guide, pickup, or reminder details">${esc(s.notes)}</textarea>
         <small class="note-character-count" data-note-character-count>
           ${countCharacters(s.notes)} characters
         </small>
