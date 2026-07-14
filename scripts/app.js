@@ -727,6 +727,8 @@
   function dayHtml(d, i, isCollapsed = false) {
     const last = Storage.active().days.length - 1,
       draggable = i > 0 && i < last,
+      canCollapse = d.stops.length > 0,
+      collapsed = canCollapse && isCollapsed,
       overlapping = overlappingEntryIds(d),
       isToday = d.date === today(),
       emptyDayNotice =
@@ -743,8 +745,16 @@
             ' title="Drag day content" aria-label="Drag day content">',
             "⋮⋮</button>",
           ].join("")
+        : "",
+      dayCollapseButton = canCollapse
+        ? `<button type="button" class="day-collapse-button"
+          data-action="toggle-day" aria-expanded="${!collapsed}"
+          title="${collapsed ? "Expand day" : "Collapse day"}"
+          aria-label="${collapsed ? "Expand day" : "Collapse day"}">
+          ${collapsed ? "⌄" : "⌃"}
+        </button>`
         : "";
-    return `<article class="day ${isCollapsed ? "collapsed" : ""}"
+    return `<article class="day ${collapsed ? "collapsed" : ""}"
           data-day="${d.id}">
         <header class="day-head">
         <div class="stamp">Day<span class="day-number">${i}</span></div>
@@ -755,12 +765,7 @@
         ${isToday ? '<span class="today-badge">Today</span>' : ""}
         </div>
         <div class="icon-actions no-print">${dayDragButton}
-        <button type="button" class="day-collapse-button"
-          data-action="toggle-day" aria-expanded="${!isCollapsed}"
-          title="${isCollapsed ? "Expand day" : "Collapse day"}"
-          aria-label="${isCollapsed ? "Expand day" : "Collapse day"}">
-          ${isCollapsed ? "⌄" : "⌃"}
-        </button>
+        ${dayCollapseButton}
         </div>
         </header>
         <div class="day-content">${d.stops
