@@ -236,6 +236,68 @@ ${context}
 Traveler message: ${message}`;
 }
 
+function wantsTripDraft(message) {
+  return /\b(add|build|create|draft|generate|insert|make|plan|suggest)\b/i.test(message)
+    && /\b(itinerary|activity|activities|tour|packing|pack|food|restaurant|budget|expense|expenses)\b/i.test(message);
+}
+
+function buildTravelDraftPrompt(message) {
+  const context = getActiveTripContext();
+  return `Create a structured draft for the active Lakbay trip. Use only valid JSON with this exact shape:
+{
+  "summary": "short human-readable summary",
+  "itinerary": [
+    {
+      "dayNumber": 1,
+      "date": "YYYY-MM-DD when known",
+      "title": "optional day title",
+      "activities": [
+        {
+          "kind": "activity or tour",
+          "time": "HH:MM or empty",
+          "endTime": "HH:MM or empty",
+          "activity": "name",
+          "location": "place",
+          "tourLocations": ["place"],
+          "notes": "short practical note"
+        }
+      ]
+    }
+  ],
+  "packing": [
+    { "label": "item", "category": "essentials, electronics, toiletries, or misc" }
+  ],
+  "foodPlaces": [
+    {
+      "venue": "name",
+      "cuisine": "type",
+      "location": "place",
+      "visitDate": "YYYY-MM-DD or empty",
+      "mealType": "breakfast, lunch, dinner, snack, or empty",
+      "amount": "",
+      "currency": "PHP",
+      "notes": "short practical note"
+    }
+  ],
+  "expenses": [
+    {
+      "dayNumber": 1,
+      "date": "YYYY-MM-DD when known",
+      "description": "estimate",
+      "category": "food, transport, activities, or lodging",
+      "amount": "",
+      "currency": "PHP"
+    }
+  ]
+}
+Keep the draft concise and leave unknown amounts empty. If a section is not requested, return an empty array for it.
+
+Active trip:
+${context || "No active trip data."}
+
+Traveler request: ${message}`;
+}
+
 // Render a deliberately small Markdown subset without inserting raw HTML.
 // This keeps Gemini output expressive while preventing script injection.
 function appendInlineMarkdown(parent, source) {
@@ -353,6 +415,78 @@ function initializeTravelChat() {
     return message;
   }
 
+  function draftCount(draft, key) {
+    if (key === 'itinerary') {
+      return (draft.itinerary || []).reduce(
+        (total, day) => total + (Array.isArray(day.activities) ? day.activities.length : 0),
+        0
+      );
+    }
+    return Array.isArray(draft[key]) ? draft[key].length : 0;
+  }
+
+  function addDraftMessage(draft) {
+    if (!draft || typeof draft !== 'object') {
+      addMessage('I could not prepare a usable draft. Try asking for a smaller itinerary, packing list, food list, or budget estimate.');
+      return null;
+    }
+    const message = document.createElement('div');
+    message.className = 'travel-chat-message bot-message travel-draft-message';
+
+    const title = document.createElement('strong');
+    title.textContent = draft.summary || 'I prepared a draft for your active trip.';
+    message.append(title);
+
+    const list = document.createElement('ul');
+    [
+      ['itinerary', 'itinerary item'],
+      ['packing', 'packing item'],
+      ['foodPlaces', 'food place'],
+      ['expenses', 'expense estimate']
+    ].forEach(([key, label]) => {
+      const count = draftCount(draft, key);
+      if (!count) return;
+      const item = document.createElement('li');
+      item.textContent = `${count} ${label}${count === 1 ? '' : 's'}`;
+      list.append(item);
+    });
+    if (list.children.length) message.append(list);
+
+    const actions = document.createElement('div');
+    actions.className = 'travel-draft-actions';
+
+    const apply = document.createElement('button');
+    apply.type = 'button';
+    apply.className = 'travel-draft-apply';
+    apply.textContent = 'Add to trip';
+    apply.addEventListener('click', () => {
+      if (!window.LakbayApp?.applyTravelDraft) {
+        addMessage('I cannot edit this trip from here yet.');
+        return;
+      }
+      const summary = window.LakbayApp.applyTravelDraft(draft);
+      apply.disabled = true;
+      apply.textContent = 'Added';
+      addMessage(`Added ${summary.itinerary} itinerary item(s), ${summary.packing} packing item(s), ${summary.food} food place(s), and ${summary.expenses} expense estimate(s).`);
+    });
+
+    const discard = document.createElement('button');
+    discard.type = 'button';
+    discard.className = 'travel-draft-discard';
+    discard.textContent = 'Discard';
+    discard.addEventListener('click', () => {
+      apply.disabled = true;
+      discard.disabled = true;
+      message.classList.add('is-discarded');
+    });
+
+    actions.append(apply, discard);
+    message.append(actions);
+    messages.append(message);
+    scrollToLatest();
+    return message;
+  }
+
   function addLoadingMessage() {
     const message = document.createElement('div');
     message.className = 'travel-chat-message bot-message is-loading';
@@ -403,6 +537,10 @@ function initializeTravelChat() {
         addMemory(memoryText);
         loading.remove();
         addMessage(`I’ll remember: ${memoryText}`);
+      } else if (wantsTripDraft(userText) && window.LakbayApp?.getActiveTrip?.()) {
+        const draft = await askGeminiJson(buildTravelDraftPrompt(userText), { temperature: 0.35 });
+        loading.remove();
+        addDraftMessage(draft);
       } else {
         const reply = await chat.sendMessage(buildTravelChatMessage(userText));
         loading.remove();

@@ -587,9 +587,45 @@ html[data-theme="dark"] .empty-day-notice {
 .toast.show {
   opacity: 1;
   transform: none;
+  pointer-events: auto;
+}
+.toast button {
+  margin-left: 12px;
+  border: 1px solid #ffffff99;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  padding: 4px 8px;
+  font-weight: 700;
+}
+.save-status {
+  position: fixed;
+  right: 20px;
+  bottom: 74px;
+  z-index: 20;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper2);
+  color: var(--teal);
+  box-shadow: var(--shadow);
+  padding: 7px 11px;
+  font:
+    700 0.75rem Arial,
+    sans-serif;
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: 0.2s;
+}
+.save-status.show {
+  opacity: 1;
+  transform: none;
 }
 html[data-theme="dark"] .toast {
   color: #102421;
+}
+html[data-theme="dark"] .toast button {
+  border-color: #10242166;
 }
 .mobile-menu {
   display: none;
@@ -2239,6 +2275,41 @@ html[data-theme="dark"] .day .stop.time-overlap {
   color: var(--muted);
   text-align: center;
 }
+.travel-draft-message > strong {
+  display: block;
+  margin-bottom: 8px;
+}
+.travel-draft-message.is-discarded {
+  opacity: 0.62;
+}
+.travel-draft-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.travel-draft-actions button {
+  min-height: 34px;
+  border-radius: 10px;
+  padding: 7px 10px;
+  font:
+    700 0.78rem Arial,
+    sans-serif;
+}
+.travel-draft-apply {
+  border: 1px solid var(--teal);
+  background: var(--teal);
+  color: #fff;
+}
+.travel-draft-discard {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+}
+.travel-draft-actions button:disabled {
+  opacity: 0.58;
+  cursor: default;
+}
 html[data-theme="dark"] .travel-chat-toggle,
 html[data-theme="dark"] .travel-chat-header,
 html[data-theme="dark"] .travel-chat-send {
@@ -2259,6 +2330,10 @@ html[data-theme="dark"] .user-message {
 }
 html[data-theme="dark"] .travel-chat-message.is-error {
   color: #ffad98;
+}
+html[data-theme="dark"] .travel-draft-apply {
+  background: #79c5bb;
+  color: #102421;
 }
 @media (max-width: 520px) {
   .travel-chat {

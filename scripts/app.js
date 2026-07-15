@@ -93,6 +93,7 @@
     },
     write(s) {
       localStorage.setItem(KEY, JSON.stringify(normalizeState(s)));
+      markSaved();
     },
     all() {
       return this.read().trips;
@@ -203,7 +204,9 @@
   // Runtime UI state and reusable interface feedback
   // ---------------------------------------------------------------------------
   let tab = "itinerary",
-    toastTimer;
+    toastTimer,
+    saveStatusTimer,
+    undoSnapshot = null;
   const main = $("#main"),
     list = $("#tripList"),
     editingActivities = new Set(),
@@ -229,12 +232,50 @@
       ["expenses", CHART_ICON, "Expenses"],
       ["packing", "✓", "Packing list"],
     ];
-  function toast(msg) {
+  function markSaved(message = "Saved") {
+    const el = $("#saveStatus");
+    if (!el) return;
+    el.textContent = message;
+    el.classList.add("show");
+    clearTimeout(saveStatusTimer);
+    saveStatusTimer = setTimeout(() => el.classList.remove("show"), 1600);
+  }
+  function toast(msg, action) {
     const el = $("#toast");
-    el.textContent = msg;
+    el.textContent = "";
+    el.append(document.createTextNode(msg));
+    if (action) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = action.label;
+      button.addEventListener("click", () => {
+        action.onClick();
+        el.classList.remove("show");
+      });
+      el.append(button);
+    }
     el.classList.add("show");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove("show"), 1800);
+    toastTimer = setTimeout(() => el.classList.remove("show"), action ? 6000 : 1800);
+  }
+  function restoreUndo() {
+    if (!undoSnapshot) return;
+    Storage.write(undoSnapshot);
+    undoSnapshot = null;
+    render();
+    toast("Restored");
+  }
+  function rememberUndo(label, beforeState) {
+    undoSnapshot = structuredClone(beforeState);
+    toast(label, {
+      label: "Undo",
+      onClick: restoreUndo,
+    });
+  }
+  function mutateWithUndo(label, mut) {
+    const before = Storage.read();
+    Storage.mutate(mut);
+    rememberUndo(label, before);
   }
   function applyTheme(theme) {
     const dark = theme === "dark",
@@ -1206,9 +1247,12 @@
         e.stopImmediatePropagation();
         const card = a.closest("[data-record]"),
           type = card.dataset.recordType,
-          id = card.dataset.record;
-        if (confirm("Remove this record and its linked expense?"))
-          changeTrip((t) => {
+          id = card.dataset.record,
+          activeId = Storage.active()?.id;
+        if (confirm("Remove this record and its linked expense?")) {
+          mutateWithUndo("Record deleted", (s) => {
+            const t = s.trips.find((x) => x.id === activeId);
+            if (!t) return;
             const collection = recordCollection(t, type),
               i = collection.findIndex((x) => x.id === id);
             if (i >= 0) collection.splice(i, 1);
@@ -1219,6 +1263,8 @@
                 )),
             );
           });
+          render();
+        }
         return;
       }
     },
@@ -1236,7 +1282,7 @@
     else if (act === "rename") openTripModal(t);
     else if (act === "delete-trip") {
       if (confirm(`Delete “${t.name}”? This cannot be undone.`)) {
-        Storage.mutate((s) => {
+        mutateWithUndo("Trip deleted", (s) => {
           s.trips = s.trips.filter((x) => x.id !== t.id);
           s.activeTripId = s.trips[0]?.id || null;
         });
@@ -1269,8 +1315,10 @@
           d = t.days[i];
         d.expenses = d.expenses || [];
         if (act === "remove-day") {
-          if (confirm("Remove this day and all its stops?"))
+          if (confirm("Remove this day and all its stops?")) {
+            rememberUndo("Day deleted", Storage.read());
             t.days.splice(i, 1);
+          }
         } else if (act === "day-up" && i > 0)
           [t.days[i - 1], t.days[i]] = [t.days[i], t.days[i - 1]];
         else if (act === "day-down" && i < t.days.length - 1)
@@ -1285,12 +1333,14 @@
             currency: "PHP",
           });
         else if (act === "remove-expense")
+          rememberUndo("Expense deleted", Storage.read()),
           d.expenses = d.expenses.filter(
             (x) => x.id !== expenseEl.dataset.expense,
           );
         else if (stopEl) {
           const j = d.stops.findIndex((x) => x.id === stopEl.dataset.stop);
           if (act === "remove-stop") {
+            rememberUndo(`${removedEntryType || "Entry"} deleted`, Storage.read());
             d.stops.splice(j, 1);
           } else if (act === "copy-entry" && j >= 0) {
             const copy = structuredClone(d.stops[j]),
@@ -1307,14 +1357,17 @@
       });
       if (act === "copy-entry") toast("Entry copied");
       else if (act === "remove-stop" && removedEntryType)
-        toast(`${removedEntryType} deleted`);
+        toast(`${removedEntryType} deleted`, {
+          label: "Undo",
+          onClick: restoreUndo,
+        });
     } else if (act === "remove-item") {
-      changeTrip(
-        (t) =>
-          (t.packingList = t.packingList.filter(
-            (x) => x.id !== a.closest("[data-item]").dataset.item,
-          )),
-      );
+      rememberUndo("Packing item deleted", Storage.read());
+      changeTrip((t) => {
+        t.packingList = t.packingList.filter(
+          (x) => x.id !== a.closest("[data-item]").dataset.item,
+        );
+      });
     } else if (act === "png") exportPng(t);
   });
   main.addEventListener(
@@ -1727,12 +1780,13 @@
       if (
         confirm(`Import ${x.trips.length} trip(s)? This replaces current data.`)
       ) {
+        const before = Storage.read();
         Storage.write({
           trips: x.trips,
           activeTripId: x.activeTripId || x.trips[0]?.id || null,
         });
         render();
-        toast("Backup restored");
+        rememberUndo("Backup restored", before);
       }
     } catch {
       alert("That file is not a valid Lakbay backup.");
@@ -1814,6 +1868,118 @@
         .findIndex((item) => item.id === s.id) + 1
     );
   }
+
+  function dayFromDraft(t, item) {
+    if (item?.date) return t.days.find((day) => day.date === item.date);
+    if (Number.isInteger(item?.dayIndex)) return t.days[item.dayIndex];
+    if (Number.isInteger(item?.dayNumber)) return t.days[item.dayNumber - 1];
+    return t.days[0];
+  }
+
+  function cleanDraftText(value) {
+    return String(value || "").trim();
+  }
+
+  function applyTravelDraft(draft) {
+    const before = Storage.read(),
+      summary = { itinerary: 0, packing: 0, food: 0, expenses: 0 };
+
+    Storage.mutate((s) => {
+      const t =
+        s.trips.find((trip) => trip.id === s.activeTripId) || s.trips[0];
+      if (!t) return;
+
+      (draft.itinerary || []).forEach((dayDraft) => {
+        const day = dayFromDraft(t, dayDraft);
+        if (!day) return;
+        if (cleanDraftText(dayDraft.title)) day.title = cleanDraftText(dayDraft.title);
+        (dayDraft.activities || []).forEach((entry) => {
+          const kind = entry.kind === "tour" ? "tour" : "activity",
+            locations = Array.isArray(entry.tourLocations)
+              ? entry.tourLocations.map(cleanDraftText).filter(Boolean)
+              : [];
+          day.stops.push({
+            id: uid(),
+            kind,
+            time: cleanDraftText(entry.time).slice(0, 5),
+            timeMode: kind === "tour" || entry.endTime ? "range" : "single",
+            endTime: cleanDraftText(entry.endTime).slice(0, 5),
+            activity: cleanDraftText(entry.activity || entry.name),
+            location: kind === "tour" ? "" : cleanDraftText(entry.location),
+            mapsLink: "",
+            tourLocations:
+              kind === "tour"
+                ? locations.length
+                  ? locations
+                  : [cleanDraftText(entry.location)].filter(Boolean)
+                : [],
+            notes: cleanDraftText(entry.notes),
+          });
+          summary.itinerary += 1;
+        });
+      });
+
+      (draft.packing || []).forEach((item) => {
+        const label = cleanDraftText(item.label || item);
+        if (!label) return;
+        t.packingList.push({
+          id: uid(),
+          label,
+          category: PACK_CATEGORIES.includes(item.category)
+            ? item.category
+            : "misc",
+          checked: false,
+        });
+        summary.packing += 1;
+      });
+
+      (draft.foodPlaces || []).forEach((item) => {
+        const venue = cleanDraftText(item.venue || item.name);
+        if (!venue) return;
+        t.foodPlaces.push({
+          id: uid(),
+          venue,
+          cuisine: cleanDraftText(item.cuisine),
+          location: cleanDraftText(item.location),
+          visitDate: cleanDraftText(item.visitDate || item.date),
+          mealType: cleanDraftText(item.mealType),
+          reservationTime: cleanDraftText(item.reservationTime),
+          reservation: "",
+          amount: item.amount || "",
+          currency: cleanDraftText(item.currency) || "PHP",
+          notes: cleanDraftText(item.notes),
+        });
+        syncRecordExpense(t, "food", t.foodPlaces[t.foodPlaces.length - 1]);
+        summary.food += 1;
+      });
+
+      (draft.expenses || []).forEach((item) => {
+        const day = dayFromDraft(t, item),
+          description = cleanDraftText(item.description);
+        if (!day || !description) return;
+        day.expenses.push({
+          id: uid(),
+          description,
+          category: CATEGORIES.includes(item.category)
+            ? item.category
+            : "activities",
+          amount: item.amount || "",
+          currency: cleanDraftText(item.currency) || "PHP",
+        });
+        summary.expenses += 1;
+      });
+    });
+
+    render();
+    rememberUndo("TravelBot draft added", before);
+    return summary;
+  }
+
+  window.LakbayApp = {
+    applyTravelDraft,
+    getActiveTrip: () => structuredClone(Storage.active()),
+  };
+
   function addCompactMapLinks(html, s) {
     if (s.kind === "tour") {
       const locations = (s.tourLocations || []).filter(Boolean);
