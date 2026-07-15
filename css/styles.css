@@ -2000,8 +2000,8 @@ html[data-theme="dark"] .day .stop.time-overlap {
 }
 .travel-chat {
   position: fixed;
-  right: 24px;
-  bottom: 24px;
+  right: clamp(32px, 5vw, 72px);
+  bottom: clamp(40px, 8vh, 80px);
   z-index: 30;
   font-family: Georgia, "Times New Roman", serif;
 }
@@ -2262,8 +2262,8 @@ html[data-theme="dark"] .travel-chat-message.is-error {
 }
 @media (max-width: 520px) {
   .travel-chat {
-    right: 16px;
-    bottom: 16px;
+    right: 20px;
+    bottom: 24px;
   }
   .travel-chat-panel {
     position: fixed;
