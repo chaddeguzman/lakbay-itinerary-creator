@@ -1880,9 +1880,55 @@
     return String(value || "").trim();
   }
 
+  function normalizeDraftKey(value) {
+    return cleanDraftText(value)
+      .toLowerCase()
+      .replace(/&/g, "and")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  }
+
+  function draftEntryLocations(entry) {
+    const locations = Array.isArray(entry.tourLocations)
+      ? entry.tourLocations.map(cleanDraftText).filter(Boolean)
+      : [];
+    return entry.kind === "tour"
+      ? locations.length
+        ? locations
+        : [cleanDraftText(entry.location)].filter(Boolean)
+      : [cleanDraftText(entry.location)].filter(Boolean);
+  }
+
+  function stopLocations(stop) {
+    return stop.kind === "tour"
+      ? (stop.tourLocations || []).map(cleanDraftText).filter(Boolean)
+      : [cleanDraftText(stop.location)].filter(Boolean);
+  }
+
+  function isSimilarDraftText(a, b) {
+    const left = normalizeDraftKey(a),
+      right = normalizeDraftKey(b);
+    if (!left || !right) return false;
+    return left === right || (left.length > 5 && right.includes(left)) || (right.length > 5 && left.includes(right));
+  }
+
+  function isDuplicateDraftEntry(day, entry) {
+    const kind = entry.kind === "tour" ? "tour" : "activity",
+      activity = cleanDraftText(entry.activity || entry.name),
+      locations = draftEntryLocations({ ...entry, kind }).map(normalizeDraftKey).filter(Boolean);
+
+    return (day.stops || []).some((stop) => {
+      if ((stop.kind === "tour" ? "tour" : "activity") !== kind) return false;
+      const sameActivity = isSimilarDraftText(activity, stop.activity),
+        stopLocationKeys = stopLocations(stop).map(normalizeDraftKey).filter(Boolean),
+        sameLocation = locations.some((location) => stopLocationKeys.includes(location));
+      return sameActivity || (sameLocation && !cleanDraftText(stop.endTime || stop.time));
+    });
+  }
+
   function applyTravelDraft(draft) {
     const before = Storage.read(),
-      summary = { itinerary: 0, packing: 0, food: 0, expenses: 0 };
+      summary = { itinerary: 0, packing: 0, food: 0, expenses: 0, skippedDuplicates: 0 };
 
     Storage.mutate((s) => {
       const t =
@@ -1898,6 +1944,10 @@
             locations = Array.isArray(entry.tourLocations)
               ? entry.tourLocations.map(cleanDraftText).filter(Boolean)
               : [];
+          if (!cleanDraftText(entry.activity || entry.name) || isDuplicateDraftEntry(day, { ...entry, kind })) {
+            summary.skippedDuplicates += 1;
+            return;
+          }
           day.stops.push({
             id: uid(),
             kind,

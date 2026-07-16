@@ -2316,9 +2316,23 @@ html[data-theme="dark"] .day .stop.time-overlap {
   margin: 0;
   padding-left: 17px;
 }
-.travel-draft-day li {
+.travel-draft-card {
   display: grid;
   gap: 2px;
+  padding: 7px;
+  border: 1px solid color-mix(in srgb, var(--line) 78%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--paper2) 70%, transparent);
+}
+.travel-draft-card-picker {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 7px;
+  align-items: start;
+  cursor: pointer;
+}
+.travel-draft-card-picker input {
+  margin-top: 2px;
 }
 .travel-draft-day li span {
   color: var(--muted);

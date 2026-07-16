@@ -3,6 +3,7 @@ const API_KEY = '__TRAVELBOT_API__';
 const MODEL_NAME = 'gemini-3.1-flash-lite';
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`;
 const API_KEY_PLACEHOLDERS = new Set(['', 'TRAVELBOT_API', ['__', 'TRAVELBOT_API', '__'].join('')]);
+const GOOGLE_SEARCH_TOOL = { google_search: {} };
 const MEMORY_STORAGE_KEY = 'gemini-chat-memory-log';
 const ITINERARY_STORAGE_KEY = 'itineraryApp:v1';
 const CHAT_POSITION_STORAGE_KEY = 'lakbay-travel-chat-position';
@@ -126,6 +127,7 @@ async function askGemini(prompt, options = {}) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{ parts: [{ text: buildPrompt(prompt, options.memories || getStoredMemories()) }] }],
+      ...(options.tools ? { tools: options.tools } : {}),
       generationConfig: {
         temperature: options.temperature ?? 0.2,
         ...(options.responseMimeType ? { responseMimeType: options.responseMimeType } : {})
@@ -209,7 +211,11 @@ function getActiveTripContext() {
           .filter(Boolean)
           .join(' | ');
       });
-      return `Day ${dayIndex} (${day.date || 'date unset'}, ${day.title || 'untitled'}): ${entries.join('; ') || 'no entries'}`;
+      const date = day.date ? new Date(`${day.date}T12:00:00`) : null;
+      const weekday = date && !Number.isNaN(date.getTime())
+        ? date.toLocaleDateString('en-US', { weekday: 'long' })
+        : 'weekday unset';
+      return `Day ${dayIndex + 1} (${day.date || 'date unset'}, ${weekday}, ${day.title || 'untitled'}): ${entries.join('; ') || 'no entries'}`;
     });
 
     return [
@@ -291,7 +297,9 @@ function buildTravelDraftPrompt(message) {
   ]
 }
 Keep the draft concise and leave unknown amounts empty. If a section is not requested, return an empty array for it.
-For itinerary requests, suggest the best-fit activities and optional side trips first as a preview only. Do not claim they were added yet; the user must confirm before anything is added to the itinerary.
+For itinerary requests, use Google Search grounding to check currently relevant activity, attraction, opening-day, and event information for the destination and date when possible. Cross-check the saved day date and weekday before suggesting date-sensitive activities.
+Suggest only new activities or tours that are not already in the active trip. Treat existing stops as occupied time blocks. If the traveler asks what to add after a morning activity, propose afternoon/evening items after the existing activity's time and avoid overlapping saved entries. Include realistic start and end times when possible.
+Return several separate candidate activities/tours as a preview only. Do not claim they were added yet; the user must choose which cards to add before anything is added to the itinerary.
 
 Active trip:
 ${context || "No active trip data."}
@@ -561,13 +569,40 @@ function initializeTravelChat() {
     return /\b(no|nope|don't|do not|dont|cancel|discard|stop)\b/i.test(message);
   }
 
+  function cloneDraft(draft) {
+    return typeof structuredClone === 'function'
+      ? structuredClone(draft)
+      : JSON.parse(JSON.stringify(draft));
+  }
+
+  function selectedDraftFromMessage(draft, sourceMessage) {
+    const selected = cloneDraft(draft);
+    selected.itinerary = (selected.itinerary || []).map((dayDraft, dayIndex) => {
+      const activities = Array.isArray(dayDraft.activities) ? dayDraft.activities : [];
+      return {
+        ...dayDraft,
+        activities: activities.filter((entry, activityIndex) => {
+          if (!sourceMessage) return true;
+          const selector = `[data-draft-day="${dayIndex}"][data-draft-activity="${activityIndex}"]`;
+          const checkbox = sourceMessage.querySelector(selector);
+          return !checkbox || checkbox.checked;
+        })
+      };
+    }).filter(dayDraft => dayDraft.activities.length);
+    return selected;
+  }
+
   function applyPendingDraft(sourceMessage = pendingDraftMessage) {
     if (!pendingDraft) return false;
     if (!window.LakbayApp?.applyTravelDraft) {
       addMessage('I cannot edit this trip from here yet.');
       return false;
     }
-    const draft = pendingDraft;
+    const draft = selectedDraftFromMessage(pendingDraft, sourceMessage);
+    if (!draftCount(draft, 'itinerary') && !draftCount(draft, 'packing') && !draftCount(draft, 'foodPlaces') && !draftCount(draft, 'expenses')) {
+      addMessage('Choose at least one suggestion card before adding it.');
+      return false;
+    }
     pendingDraft = null;
     pendingDraftMessage = null;
     const summary = window.LakbayApp.applyTravelDraft(draft);
@@ -578,7 +613,8 @@ function initializeTravelChat() {
       const applyButton = sourceMessage.querySelector('.travel-draft-apply');
       if (applyButton) applyButton.textContent = 'Added';
     }
-    addMessage(`Added ${summary.itinerary} itinerary item(s), ${summary.packing} packing item(s), ${summary.food} food place(s), and ${summary.expenses} expense estimate(s).`);
+    const skipped = summary.skippedDuplicates ? ` Skipped ${summary.skippedDuplicates} duplicate itinerary item(s).` : '';
+    addMessage(`Added ${summary.itinerary} itinerary item(s), ${summary.packing} packing item(s), ${summary.food} food place(s), and ${summary.expenses} expense estimate(s).${skipped}`);
     return true;
   }
 
@@ -603,7 +639,7 @@ function initializeTravelChat() {
     const preview = document.createElement('div');
     preview.className = 'travel-draft-preview';
 
-    (draft.itinerary || []).forEach(dayDraft => {
+    (draft.itinerary || []).forEach((dayDraft, dayIndex) => {
       const activities = Array.isArray(dayDraft.activities) ? dayDraft.activities : [];
       if (!activities.length) return;
 
@@ -616,12 +652,22 @@ function initializeTravelChat() {
       day.append(heading);
 
       const list = document.createElement('ul');
-      activities.forEach(entry => {
+      activities.forEach((entry, activityIndex) => {
         const item = document.createElement('li');
+        item.className = 'travel-draft-card';
+
+        const picker = document.createElement('label');
+        picker.className = 'travel-draft-card-picker';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = true;
+        checkbox.dataset.draftDay = String(dayIndex);
+        checkbox.dataset.draftActivity = String(activityIndex);
         const title = document.createElement('strong');
         const kind = entry.kind === 'tour' ? 'Side trip' : 'Activity';
         title.textContent = `${kind}: ${entry.activity || entry.name || 'Untitled suggestion'}`;
-        item.append(title);
+        picker.append(checkbox, title);
+        item.append(picker);
 
         const details = [
           formatDraftTime(entry),
@@ -697,7 +743,7 @@ function initializeTravelChat() {
 
     const prompt = document.createElement('p');
     prompt.className = 'travel-draft-confirm';
-    prompt.textContent = 'Would you like to add this preview to the itinerary? Reply yes or choose an option below.';
+    prompt.textContent = 'Choose the cards you want, then add the selected suggestions to the itinerary.';
     message.append(prompt);
 
     const actions = document.createElement('div');
@@ -706,7 +752,7 @@ function initializeTravelChat() {
     const apply = document.createElement('button');
     apply.type = 'button';
     apply.className = 'travel-draft-apply';
-    apply.textContent = 'Yes, add it';
+    apply.textContent = 'Add selected';
     apply.addEventListener('click', () => {
       applyPendingDraft(message);
     });
@@ -792,7 +838,10 @@ function initializeTravelChat() {
         discardPendingDraft();
         addMessage('Okay, I left the itinerary unchanged.');
       } else if (wantsTripDraft(userText) && window.LakbayApp?.getActiveTrip?.()) {
-        const draft = await askGeminiJson(buildTravelDraftPrompt(userText), { temperature: 0.35 });
+        const draft = await askGeminiJson(buildTravelDraftPrompt(userText), {
+          temperature: 0.35,
+          tools: [GOOGLE_SEARCH_TOOL]
+        });
         loading.remove();
         addDraftMessage(draft);
       } else {
