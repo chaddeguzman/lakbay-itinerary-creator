@@ -2040,6 +2040,16 @@ html[data-theme="dark"] .day .stop.time-overlap {
   bottom: clamp(40px, 8vh, 80px);
   z-index: 30;
   font-family: Georgia, "Times New Roman", serif;
+  touch-action: none;
+  user-select: none;
+}
+.travel-chat.is-positioned {
+  right: auto;
+  bottom: auto;
+}
+.travel-chat.is-dragging .travel-chat-toggle,
+.travel-chat.is-dragging .travel-chat-header {
+  cursor: grabbing;
 }
 .travel-chat-toggle {
   position: relative;
@@ -2058,6 +2068,8 @@ html[data-theme="dark"] .day .stop.time-overlap {
   transition:
     transform 0.2s,
     filter 0.2s;
+  cursor: grab;
+  touch-action: none;
 }
 .travel-chat-toggle::after {
   content: "";
@@ -2114,7 +2126,7 @@ html[data-theme="dark"] .day .stop.time-overlap {
   display: grid;
   grid-template-rows: auto minmax(180px, 1fr) auto auto;
   width: min(370px, calc(100vw - 32px));
-  height: min(560px, calc(100vh - 130px));
+  height: min(560px, calc(100vh - 170px));
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 20px;
@@ -2133,6 +2145,8 @@ html[data-theme="dark"] .day .stop.time-overlap {
   padding: 14px 16px;
   background: var(--teal);
   color: #fff;
+  cursor: grab;
+  touch-action: none;
 }
 .travel-chat-header strong,
 .travel-chat-header small {
@@ -2340,11 +2354,13 @@ html[data-theme="dark"] .travel-draft-apply {
     right: 20px;
     bottom: 24px;
   }
+  .travel-chat.is-positioned {
+    right: auto;
+    bottom: auto;
+  }
   .travel-chat-panel {
-    position: fixed;
-    inset: 12px 12px 88px;
-    width: auto;
-    height: auto;
+    width: min(370px, calc(100vw - 24px));
+    height: min(560px, calc(100vh - 170px));
   }
 }
 @media (prefers-reduced-motion: reduce) {

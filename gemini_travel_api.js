@@ -1,11 +1,11 @@
 // --- YOUR GOOGLE GEMINI API KEY ---
 const API_KEY = '__TRAVELBOT_API__';
-//const MODEL_NAME = 'gemini-2.5-flash';
 const MODEL_NAME = 'gemini-3.1-flash-lite';
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`;
 const API_KEY_PLACEHOLDERS = new Set(['', 'TRAVELBOT_API', ['__', 'TRAVELBOT_API', '__'].join('')]);
 const MEMORY_STORAGE_KEY = 'gemini-chat-memory-log';
 const ITINERARY_STORAGE_KEY = 'itineraryApp:v1';
+const CHAT_POSITION_STORAGE_KEY = 'lakbay-travel-chat-position';
 
 // --- Build Gemini Prompt ---
 function buildPrompt(userInput, memories = []) {
@@ -383,21 +383,131 @@ function renderTravelChatMarkdown(container, markdown) {
 
 function initializeTravelChat() {
   if (typeof document === 'undefined') return;
+  const container = document.querySelector('.travel-chat');
   const toggle = document.querySelector('#travelChatToggle');
   const panel = document.querySelector('#travelChatPanel');
   const close = document.querySelector('#travelChatClose');
   const form = document.querySelector('#travelChatForm');
   const input = document.querySelector('#travelChatInput');
   const messages = document.querySelector('#travelChatMessages');
-  if (!toggle || !panel || !close || !form || !input || !messages) return;
+  if (!container || !toggle || !panel || !close || !form || !input || !messages) return;
 
   const chat = createGeminiChat();
-  let sending = false;
+  let sending = false,
+    suppressNextToggleClick = false;
+
+  function movableMetrics() {
+    const containerRect = container.getBoundingClientRect(),
+      rects = [containerRect, toggle.getBoundingClientRect()];
+    if (!panel.hidden) rects.push(panel.getBoundingClientRect());
+
+    const left = Math.min(...rects.map(rect => rect.left)),
+      top = Math.min(...rects.map(rect => rect.top)),
+      right = Math.max(...rects.map(rect => rect.right)),
+      bottom = Math.max(...rects.map(rect => rect.bottom));
+
+    return {
+      offsetLeft: containerRect.left - left,
+      offsetTop: containerRect.top - top,
+      width: right - left,
+      height: bottom - top
+    };
+  }
+
+  function clampPosition(left, top) {
+    const metrics = movableMetrics(),
+      margin = 12,
+      minLeft = margin + metrics.offsetLeft,
+      minTop = margin + metrics.offsetTop,
+      maxLeft = Math.max(minLeft, window.innerWidth - metrics.width - margin + metrics.offsetLeft),
+      maxTop = Math.max(minTop, window.innerHeight - metrics.height - margin + metrics.offsetTop);
+    return {
+      left: Math.min(Math.max(left, minLeft), maxLeft),
+      top: Math.min(Math.max(top, minTop), maxTop)
+    };
+  }
+
+  function saveChatPosition(left, top) {
+    try {
+      localStorage.setItem(CHAT_POSITION_STORAGE_KEY, JSON.stringify({ left, top }));
+    } catch (error) {
+      console.warn('Could not save chat position:', error);
+    }
+  }
+
+  function setChatPosition(left, top, persist = true) {
+    const position = clampPosition(left, top);
+    container.classList.add('is-positioned');
+    container.style.left = `${position.left}px`;
+    container.style.top = `${position.top}px`;
+    if (persist) saveChatPosition(position.left, position.top);
+    return position;
+  }
+
+  function loadChatPosition() {
+    try {
+      const position = JSON.parse(localStorage.getItem(CHAT_POSITION_STORAGE_KEY) || 'null');
+      if (Number.isFinite(position?.left) && Number.isFinite(position?.top)) {
+        setChatPosition(position.left, position.top, false);
+      }
+    } catch (error) {
+      console.warn('Could not restore chat position:', error);
+    }
+  }
+
+  function keepChatInViewport() {
+    const rect = container.getBoundingClientRect();
+    setChatPosition(rect.left, rect.top, true);
+  }
+
+  function startDrag(event) {
+    if (event.button !== undefined && event.button !== 0) return;
+    if (event.target.closest('button') && event.currentTarget !== toggle) return;
+
+    const startRect = container.getBoundingClientRect(),
+      startX = event.clientX,
+      startY = event.clientY;
+    let moved = false;
+
+    function move(pointerEvent) {
+      const dx = pointerEvent.clientX - startX,
+        dy = pointerEvent.clientY - startY;
+      if (!moved && Math.hypot(dx, dy) < 4) return;
+      moved = true;
+      suppressNextToggleClick = event.currentTarget === toggle;
+      container.classList.add('is-dragging');
+      setChatPosition(startRect.left + dx, startRect.top + dy, false);
+    }
+
+    function end(pointerEvent) {
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', end);
+      document.removeEventListener('pointercancel', end);
+      container.classList.remove('is-dragging');
+      if (moved) {
+        pointerEvent.preventDefault();
+        keepChatInViewport();
+        setTimeout(() => {
+          suppressNextToggleClick = false;
+        }, 0);
+      }
+    }
+
+    document.addEventListener('pointermove', move);
+    document.addEventListener('pointerup', end);
+    document.addEventListener('pointercancel', end);
+  }
+
+  loadChatPosition();
+  toggle.addEventListener('pointerdown', startDrag);
+  panel.querySelector('.travel-chat-header')?.addEventListener('pointerdown', startDrag);
+  window.addEventListener('resize', keepChatInViewport);
 
   function setOpen(open) {
     panel.hidden = !open;
     toggle.setAttribute('aria-expanded', String(open));
     toggle.setAttribute('aria-label', `${open ? 'Close' : 'Open'} Lakbay travel assistant`);
+    if (open) keepChatInViewport();
     if (open) requestAnimationFrame(() => input.focus());
   }
 
@@ -509,7 +619,14 @@ function initializeTravelChat() {
     messages.setAttribute('aria-busy', String(value));
   }
 
-  toggle.addEventListener('click', () => setOpen(panel.hidden));
+  toggle.addEventListener('click', event => {
+    if (suppressNextToggleClick) {
+      event.preventDefault();
+      suppressNextToggleClick = false;
+      return;
+    }
+    setOpen(panel.hidden);
+  });
   close.addEventListener('click', () => setOpen(false));
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape' && !panel.hidden) setOpen(false);
