@@ -20,6 +20,7 @@
       d.stops = Array.isArray(d.stops) ? d.stops : [];
       d.stops.forEach((s) => {
         s.kind = s.kind === "tour" ? "tour" : "activity";
+        s.done = !!s.done;
         s.timeMode =
           s.kind === "tour"
             ? "range"
@@ -360,6 +361,7 @@
       location: "",
       mapsLink: "",
       notes: "",
+      done: false,
     };
   }
   function blankTour() {
@@ -372,6 +374,7 @@
       activity: "",
       tourLocations: [""],
       notes: "",
+      done: false,
     };
   }
   // ---------------------------------------------------------------------------
@@ -884,6 +887,17 @@
       : "";
   }
 
+  function doneToggleButton(s) {
+    const type = s.kind === "tour" ? "tour" : "activity",
+      label = s.done ? `Mark ${type} not done` : `Mark ${type} done`;
+    return `<button type="button"
+          class="btn small secondary done-toggle ${s.done ? "is-active" : ""}"
+          data-action="toggle-done"
+          title="${label}"
+          aria-label="${label}"
+          aria-pressed="${s.done ? "true" : "false"}">${s.done ? "✓" : "□"}</button>`;
+  }
+
   function stopHtml(s, j, hasOverlap = false) {
     const map = mapsUrl(s.location),
       range = s.timeMode === "range",
@@ -904,7 +918,7 @@
           title="Drag activity"
           aria-label="Drag activity">⋮⋮</button>`;
     if (!editingActivities.has(s.id))
-      return `<div class="stop activity-compact
+      return `<div class="stop activity-compact ${s.done ? "is-done" : ""}
           ${hasOverlap ? "time-overlap" : ""}"
           data-stop="${s.id}">
         <div class="activity-summary">
@@ -919,7 +933,7 @@
         </div>
         ${overlapBadge(hasOverlap)}
         <div class="activity-notes">${esc(s.notes)}</div>
-        </div>${actions}<button type="button" class="btn small secondary"
+        </div>${actions}${doneToggleButton(s)}<button type="button" class="btn small secondary"
           data-action="copy-entry" title="Copy activity" aria-label="Copy activity">⧉</button>
         <button type="button" class="btn small secondary"
           data-action="edit-activity" title="Edit activity" aria-label="Edit activity">✎</button>
@@ -1348,6 +1362,7 @@
               name = copy.activity?.trim() || `Untitled ${type}`;
             copy.id = uid();
             copy.activity = `${name} (Copy)`;
+            copy.done = false;
             d.stops.splice(j + 1, 0, copy);
           } else if (act === "stop-up" && j > 0)
             [d.stops[j - 1], d.stops[j]] = [d.stops[j], d.stops[j - 1]];
@@ -1609,6 +1624,23 @@
         changeTrip((t) =>
           t.days.find((x) => x.id === day.dataset.day).stops.push(item),
         );
+        return;
+      }
+      if (act === "toggle-done" && stop) {
+        e.stopImmediatePropagation();
+        const before = Storage.read();
+        let done = false,
+          type = "Activity";
+        changeTrip((t) => {
+          const item = t.days
+            .find((x) => x.id === day.dataset.day)
+            ?.stops.find((x) => x.id === stop.dataset.stop);
+          if (!item) return;
+          item.done = !item.done;
+          done = item.done;
+          type = item.kind === "tour" ? "Tour" : "Activity";
+        });
+        rememberUndo(done ? `${type} marked done` : `${type} reopened`, before);
         return;
       }
       if (act === "edit-activity") {
@@ -1964,6 +1996,7 @@
                   : [cleanDraftText(entry.location)].filter(Boolean)
                 : [],
             notes: cleanDraftText(entry.notes),
+            done: false,
           });
           summary.itinerary += 1;
         });
@@ -2084,7 +2117,7 @@
         <button type="button" class="drag-handle activity-drag-handle" draggable="true"
           data-drag-kind="activity" title="Drag tour" aria-label="Drag tour">⋮⋮</button>`;
     if (!editingActivities.has(s.id))
-      return `<div class="stop activity-compact tour-compact
+      return `<div class="stop activity-compact tour-compact ${s.done ? "is-done" : ""}
           ${hasOverlap ? "time-overlap" : ""}"
           data-stop="${s.id}">
         <div class="activity-summary">
@@ -2099,7 +2132,7 @@
         </div>
         ${overlapBadge(hasOverlap)}
         <div class="activity-notes">${esc(s.notes)}</div>
-        </div>${actions}<button type="button" class="btn small secondary"
+        </div>${actions}${doneToggleButton(s)}<button type="button" class="btn small secondary"
           data-action="copy-entry" title="Copy tour" aria-label="Copy tour">⧉</button>
         <button type="button" class="btn small secondary"
           data-action="edit-activity" title="Edit tour" aria-label="Edit tour">✎</button>

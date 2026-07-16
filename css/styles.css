@@ -1531,13 +1531,41 @@ html[data-theme="dark"] .day .stop {
 }
 .activity-actions,
 .activity-compact > .activity-actions {
-  grid-template-columns: repeat(2, 34px);
+  grid-template-columns: repeat(4, 34px);
 }
 .activity-compact {
   cursor: grab;
 }
 .activity-compact:active {
   cursor: grabbing;
+}
+.activity-compact.is-done {
+  background: color-mix(in srgb, var(--paper2) 70%, #8b948c);
+  border-color: color-mix(in srgb, var(--line) 62%, #8b948c);
+  opacity: 0.72;
+}
+.activity-compact.is-done .activity-summary-line,
+.activity-compact.is-done .activity-notes {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+.activity-compact.is-done .activity-summary-line strong {
+  color: var(--muted);
+}
+.done-toggle.is-active {
+  border-color: var(--teal);
+  background: color-mix(in srgb, var(--teal) 18%, transparent);
+  color: var(--teal);
+}
+html[data-theme="dark"] .activity-compact.is-done {
+  background: color-mix(in srgb, #172522 70%, #8b948c);
+  border-color: #53615d;
+}
+html[data-theme="dark"] .done-toggle.is-active {
+  background: #25433f;
+  color: #79c5bb;
+  border-color: #79c5bb;
 }
 .activity-compact button,
 .activity-compact a {

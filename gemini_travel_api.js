@@ -208,7 +208,8 @@ function getActiveTripContext() {
           ? (entry.tourLocations || []).filter(Boolean).join(' to ')
           : entry.location;
         const time = [entry.time, entry.endTime].filter(Boolean).join('-');
-        return [entry.kind || 'activity', time, entry.activity, locations]
+        const status = entry.done ? 'done' : 'not done';
+        return [entry.kind || 'activity', status, time, entry.activity, locations]
           .filter(Boolean)
           .join(' | ');
       });
