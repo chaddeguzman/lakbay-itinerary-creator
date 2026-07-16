@@ -2293,6 +2293,41 @@ html[data-theme="dark"] .day .stop.time-overlap {
   display: block;
   margin-bottom: 8px;
 }
+.travel-draft-preview {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+.travel-draft-day {
+  display: grid;
+  gap: 5px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--paper) 62%, transparent);
+}
+.travel-draft-day h3 {
+  margin: 0;
+  font-size: 0.84rem;
+}
+.travel-draft-day ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 17px;
+}
+.travel-draft-day li {
+  display: grid;
+  gap: 2px;
+}
+.travel-draft-day li span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.travel-draft-confirm {
+  margin-top: 10px;
+  font-weight: 700;
+}
 .travel-draft-message.is-discarded {
   opacity: 0.62;
 }

@@ -238,7 +238,7 @@ Traveler message: ${message}`;
 
 function wantsTripDraft(message) {
   return /\b(add|build|create|draft|generate|insert|make|plan|suggest)\b/i.test(message)
-    && /\b(itinerary|activity|activities|tour|packing|pack|food|restaurant|budget|expense|expenses)\b/i.test(message);
+    && /\b(itinerary|activity|activities|tour|side\s*trip|side\s*trips|packing|pack|food|restaurant|budget|expense|expenses)\b/i.test(message);
 }
 
 function buildTravelDraftPrompt(message) {
@@ -291,6 +291,7 @@ function buildTravelDraftPrompt(message) {
   ]
 }
 Keep the draft concise and leave unknown amounts empty. If a section is not requested, return an empty array for it.
+For itinerary requests, suggest the best-fit activities and optional side trips first as a preview only. Do not claim they were added yet; the user must confirm before anything is added to the itinerary.
 
 Active trip:
 ${context || "No active trip data."}
@@ -394,6 +395,8 @@ function initializeTravelChat() {
 
   const chat = createGeminiChat();
   let sending = false,
+    pendingDraft = null,
+    pendingDraftMessage = null,
     suppressNextChatClick = false,
     suppressChatClickTimer;
 
@@ -549,16 +552,131 @@ function initializeTravelChat() {
     return Array.isArray(draft[key]) ? draft[key].length : 0;
   }
 
+  function isConfirmingDraft(message) {
+    return /\b(yes|yep|yeah|sure|ok|okay|please|add|accept|confirm)\b/i.test(message)
+      && !/\b(no|don't|do not|dont|cancel|discard|stop)\b/i.test(message);
+  }
+
+  function isRejectingDraft(message) {
+    return /\b(no|nope|don't|do not|dont|cancel|discard|stop)\b/i.test(message);
+  }
+
+  function applyPendingDraft(sourceMessage = pendingDraftMessage) {
+    if (!pendingDraft) return false;
+    if (!window.LakbayApp?.applyTravelDraft) {
+      addMessage('I cannot edit this trip from here yet.');
+      return false;
+    }
+    const draft = pendingDraft;
+    pendingDraft = null;
+    pendingDraftMessage = null;
+    const summary = window.LakbayApp.applyTravelDraft(draft);
+    if (sourceMessage) {
+      sourceMessage.querySelectorAll('button').forEach(button => {
+        button.disabled = true;
+      });
+      const applyButton = sourceMessage.querySelector('.travel-draft-apply');
+      if (applyButton) applyButton.textContent = 'Added';
+    }
+    addMessage(`Added ${summary.itinerary} itinerary item(s), ${summary.packing} packing item(s), ${summary.food} food place(s), and ${summary.expenses} expense estimate(s).`);
+    return true;
+  }
+
+  function discardPendingDraft(sourceMessage = pendingDraftMessage) {
+    if (!pendingDraft) return false;
+    pendingDraft = null;
+    pendingDraftMessage = null;
+    if (sourceMessage) {
+      sourceMessage.classList.add('is-discarded');
+      sourceMessage.querySelectorAll('button').forEach(button => {
+        button.disabled = true;
+      });
+    }
+    return true;
+  }
+
+  function formatDraftTime(entry) {
+    return [entry.time, entry.endTime].map(value => String(value || '').trim()).filter(Boolean).join('-');
+  }
+
+  function addDraftPreviewSection(message, draft) {
+    const preview = document.createElement('div');
+    preview.className = 'travel-draft-preview';
+
+    (draft.itinerary || []).forEach(dayDraft => {
+      const activities = Array.isArray(dayDraft.activities) ? dayDraft.activities : [];
+      if (!activities.length) return;
+
+      const day = document.createElement('section');
+      day.className = 'travel-draft-day';
+
+      const heading = document.createElement('h3');
+      const dayLabel = dayDraft.dayNumber ? `Day ${dayDraft.dayNumber}` : 'Suggested day';
+      heading.textContent = [dayLabel, dayDraft.date, dayDraft.title].filter(Boolean).join(' - ');
+      day.append(heading);
+
+      const list = document.createElement('ul');
+      activities.forEach(entry => {
+        const item = document.createElement('li');
+        const title = document.createElement('strong');
+        const kind = entry.kind === 'tour' ? 'Side trip' : 'Activity';
+        title.textContent = `${kind}: ${entry.activity || entry.name || 'Untitled suggestion'}`;
+        item.append(title);
+
+        const details = [
+          formatDraftTime(entry),
+          entry.kind === 'tour'
+            ? (entry.tourLocations || []).filter(Boolean).join(' to ')
+            : entry.location,
+          entry.notes
+        ].filter(Boolean);
+        if (details.length) {
+          const meta = document.createElement('span');
+          meta.textContent = details.join(' - ');
+          item.append(meta);
+        }
+        list.append(item);
+      });
+      day.append(list);
+      preview.append(day);
+    });
+
+    [
+      ['packing', 'Packing', item => item.label || item],
+      ['foodPlaces', 'Food', item => [item.venue || item.name, item.mealType, item.location].filter(Boolean).join(' - ')],
+      ['expenses', 'Expenses', item => [item.description, item.amount, item.currency].filter(Boolean).join(' ')]
+    ].forEach(([key, label, formatter]) => {
+      const items = Array.isArray(draft[key]) ? draft[key] : [];
+      if (!items.length) return;
+      const group = document.createElement('section');
+      group.className = 'travel-draft-day';
+      const heading = document.createElement('h3');
+      heading.textContent = label;
+      group.append(heading);
+      const list = document.createElement('ul');
+      items.slice(0, 8).forEach(value => {
+        const item = document.createElement('li');
+        item.textContent = formatter(value);
+        list.append(item);
+      });
+      group.append(list);
+      preview.append(group);
+    });
+
+    if (preview.children.length) message.append(preview);
+  }
+
   function addDraftMessage(draft) {
     if (!draft || typeof draft !== 'object') {
       addMessage('I could not prepare a usable draft. Try asking for a smaller itinerary, packing list, food list, or budget estimate.');
       return null;
     }
+    discardPendingDraft();
     const message = document.createElement('div');
     message.className = 'travel-chat-message bot-message travel-draft-message';
 
     const title = document.createElement('strong');
-    title.textContent = draft.summary || 'I prepared a draft for your active trip.';
+    title.textContent = draft.summary || 'I prepared a preview for your active trip.';
     message.append(title);
 
     const list = document.createElement('ul');
@@ -575,6 +693,12 @@ function initializeTravelChat() {
       list.append(item);
     });
     if (list.children.length) message.append(list);
+    addDraftPreviewSection(message, draft);
+
+    const prompt = document.createElement('p');
+    prompt.className = 'travel-draft-confirm';
+    prompt.textContent = 'Would you like to add this preview to the itinerary? Reply yes or choose an option below.';
+    message.append(prompt);
 
     const actions = document.createElement('div');
     actions.className = 'travel-draft-actions';
@@ -582,16 +706,9 @@ function initializeTravelChat() {
     const apply = document.createElement('button');
     apply.type = 'button';
     apply.className = 'travel-draft-apply';
-    apply.textContent = 'Add to trip';
+    apply.textContent = 'Yes, add it';
     apply.addEventListener('click', () => {
-      if (!window.LakbayApp?.applyTravelDraft) {
-        addMessage('I cannot edit this trip from here yet.');
-        return;
-      }
-      const summary = window.LakbayApp.applyTravelDraft(draft);
-      apply.disabled = true;
-      apply.textContent = 'Added';
-      addMessage(`Added ${summary.itinerary} itinerary item(s), ${summary.packing} packing item(s), ${summary.food} food place(s), and ${summary.expenses} expense estimate(s).`);
+      applyPendingDraft(message);
     });
 
     const discard = document.createElement('button');
@@ -599,14 +716,14 @@ function initializeTravelChat() {
     discard.className = 'travel-draft-discard';
     discard.textContent = 'Discard';
     discard.addEventListener('click', () => {
-      apply.disabled = true;
-      discard.disabled = true;
-      message.classList.add('is-discarded');
+      discardPendingDraft(message);
     });
 
     actions.append(apply, discard);
     message.append(actions);
     messages.append(message);
+    pendingDraft = draft;
+    pendingDraftMessage = message;
     scrollToLatest();
     return message;
   }
@@ -667,6 +784,13 @@ function initializeTravelChat() {
         addMemory(memoryText);
         loading.remove();
         addMessage(`I’ll remember: ${memoryText}`);
+      } else if (pendingDraft && isConfirmingDraft(userText)) {
+        loading.remove();
+        applyPendingDraft();
+      } else if (pendingDraft && isRejectingDraft(userText)) {
+        loading.remove();
+        discardPendingDraft();
+        addMessage('Okay, I left the itinerary unchanged.');
       } else if (wantsTripDraft(userText) && window.LakbayApp?.getActiveTrip?.()) {
         const draft = await askGeminiJson(buildTravelDraftPrompt(userText), { temperature: 0.35 });
         loading.remove();
