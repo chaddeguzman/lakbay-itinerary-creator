@@ -934,8 +934,6 @@
         ${overlapBadge(hasOverlap)}
         <div class="activity-notes">${esc(s.notes)}</div>
         </div>${actions}${doneToggleButton(s)}<button type="button" class="btn small secondary"
-          data-action="copy-entry" title="Copy activity" aria-label="Copy activity">⧉</button>
-        <button type="button" class="btn small secondary"
           data-action="edit-activity" title="Edit activity" aria-label="Edit activity">✎</button>
         <button class="btn small danger" data-action="remove-stop" title="Remove activity"
           aria-label="Remove activity">×</button>
@@ -1356,22 +1354,13 @@
           if (act === "remove-stop") {
             rememberUndo(`${removedEntryType || "Entry"} deleted`, Storage.read());
             d.stops.splice(j, 1);
-          } else if (act === "copy-entry" && j >= 0) {
-            const copy = structuredClone(d.stops[j]),
-              type = copy.kind === "tour" ? "tour" : "activity",
-              name = copy.activity?.trim() || `Untitled ${type}`;
-            copy.id = uid();
-            copy.activity = `${name} (Copy)`;
-            copy.done = false;
-            d.stops.splice(j + 1, 0, copy);
           } else if (act === "stop-up" && j > 0)
             [d.stops[j - 1], d.stops[j]] = [d.stops[j], d.stops[j - 1]];
           else if (act === "stop-down" && j < d.stops.length - 1)
             [d.stops[j + 1], d.stops[j]] = [d.stops[j], d.stops[j + 1]];
         }
       });
-      if (act === "copy-entry") toast("Entry copied");
-      else if (act === "remove-stop" && removedEntryType)
+      if (act === "remove-stop" && removedEntryType)
         toast(`${removedEntryType} deleted`, {
           label: "Undo",
           onClick: restoreUndo,
@@ -2133,8 +2122,6 @@
         ${overlapBadge(hasOverlap)}
         <div class="activity-notes">${esc(s.notes)}</div>
         </div>${actions}${doneToggleButton(s)}<button type="button" class="btn small secondary"
-          data-action="copy-entry" title="Copy tour" aria-label="Copy tour">⧉</button>
-        <button type="button" class="btn small secondary"
           data-action="edit-activity" title="Edit tour" aria-label="Edit tour">✎</button>
         <button class="btn small danger" data-action="remove-stop" title="Remove tour"
           aria-label="Remove tour">×</button>

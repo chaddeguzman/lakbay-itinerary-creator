@@ -1531,7 +1531,7 @@ html[data-theme="dark"] .day .stop {
 }
 .activity-actions,
 .activity-compact > .activity-actions {
-  grid-template-columns: repeat(4, 34px);
+  grid-template-columns: repeat(3, 34px);
 }
 .activity-compact {
   cursor: grab;
