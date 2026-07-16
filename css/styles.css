@@ -2126,7 +2126,7 @@ html[data-theme="dark"] .day .stop.time-overlap {
   display: grid;
   grid-template-rows: auto minmax(180px, 1fr) auto auto;
   width: min(370px, calc(100vw - 32px));
-  height: min(560px, calc(100vh - 170px));
+  height: min(672px, calc(100vh - 150px));
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 20px;
@@ -2173,10 +2173,27 @@ html[data-theme="dark"] .day .stop.time-overlap {
   flex-direction: column;
   gap: 10px;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--teal) 76%, var(--gold)) color-mix(in srgb, var(--paper2) 78%, transparent);
   padding: 16px;
   background: color-mix(in srgb, var(--paper) 48%, var(--paper2));
   font-family: Arial, Helvetica, sans-serif;
   font-size: 0.84rem;
+}
+.travel-chat-messages::-webkit-scrollbar {
+  width: 9px;
+}
+.travel-chat-messages::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--paper2) 76%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+}
+.travel-chat-messages::-webkit-scrollbar-thumb {
+  border: 2px solid color-mix(in srgb, var(--paper2) 76%, transparent);
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--teal), color-mix(in srgb, var(--gold) 72%, var(--terra)));
+}
+.travel-chat-messages::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--teal) 82%, #fff), var(--terra));
 }
 .travel-chat-message {
   width: fit-content;
@@ -2387,6 +2404,17 @@ html[data-theme="dark"] .travel-chat-form textarea {
   background: #14201f;
   color: var(--ink);
 }
+html[data-theme="dark"] .travel-chat-messages {
+  scrollbar-color: #79c5bb #14201f;
+}
+html[data-theme="dark"] .travel-chat-messages::-webkit-scrollbar-track {
+  background: #14201f;
+  border-left-color: #2c4642;
+}
+html[data-theme="dark"] .travel-chat-messages::-webkit-scrollbar-thumb {
+  border-color: #14201f;
+  background: linear-gradient(180deg, #79c5bb, #d9b96f);
+}
 html[data-theme="dark"] .user-message {
   background: #d97b65;
   color: #102421;
@@ -2409,7 +2437,7 @@ html[data-theme="dark"] .travel-draft-apply {
   }
   .travel-chat-panel {
     width: min(370px, calc(100vw - 24px));
-    height: min(560px, calc(100vh - 170px));
+    height: min(672px, calc(100vh - 120px));
   }
 }
 @media (prefers-reduced-motion: reduce) {
