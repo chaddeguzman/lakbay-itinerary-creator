@@ -394,7 +394,8 @@ function initializeTravelChat() {
 
   const chat = createGeminiChat();
   let sending = false,
-    suppressNextToggleClick = false;
+    suppressNextChatClick = false,
+    suppressChatClickTimer;
 
   function movableMetrics() {
     const containerRect = container.getBoundingClientRect(),
@@ -474,7 +475,6 @@ function initializeTravelChat() {
         dy = pointerEvent.clientY - startY;
       if (!moved && Math.hypot(dx, dy) < 4) return;
       moved = true;
-      suppressNextToggleClick = event.currentTarget === toggle;
       container.classList.add('is-dragging');
       setChatPosition(startRect.left + dx, startRect.top + dy, false);
     }
@@ -486,10 +486,12 @@ function initializeTravelChat() {
       container.classList.remove('is-dragging');
       if (moved) {
         pointerEvent.preventDefault();
+        suppressNextChatClick = true;
+        clearTimeout(suppressChatClickTimer);
+        suppressChatClickTimer = setTimeout(() => {
+          suppressNextChatClick = false;
+        }, 350);
         keepChatInViewport();
-        setTimeout(() => {
-          suppressNextToggleClick = false;
-        }, 0);
       }
     }
 
@@ -502,6 +504,18 @@ function initializeTravelChat() {
   toggle.addEventListener('pointerdown', startDrag);
   panel.querySelector('.travel-chat-header')?.addEventListener('pointerdown', startDrag);
   window.addEventListener('resize', keepChatInViewport);
+  container.addEventListener(
+    'click',
+    event => {
+      if (!suppressNextChatClick) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      suppressNextChatClick = false;
+      clearTimeout(suppressChatClickTimer);
+    },
+    true
+  );
 
   function setOpen(open) {
     panel.hidden = !open;
@@ -620,9 +634,8 @@ function initializeTravelChat() {
   }
 
   toggle.addEventListener('click', event => {
-    if (suppressNextToggleClick) {
+    if (suppressNextChatClick) {
       event.preventDefault();
-      suppressNextToggleClick = false;
       return;
     }
     setOpen(panel.hidden);
