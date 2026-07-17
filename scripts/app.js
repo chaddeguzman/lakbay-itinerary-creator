@@ -225,8 +225,19 @@
       ' stroke-linecap="round" stroke-linejoin="round"/>',
       "</svg>",
     ].join(""),
+    MAP_ICON = [
+      '<svg viewBox="0 0 24 24" aria-hidden="true">',
+      '<path d="m9 18-6 3V6l6-3 6 3 6-3v15l-6 3z"',
+      ' fill="none" stroke="currentColor" stroke-width="2"',
+      ' stroke-linecap="round" stroke-linejoin="round"/>',
+      '<path d="M9 3v15M15 6v15"',
+      ' fill="none" stroke="currentColor" stroke-width="2"',
+      ' stroke-linecap="round"/>',
+      "</svg>",
+    ].join(""),
     NAV_ITEMS = [
       ["itinerary", "🗺", "Itinerary"],
+      ["maps", MAP_ICON, "Maps"],
       ["flight", "✈", "Flight"],
       ["hotel", HOUSE_ICON, "Hotel"],
       ["food", "🍽", "Food"],
@@ -437,6 +448,7 @@
       </nav>
       <div class="section-content">
         ${itineraryPanel(t)}
+        ${mapsPanel(t)}
         ${flightPanel(t)}
         ${hotelPanel(t)}
         ${foodPanel(t)}
@@ -484,6 +496,114 @@
       ? "https://www.google.com/maps/search/?api=1&query=" +
           encodeURIComponent(location)
       : "";
+  }
+  function mapsRouteUrl(locations) {
+    const clean = locations.map((x) => String(x || "").trim()).filter(Boolean);
+    if (clean.length < 2) return mapsUrl(clean[0] || "");
+    const params = new URLSearchParams({
+      api: "1",
+      origin: clean[0],
+      destination: clean[clean.length - 1],
+      travelmode: "driving",
+    });
+    if (clean.length > 2) params.set("waypoints", clean.slice(1, -1).join("|"));
+    return "https://www.google.com/maps/dir/?" + params.toString();
+  }
+  function routeStopLabel(stop) {
+    if (stop.kind === "tour") return stop.activity || "Tour stop";
+    return stop.activity || "Activity";
+  }
+  function dayRouteStops(day) {
+    return (day.stops || []).flatMap((stop) => {
+      if (stop.kind === "tour") {
+        return (stop.tourLocations || [])
+          .map((location) => String(location || "").trim())
+          .filter(Boolean)
+          .map((location, index) => ({
+            location,
+            label: index
+              ? `${routeStopLabel(stop)} stop ${index + 1}`
+              : routeStopLabel(stop),
+            time: stop.time,
+            kind: "Tour",
+          }));
+      }
+      const location = String(stop.location || "").trim();
+      return location
+        ? [
+            {
+              location,
+              label: routeStopLabel(stop),
+              time: stop.time,
+              kind: "Activity",
+            },
+          ]
+        : [];
+    });
+  }
+  function mapsPanel(t) {
+    const days = t.days.map((day, index) => ({
+        day,
+        index,
+        stops: dayRouteStops(day),
+      })),
+      totalStops = days.reduce((sum, item) => sum + item.stops.length, 0);
+    return `<section class="panel ${tab === "maps" ? "active" : ""}" data-panel="maps">
+        <h2>Map view</h2>
+        <p>Open each day as a Google Maps route, with stops arranged in your itinerary order.</p>
+        <div class="map-summary">
+        <div class="budget-card">
+        <small>Routable stops</small>
+        <strong>${totalStops}</strong>
+        </div>
+        <div class="budget-card">
+        <small>Days with routes</small>
+        <strong>${days.filter((item) => item.stops.length > 1).length}</strong>
+        </div>
+        </div>
+        <div class="map-days">${days.map(mapDayHtml).join("")}</div>
+        </section>`;
+  }
+  function mapDayHtml({ day, index, stops }) {
+    const locations = stops.map((stop) => stop.location),
+      routeUrl = mapsRouteUrl(locations),
+      hasRoute = stops.length > 1,
+      actionLabel = hasRoute ? "Open day route" : "Open place",
+      action = stops.length
+        ? `<a class="btn small secondary no-print" target="_blank" rel="noopener"
+          href="${routeUrl}">${actionLabel}</a>`
+        : "";
+    return `<article class="map-day-card">
+        <header class="map-day-head">
+        <div>
+        <h3>Day ${index + 1} &middot; ${esc(day.title)}</h3>
+        <small>${dayDateLabel(day.date)}</small>
+        </div>
+        <div class="map-day-actions">
+        <span>${stops.length} stop${stops.length === 1 ? "" : "s"}</span>
+        ${action}
+        </div>
+        </header>
+        ${
+          stops.length
+            ? `<ol class="map-stop-list">${stops.map(mapStopHtml).join("")}</ol>
+        <div class="map-flow" aria-label="Route flow">
+        ${stops.map((stop) => `<span>${esc(stop.location)}</span>`).join("<b>&rarr;</b>")}
+        </div>`
+            : '<p class="expense-empty">No mapped stops for this day yet. Add activity locations or tour locations in the Itinerary tab.</p>'
+        }
+        </article>`;
+  }
+  function mapStopHtml(stop) {
+    const time = stop.time ? formatTime12(stop.time) : "Unscheduled";
+    return `<li>
+        <div>
+        <strong>${esc(stop.label)}</strong>
+        <small>${esc(time)} &middot; ${esc(stop.kind)}</small>
+        </div>
+        <a class="map-link" target="_blank" rel="noopener"
+          href="${mapsUrl(stop.location)}">${esc(stop.location)}</a>
+        </li>`;
   }
   function syncStatus(t, date, amount) {
     if (!Number(amount))
