@@ -44,6 +44,12 @@
     t.flights = Array.isArray(t.flights) ? t.flights : [];
     t.hotels = Array.isArray(t.hotels) ? t.hotels : [];
     t.foodPlaces = Array.isArray(t.foodPlaces) ? t.foodPlaces : [];
+    t.weatherForecast =
+      t.weatherForecast &&
+      typeof t.weatherForecast === "object" &&
+      !Array.isArray(t.weatherForecast)
+        ? t.weatherForecast
+        : null;
     return t;
   }
   function normalizeState(x) {
@@ -235,9 +241,21 @@
       ' stroke-linecap="round"/>',
       "</svg>",
     ].join(""),
+    WEATHER_ICON = [
+      '<svg viewBox="0 0 24 24" aria-hidden="true">',
+      '<path d="M17.5 18H8a4 4 0 1 1 .8-7.9A5.5 5.5 0 0 1 19 12.5',
+      ' 2.8 2.8 0 0 1 17.5 18Z"',
+      ' fill="none" stroke="currentColor" stroke-width="2"',
+      ' stroke-linecap="round" stroke-linejoin="round"/>',
+      '<path d="M9 21v-1M13 21v-1M17 21v-1"',
+      ' fill="none" stroke="currentColor" stroke-width="2"',
+      ' stroke-linecap="round"/>',
+      "</svg>",
+    ].join(""),
     NAV_ITEMS = [
       ["itinerary", "🗺", "Itinerary"],
       ["maps", MAP_ICON, "Maps"],
+      ["weather", WEATHER_ICON, "Weather"],
       ["flight", "✈", "Flight"],
       ["hotel", HOUSE_ICON, "Hotel"],
       ["food", "🍽", "Food"],
@@ -449,6 +467,7 @@
       <div class="section-content">
         ${itineraryPanel(t)}
         ${mapsPanel(t)}
+        ${weatherPanel(t)}
         ${flightPanel(t)}
         ${hotelPanel(t)}
         ${foodPanel(t)}
@@ -604,6 +623,167 @@
         <a class="map-link" target="_blank" rel="noopener"
           href="${mapsUrl(stop.location)}">${esc(stop.location)}</a>
         </li>`;
+  }
+  const WEATHER_CODES = {
+    0: "Clear",
+    1: "Mostly clear",
+    2: "Partly cloudy",
+    3: "Cloudy",
+    45: "Fog",
+    48: "Rime fog",
+    51: "Light drizzle",
+    53: "Drizzle",
+    55: "Heavy drizzle",
+    61: "Light rain",
+    63: "Rain",
+    65: "Heavy rain",
+    71: "Light snow",
+    73: "Snow",
+    75: "Heavy snow",
+    80: "Rain showers",
+    81: "Rain showers",
+    82: "Heavy showers",
+    95: "Thunderstorm",
+  };
+  function weatherSummary(code) {
+    return WEATHER_CODES[Number(code)] || "Forecast";
+  }
+  function isRainyForecast(day) {
+    const code = Number(day?.weatherCode),
+      probability = Number(day?.precipitationProbabilityMax || 0),
+      precipitation = Number(day?.precipitationSum || 0);
+    return probability >= 50 || precipitation >= 2 || [51, 53, 55, 61, 63, 65, 80, 81, 82, 95].includes(code);
+  }
+  function weatherDayForDate(forecast, date) {
+    return (forecast?.days || []).find((day) => day.date === date) || null;
+  }
+  function weatherPanel(t) {
+    const forecast = t.weatherForecast,
+      updated = forecast?.updatedAt ? new Date(forecast.updatedAt) : null,
+      updatedLabel =
+        updated && !Number.isNaN(updated.getTime())
+          ? updated.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
+          : "",
+      rainyDays = (forecast?.days || []).filter(isRainyForecast).length;
+    return `<section class="panel ${tab === "weather" ? "active" : ""}" data-panel="weather">
+        <div class="weather-heading">
+        <div>
+        <h2>Weather</h2>
+        <p>Fetch a daily forecast for this trip destination, then use rainy-day flags when planning.</p>
+        </div>
+        <button class="btn small secondary no-print" data-action="refresh-weather">
+        ${forecast ? "Refresh forecast" : "Fetch forecast"}
+        </button>
+        </div>
+        <div class="weather-summary">
+        <div class="budget-card">
+        <small>Forecast location</small>
+        <strong>${esc(forecast?.locationName || t.destination || "Not set")}</strong>
+        </div>
+        <div class="budget-card">
+        <small>Rainy days flagged</small>
+        <strong>${rainyDays}</strong>
+        </div>
+        </div>
+        ${
+          forecast
+            ? `<small class="weather-updated">Updated ${esc(updatedLabel || "recently")} via Open-Meteo.</small>
+        <div class="weather-days">${t.days.map((day, index) => weatherDayHtml(day, index, forecast)).join("")}</div>`
+            : '<p class="expense-empty">No forecast saved yet. Fetch weather to show daily planning notes for this destination.</p>'
+        }
+        </section>`;
+  }
+  function weatherDayHtml(day, index, forecast) {
+    const weather = weatherDayForDate(forecast, day.date),
+      rainy = isRainyForecast(weather),
+      minTemp = Number(weather?.temperatureMin),
+      maxTemp = Number(weather?.temperatureMax),
+      rainChance = Number(weather?.precipitationProbabilityMax),
+      temp =
+        weather && Number.isFinite(minTemp) && Number.isFinite(maxTemp)
+          ? `${Math.round(weather.temperatureMin)}-${Math.round(weather.temperatureMax)}°C`
+          : "No forecast",
+      rain =
+        weather && Number.isFinite(rainChance)
+          ? `${weather.precipitationProbabilityMax}% rain`
+          : "Rain chance unavailable";
+    return `<article class="weather-day-card ${rainy ? "is-rainy" : ""}">
+        <header>
+        <div>
+        <h3>Day ${index + 1} &middot; ${esc(day.title)}</h3>
+        <small>${dayDateLabel(day.date)}</small>
+        </div>
+        ${rainy ? '<span class="weather-badge">Indoor backup</span>' : ""}
+        </header>
+        <div class="weather-metrics">
+        <strong>${esc(weather ? weatherSummary(weather.weatherCode) : "Unavailable")}</strong>
+        <span>${esc(temp)}</span>
+        <span>${esc(rain)}</span>
+        </div>
+        <p>${rainy ? "Rain is possible. Ask TravelBot for indoor alternatives or a lower-walking version of this day." : "Weather looks workable, but verify locally before locking plans."}</p>
+        </article>`;
+  }
+  async function fetchTripWeather(t) {
+    const query = (t.destination || t.name || "").trim();
+    if (!query) throw new Error("Add a destination before fetching weather.");
+    const geoUrl =
+      "https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&format=json&name=" +
+      encodeURIComponent(query);
+    const geoResponse = await fetch(geoUrl);
+    if (!geoResponse.ok) throw new Error("Could not find that destination for weather.");
+    const geoData = await geoResponse.json(),
+      place = geoData?.results?.[0];
+    if (!place) throw new Error("No weather location found for this destination.");
+    const params = new URLSearchParams({
+      latitude: place.latitude,
+      longitude: place.longitude,
+      daily: [
+        "weather_code",
+        "temperature_2m_max",
+        "temperature_2m_min",
+        "precipitation_probability_max",
+        "precipitation_sum",
+      ].join(","),
+      timezone: "auto",
+      start_date: t.startDate,
+      end_date: t.endDate,
+    });
+    const forecastResponse = await fetch("https://api.open-meteo.com/v1/forecast?" + params);
+    if (!forecastResponse.ok) throw new Error("Weather forecast is unavailable for these dates.");
+    const data = await forecastResponse.json(),
+      daily = data.daily || {},
+      dates = daily.time || [];
+    return {
+      locationName: [place.name, place.admin1, place.country].filter(Boolean).join(", "),
+      latitude: place.latitude,
+      longitude: place.longitude,
+      updatedAt: new Date().toISOString(),
+      days: dates.map((date, index) => ({
+        date,
+        weatherCode: daily.weather_code?.[index] ?? null,
+        temperatureMax: daily.temperature_2m_max?.[index] ?? null,
+        temperatureMin: daily.temperature_2m_min?.[index] ?? null,
+        precipitationProbabilityMax:
+          daily.precipitation_probability_max?.[index] ?? null,
+        precipitationSum: daily.precipitation_sum?.[index] ?? null,
+      })),
+    };
+  }
+  async function refreshWeather(t) {
+    const activeId = t?.id;
+    try {
+      toast("Fetching weather...");
+      const forecast = await fetchTripWeather(t);
+      Storage.mutate((state) => {
+        const trip = state.trips.find((item) => item.id === activeId);
+        if (trip) trip.weatherForecast = forecast;
+      });
+      render();
+      toast("Weather forecast updated");
+    } catch (error) {
+      console.warn("Weather fetch failed:", error);
+      toast(error.message || "Weather forecast is unavailable right now.");
+    }
   }
   function syncStatus(t, date, amount) {
     if (!Number(amount))
@@ -1420,6 +1600,8 @@
         });
         render();
       }
+    } else if (act === "refresh-weather") {
+      await refreshWeather(t);
     } else if (act === "toggle-day" && dayEl) {
       Storage.mutate((state) => {
         const collapsedByTrip = state.ui.collapsedDaysByTrip,

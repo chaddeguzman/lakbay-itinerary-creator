@@ -17,6 +17,7 @@ function buildPrompt(userInput, memories = []) {
   return `You are Lakbay, a friendly travel buddy and practical itinerary assistant familiar with the user's active trip. Sound natural, casual, and helpful, like a thoughtful local friend giving clear advice. Give culturally respectful planning advice, account for saved preferences when relevant, and briefly flag details that should be verified locally.
 Keep answers easy to digest. Default to a warm one-line answer plus 2-4 short bullets when listing options, steps, or recommendations. Use numbered lists only when order matters. For simple questions, answer in 1-3 short sentences. Do not over-explain, repeat the user's question, or add extra background unless the user asks for detail.
 When giving travel recommendations, prioritize hidden gems, local favorites, and relaxed authentic places over high-traffic commercial areas or tourist traps. Still include a balanced mix of popular must-see spots and lesser-known quiet options. Be specific about why each place is worth visiting, especially if it is less crowded or mostly frequented by locals.
+When saved weather context says rain is likely, suggest indoor, covered, transit-friendly, or lower-walking alternatives for that day and mention that the forecast should still be verified locally.
 When formatting improves readability, use Markdown. Supported formatting includes # to ### headings, **bold**, *italic*, ++underlined text++, bulleted or numbered lists, and [clickable link text](https://example.com). Avoid stiff phrases like "Certainly" or "As an AI"; do not use raw HTML.
 ${memoryBlock}
 User: ${userInput}`;
@@ -219,12 +220,31 @@ function getActiveTripContext() {
         : 'weekday unset';
       return `Day ${dayIndex + 1} (${day.date || 'date unset'}, ${weekday}, ${day.title || 'untitled'}): ${entries.join('; ') || 'no entries'}`;
     });
+    const weatherForecast = trip.weatherForecast && typeof trip.weatherForecast === 'object'
+      ? trip.weatherForecast
+      : null;
+    const weatherDays = Array.isArray(weatherForecast?.days)
+      ? weatherForecast.days
+      : [];
+    const weatherLines = weatherDays.slice(0, 31).map(day => {
+      const rainChance = day.precipitationProbabilityMax ?? 'unknown';
+      const rainAmount = day.precipitationSum ?? 'unknown';
+      const max = day.temperatureMax ?? 'unknown';
+      const min = day.temperatureMin ?? 'unknown';
+      const code = day.weatherCode ?? 'unknown';
+      const rainy = Number(day.precipitationProbabilityMax || 0) >= 50
+        || Number(day.precipitationSum || 0) >= 2
+        || [51, 53, 55, 61, 63, 65, 80, 81, 82, 95].includes(Number(day.weatherCode));
+      return `${day.date}: code ${code}, ${min}-${max}C, rain chance ${rainChance}%, precipitation ${rainAmount}mm${rainy ? ' | rain likely: suggest indoor or low-walking alternatives' : ''}`;
+    });
 
     return [
       `Trip: ${trip.name || 'Untitled trip'}`,
       `Destination: ${trip.destination || 'Not set'}`,
       `Dates: ${trip.startDate || 'not set'} to ${trip.endDate || 'not set'}`,
       trip.description ? `Description: ${trip.description}` : '',
+      weatherForecast ? `Weather forecast location: ${weatherForecast.locationName || trip.destination || 'unknown'}` : '',
+      weatherLines.length ? `Saved daily weather forecast:\n${weatherLines.join('\n')}` : '',
       ...days
     ].filter(Boolean).join('\n');
   } catch (error) {
