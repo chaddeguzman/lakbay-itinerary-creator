@@ -1,12 +1,21 @@
 // --- YOUR GOOGLE GEMINI API KEY ---
 const API_KEY = '__TRAVELBOT_API__';
 const MODEL_NAME = 'gemini-3.1-flash-lite';
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`;
-const API_KEY_PLACEHOLDERS = new Set(['', 'TRAVELBOT_API', ['__', 'TRAVELBOT_API', '__'].join('')]);
+const API_URL =
+  `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}` +
+  `:generateContent?key=${API_KEY}`;
+const API_KEY_PLACEHOLDERS = new Set([
+  '',
+  'TRAVELBOT_API',
+  ['__', 'TRAVELBOT_API', '__'].join('')
+]);
 const GOOGLE_SEARCH_TOOL = { google_search: {} };
 const MEMORY_STORAGE_KEY = 'gemini-chat-memory-log';
 const ITINERARY_STORAGE_KEY = 'itineraryApp:v1';
 const CHAT_POSITION_STORAGE_KEY = 'lakbay-travel-chat-position';
+const MISSING_API_KEY_MESSAGE =
+  'Gemini API key is not configured. Configure the TravelBot API key before ' +
+  'using the travel assistant.';
 
 // --- Build Gemini Prompt ---
 function buildPrompt(userInput, memories = []) {
@@ -14,13 +23,36 @@ function buildPrompt(userInput, memories = []) {
   // Replace this block when a future project needs its own reusable prompt.
   const memoryBlock = formatMemoryPrompt(memories);
 
-  return `You are Lakbay, a friendly travel buddy and practical itinerary assistant familiar with the user's active trip. Sound natural, casual, and helpful, like a thoughtful local friend giving clear advice. Give culturally respectful planning advice, account for saved preferences when relevant, and briefly flag details that should be verified locally.
-Keep answers easy to digest. Default to a warm one-line answer plus 2-4 short bullets when listing options, steps, or recommendations. Use numbered lists only when order matters. For simple questions, answer in 1-3 short sentences. Do not over-explain, repeat the user's question, or add extra background unless the user asks for detail.
-When giving travel recommendations, prioritize hidden gems, local favorites, and relaxed authentic places over high-traffic commercial areas or tourist traps. Still include a balanced mix of popular must-see spots and lesser-known quiet options. Be specific about why each place is worth visiting, especially if it is less crowded or mostly frequented by locals.
-When saved weather context says rain is likely, suggest indoor, covered, transit-friendly, or lower-walking alternatives for that day and mention that the forecast should still be verified locally.
-When formatting improves readability, use Markdown. Supported formatting includes # to ### headings, **bold**, *italic*, ++underlined text++, bulleted or numbered lists, and [clickable link text](https://example.com). Avoid stiff phrases like "Certainly" or "As an AI"; do not use raw HTML.
-${memoryBlock}
-User: ${userInput}`;
+  return [
+    'You are Lakbay, a friendly travel buddy and practical itinerary assistant',
+    "familiar with the user's active trip. Sound natural, casual, and helpful,",
+    'like a thoughtful local friend giving clear advice. Give culturally',
+    'respectful planning advice, account for saved preferences when relevant,',
+    'and briefly flag details that should be verified locally.',
+    '',
+    'Keep answers easy to digest. Default to a warm one-line answer plus 2-4',
+    'short bullets when listing options, steps, or recommendations. Use numbered',
+    'lists only when order matters. For simple questions, answer in 1-3 short',
+    "sentences. Do not over-explain, repeat the user's question, or add extra",
+    'background unless the user asks for detail.',
+    '',
+    'When giving travel recommendations, prioritize hidden gems, local favorites,',
+    'and relaxed authentic places over high-traffic commercial areas or tourist',
+    'traps. Still include a balanced mix of popular must-see spots and lesser-known',
+    'quiet options. Be specific about why each place is worth visiting, especially',
+    'if it is less crowded or mostly frequented by locals.',
+    '',
+    'When saved weather context says rain is likely, suggest indoor, covered,',
+    'transit-friendly, or lower-walking alternatives for that day and mention',
+    'that the forecast should still be verified locally.',
+    '',
+    'When formatting improves readability, use Markdown. Supported formatting',
+    'includes # to ### headings, **bold**, *italic*, ++underlined text++, bulleted',
+    'or numbered lists, and [clickable link text](https://example.com). Avoid',
+    'stiff phrases like "Certainly" or "As an AI"; do not use raw HTML.',
+    memoryBlock,
+    `User: ${userInput}`
+  ].join('\n');
   // --- Custom Prompt End ---
 }
 
@@ -53,7 +85,10 @@ function addMemory(text) {
 function clearMemories() { return setStoredMemories([]); }
 
 function formatMemoryTimestamp(date = new Date()) {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
   const year = date.getFullYear();
   const month = months[date.getMonth()];
   const day = String(date.getDate()).padStart(2, '0');
@@ -74,7 +109,9 @@ function formatMemoryTimestamp(date = new Date()) {
 }
 
 function formatMemoryPrompt(memories = getStoredMemories()) {
-  const lines = memories.map(memory => typeof memory === 'string' ? memory : memory?.text).filter(Boolean);
+  const lines = memories
+    .map(memory => (typeof memory === 'string' ? memory : memory?.text))
+    .filter(Boolean);
   if (!lines.length) return '';
   return `
 
@@ -103,7 +140,9 @@ function extractMemoryCommand(message) {
     const match = text.match(pattern);
     if (match?.[1]) return match[1].trim();
   }
-  const inlineMatch = text.match(/\b(?:commit|save|add)\s+(?:this\s+)?(?:to|in)\s+memory\b[:\s-]*(.*)$/i);
+  const inlineMatch = text.match(
+    /\b(?:commit|save|add)\s+(?:this\s+)?(?:to|in)\s+memory\b[:\s-]*(.*)$/i
+  );
   return inlineMatch?.[1]?.trim() || '';
 }
 
@@ -116,23 +155,32 @@ function parseGeminiJson(data) {
 
 // --- Parse Gemini Text Response ---
 function parseGeminiText(data) {
-  return data?.candidates?.[0]?.content?.parts?.map(part => part.text || '').join('').trim() || '';
+  return data?.candidates?.[0]?.content?.parts
+    ?.map(part => part.text || '')
+    .join('')
+    .trim() || '';
 }
 
 // --- Main Gemini Function ---
 async function askGemini(prompt, options = {}) {
   if (API_KEY_PLACEHOLDERS.has(API_KEY)) {
-    throw new Error('Gemini API key is not configured. Configure the TravelBot API key before using the travel assistant.');
+    throw new Error(MISSING_API_KEY_MESSAGE);
   }
   const response = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: buildPrompt(prompt, options.memories || getStoredMemories()) }] }],
+      contents: [{
+        parts: [{
+          text: buildPrompt(prompt, options.memories || getStoredMemories())
+        }]
+      }],
       ...(options.tools ? { tools: options.tools } : {}),
       generationConfig: {
         temperature: options.temperature ?? 0.2,
-        ...(options.responseMimeType ? { responseMimeType: options.responseMimeType } : {})
+        ...(options.responseMimeType
+          ? { responseMimeType: options.responseMimeType }
+          : {})
       }
     })
   });
@@ -152,7 +200,10 @@ async function askGeminiText(prompt, options = {}) {
 
 // --- Main Gemini JSON Function ---
 async function askGeminiJson(prompt, options = {}) {
-  const data = await askGemini(prompt, { ...options, responseMimeType: 'application/json' });
+  const data = await askGemini(prompt, {
+    ...options,
+    responseMimeType: 'application/json'
+  });
   return parseGeminiJson(data);
 }
 
@@ -164,9 +215,12 @@ function createGeminiChat(options = {}) {
     history,
     async sendMessage(message) {
       if (API_KEY_PLACEHOLDERS.has(API_KEY)) {
-        throw new Error('Gemini API key is not configured. Configure the TravelBot API key before using the travel assistant.');
+        throw new Error(MISSING_API_KEY_MESSAGE);
       }
-      history.push({ role: 'user', parts: [{ text: buildPrompt(message, getMemories()) }] });
+      history.push({
+        role: 'user',
+        parts: [{ text: buildPrompt(message, getMemories()) }]
+      });
       try {
         const response = await fetch(API_URL, {
           method: 'POST',
@@ -198,7 +252,8 @@ function createGeminiChat(options = {}) {
 function getActiveTripContext() {
   if (typeof localStorage === 'undefined') return '';
   try {
-    const state = JSON.parse(localStorage.getItem(ITINERARY_STORAGE_KEY) || '{}');
+    const storedState = localStorage.getItem(ITINERARY_STORAGE_KEY) || '{}';
+    const state = JSON.parse(storedState);
     const trips = Array.isArray(state.trips) ? state.trips : [];
     const trip = trips.find(item => item.id === state.activeTripId) || trips[0];
     if (!trip) return '';
@@ -218,11 +273,20 @@ function getActiveTripContext() {
       const weekday = date && !Number.isNaN(date.getTime())
         ? date.toLocaleDateString('en-US', { weekday: 'long' })
         : 'weekday unset';
-      return `Day ${dayIndex + 1} (${day.date || 'date unset'}, ${weekday}, ${day.title || 'untitled'}): ${entries.join('; ') || 'no entries'}`;
+      const dayLabel = [
+        day.date || 'date unset',
+        weekday,
+        day.title || 'untitled'
+      ].join(', ');
+      return [
+        `Day ${dayIndex + 1} (${dayLabel}):`,
+        entries.join('; ') || 'no entries'
+      ].join(' ');
     });
-    const weatherForecast = trip.weatherForecast && typeof trip.weatherForecast === 'object'
-      ? trip.weatherForecast
-      : null;
+    const weatherForecast =
+      trip.weatherForecast && typeof trip.weatherForecast === 'object'
+        ? trip.weatherForecast
+        : null;
     const weatherDays = Array.isArray(weatherForecast?.days)
       ? weatherForecast.days
       : [];
@@ -234,17 +298,28 @@ function getActiveTripContext() {
       const code = day.weatherCode ?? 'unknown';
       const rainy = Number(day.precipitationProbabilityMax || 0) >= 50
         || Number(day.precipitationSum || 0) >= 2
-        || [51, 53, 55, 61, 63, 65, 80, 81, 82, 95].includes(Number(day.weatherCode));
-      return `${day.date}: code ${code}, ${min}-${max}C, rain chance ${rainChance}%, precipitation ${rainAmount}mm${rainy ? ' | rain likely: suggest indoor or low-walking alternatives' : ''}`;
+        || [51, 53, 55, 61, 63, 65, 80, 81, 82, 95]
+          .includes(Number(day.weatherCode));
+      return [
+        `${day.date}: code ${code}, ${min}-${max}C`,
+        `rain chance ${rainChance}%`,
+        `precipitation ${rainAmount}mm`,
+        rainy ? 'rain likely: suggest indoor or low-walking alternatives' : ''
+      ].filter(Boolean).join(' | ');
     });
+    const weatherLocation = weatherForecast
+      ? weatherForecast.locationName || trip.destination || 'unknown'
+      : '';
 
     return [
       `Trip: ${trip.name || 'Untitled trip'}`,
       `Destination: ${trip.destination || 'Not set'}`,
       `Dates: ${trip.startDate || 'not set'} to ${trip.endDate || 'not set'}`,
       trip.description ? `Description: ${trip.description}` : '',
-      weatherForecast ? `Weather forecast location: ${weatherForecast.locationName || trip.destination || 'unknown'}` : '',
-      weatherLines.length ? `Saved daily weather forecast:\n${weatherLines.join('\n')}` : '',
+      weatherForecast ? `Weather forecast location: ${weatherLocation}` : '',
+      weatherLines.length
+        ? `Saved daily weather forecast:\n${weatherLines.join('\n')}`
+        : '',
       ...days
     ].filter(Boolean).join('\n');
   } catch (error) {
@@ -265,13 +340,24 @@ Traveler message: ${message}`;
 }
 
 function wantsTripDraft(message) {
-  return /\b(add|build|create|draft|generate|insert|make|plan|suggest)\b/i.test(message)
-    && /\b(itinerary|activity|activities|tour|side\s*trip|side\s*trips|packing|pack|food|restaurant|budget|expense|expenses)\b/i.test(message);
+  const draftVerb =
+    /\b(add|build|create|draft|generate|insert|make|plan|suggest)\b/i;
+  const draftSubject = new RegExp([
+    '\\b(',
+    'itinerary|activity|activities|tour|side\\s*trip|side\\s*trips|',
+    'packing|pack|food|restaurant|budget|expense|expenses',
+    ')\\b'
+  ].join(''), 'i');
+  return draftVerb.test(message) && draftSubject.test(message);
 }
 
 function buildTravelDraftPrompt(message) {
   const context = getActiveTripContext();
-  return `Create a structured draft for the active Lakbay trip. Use only valid JSON with this exact shape:
+  const schemaIntro = [
+    'Create a structured draft for the active Lakbay trip.',
+    'Use only valid JSON with this exact shape:'
+  ].join(' ');
+  const schema = `${schemaIntro}
 {
   "summary": "short human-readable summary",
   "itinerary": [
@@ -318,22 +404,52 @@ function buildTravelDraftPrompt(message) {
     }
   ]
 }
-Keep the draft concise and leave unknown amounts empty. If a section is not requested, return an empty array for it.
-For itinerary requests, use Google Search grounding to check currently relevant activity, attraction, opening-day, and event information for the destination and date when possible. Cross-check the saved day date and weekday before suggesting date-sensitive activities.
-Suggest only new activities or tours that are not already in the active trip. Treat existing stops as occupied time blocks. If the traveler asks what to add after a morning activity, propose afternoon/evening items after the existing activity's time and avoid overlapping saved entries. Include realistic start and end times when possible.
-Prioritize hidden gems, local favorites, less crowded places, and relaxed authentic experiences over tourist traps. Include a balanced mix of popular must-see options and lesser-known quiet spots, and explain why each recommendation is worth visiting in the notes.
-Return several separate candidate activities/tours as a preview only. Do not claim they were added yet; the user must choose which cards to add before anything is added to the itinerary.
+`;
 
-Active trip:
-${context || "No active trip data."}
+  const rules = [
+    'Keep the draft concise and leave unknown amounts empty. If a section is',
+    'not requested, return an empty array for it.',
+    'For itinerary requests, use Google Search grounding to check currently',
+    'relevant activity, attraction, opening-day, and event information for the',
+    'destination and date when possible. Cross-check the saved day date and',
+    'weekday before suggesting date-sensitive activities.',
+    'Suggest only new activities or tours that are not already in the active',
+    'trip. Treat existing stops as occupied time blocks. If the traveler asks',
+    "what to add after a morning activity, propose afternoon/evening items after",
+    "the existing activity's time and avoid overlapping saved entries. Include",
+    'realistic start and end times when possible.',
+    'Prioritize hidden gems, local favorites, less crowded places, and relaxed',
+    'authentic experiences over tourist traps. Include a balanced mix of popular',
+    'must-see options and lesser-known quiet spots, and explain why each',
+    'recommendation is worth visiting in the notes.',
+    'Return several separate candidate activities/tours as a preview only. Do',
+    'not claim they were added yet; the user must choose which cards to add',
+    'before anything is added to the itinerary.'
+  ].join('\n');
 
-Traveler request: ${message}`;
+  return [
+    schema,
+    rules,
+    '',
+    'Active trip:',
+    context || 'No active trip data.',
+    '',
+    `Traveler request: ${message}`
+  ].join('\n');
 }
 
 // Render a deliberately small Markdown subset without inserting raw HTML.
 // This keeps Gemini output expressive while preventing script injection.
 function appendInlineMarkdown(parent, source) {
-  const pattern = /(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\*\*([^*\n]+)\*\*|\*([^*\n]+)\*|_([^_\n]+)_|\+\+([^+\n]+)\+\+|<u>([^<\n]+)<\/u>)/gi;
+  const patternParts = [
+    String.raw`\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)`,
+    String.raw`\*\*([^*\n]+)\*\*`,
+    String.raw`\*([^*\n]+)\*`,
+    String.raw`_([^_\n]+)_`,
+    String.raw`\+\+([^+\n]+)\+\+`,
+    String.raw`<u>([^<\n]+)<\/u>`
+  ];
+  const pattern = new RegExp(`(${patternParts.join('|')})`, 'gi');
   let cursor = 0;
 
   for (const match of source.matchAll(pattern)) {
@@ -606,7 +722,10 @@ function initializeTravelChat() {
         ...dayDraft,
         activities: activities.filter((entry, activityIndex) => {
           if (!sourceMessage) return true;
-          const selector = `[data-draft-day="${dayIndex}"][data-draft-activity="${activityIndex}"]`;
+          const selector = [
+            `[data-draft-day="${dayIndex}"]`,
+            `[data-draft-activity="${activityIndex}"]`
+          ].join('');
           const checkbox = sourceMessage.querySelector(selector);
           return !checkbox || checkbox.checked;
         })
@@ -622,7 +741,13 @@ function initializeTravelChat() {
       return false;
     }
     const draft = selectedDraftFromMessage(pendingDraft, sourceMessage);
-    if (!draftCount(draft, 'itinerary') && !draftCount(draft, 'packing') && !draftCount(draft, 'foodPlaces') && !draftCount(draft, 'expenses')) {
+    const hasSelection = [
+      'itinerary',
+      'packing',
+      'foodPlaces',
+      'expenses'
+    ].some(key => draftCount(draft, key));
+    if (!hasSelection) {
       addMessage('Choose at least one suggestion card before adding it.');
       return false;
     }
@@ -636,8 +761,15 @@ function initializeTravelChat() {
       const applyButton = sourceMessage.querySelector('.travel-draft-apply');
       if (applyButton) applyButton.textContent = 'Added';
     }
-    const skipped = summary.skippedDuplicates ? ` Skipped ${summary.skippedDuplicates} duplicate itinerary item(s).` : '';
-    addMessage(`Added ${summary.itinerary} itinerary item(s), ${summary.packing} packing item(s), ${summary.food} food place(s), and ${summary.expenses} expense estimate(s).${skipped}`);
+    const skipped = summary.skippedDuplicates
+      ? ` Skipped ${summary.skippedDuplicates} duplicate itinerary item(s).`
+      : '';
+    addMessage([
+      `Added ${summary.itinerary} itinerary item(s),`,
+      `${summary.packing} packing item(s),`,
+      `${summary.food} food place(s), and`,
+      `${summary.expenses} expense estimate(s).${skipped}`
+    ].join(' '));
     return true;
   }
 
@@ -655,7 +787,10 @@ function initializeTravelChat() {
   }
 
   function formatDraftTime(entry) {
-    return [entry.time, entry.endTime].map(value => String(value || '').trim()).filter(Boolean).join('-');
+    return [entry.time, entry.endTime]
+      .map(value => String(value || '').trim())
+      .filter(Boolean)
+      .join('-');
   }
 
   function addDraftPreviewSection(message, draft) {
@@ -712,8 +847,20 @@ function initializeTravelChat() {
 
     [
       ['packing', 'Packing', item => item.label || item],
-      ['foodPlaces', 'Food', item => [item.venue || item.name, item.mealType, item.location].filter(Boolean).join(' - ')],
-      ['expenses', 'Expenses', item => [item.description, item.amount, item.currency].filter(Boolean).join(' ')]
+      [
+        'foodPlaces',
+        'Food',
+        item => [item.venue || item.name, item.mealType, item.location]
+          .filter(Boolean)
+          .join(' - ')
+      ],
+      [
+        'expenses',
+        'Expenses',
+        item => [item.description, item.amount, item.currency]
+          .filter(Boolean)
+          .join(' ')
+      ]
     ].forEach(([key, label, formatter]) => {
       const items = Array.isArray(draft[key]) ? draft[key] : [];
       if (!items.length) return;
@@ -737,7 +884,10 @@ function initializeTravelChat() {
 
   function addDraftMessage(draft) {
     if (!draft || typeof draft !== 'object') {
-      addMessage('I could not prepare a usable draft. Try asking for a smaller itinerary, packing list, food list, or budget estimate.');
+      addMessage(
+        'I could not prepare a usable draft. Try asking for a smaller ' +
+        'itinerary, packing list, food list, or budget estimate.'
+      );
       return null;
     }
     discardPendingDraft();
@@ -766,7 +916,8 @@ function initializeTravelChat() {
 
     const prompt = document.createElement('p');
     prompt.className = 'travel-draft-confirm';
-    prompt.textContent = 'Choose the cards you want, then add the selected suggestions to the itinerary.';
+    prompt.textContent =
+      'Choose the cards you want, then add the selected suggestions to the itinerary.';
     message.append(prompt);
 
     const actions = document.createElement('div');
@@ -874,7 +1025,9 @@ function initializeTravelChat() {
       }
     } catch (error) {
       loading.remove();
-      const message = addMessage(error.message || 'The travel assistant is unavailable right now.');
+      const message = addMessage(
+        error.message || 'The travel assistant is unavailable right now.'
+      );
       message.classList.add('is-error');
     } finally {
       setSending(false);

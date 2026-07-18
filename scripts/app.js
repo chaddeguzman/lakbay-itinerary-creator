@@ -1109,9 +1109,7 @@
   }
 
   function dayHtml(d, i, isCollapsed = false) {
-    const last = Storage.active().days.length - 1,
-      draggable = i > 0 && i < last,
-      canCollapse = d.stops.length > 0,
+    const canCollapse = d.stops.length > 0,
       collapsed = canCollapse && isCollapsed,
       overlapping = overlappingEntryIds(d),
       isToday = d.date === today(),
@@ -1122,14 +1120,6 @@
         <span>No activities or tours have been added yet. Add details below.</span>
         </div>`
           : "",
-      dayDragButton = draggable
-        ? [
-            '<button type="button" class="drag-handle day-drag-handle"',
-            ' draggable="true" data-drag-kind="day"',
-            ' title="Drag day content" aria-label="Drag day content">',
-            "⋮⋮</button>",
-          ].join("")
-        : "",
       dayCollapseButton = canCollapse
         ? `<button type="button" class="day-collapse-button"
           data-action="toggle-day" aria-expanded="${!collapsed}"
@@ -1148,9 +1138,7 @@
         <small>${dayDateLabel(d.date)}</small>
         ${isToday ? '<span class="today-badge">Today</span>' : ""}
         </div>
-        <div class="icon-actions no-print">${dayDragButton}
-        ${dayCollapseButton}
-        </div>
+        <div class="icon-actions no-print">${dayCollapseButton}</div>
         </header>
         <div class="day-content">${d.stops
           .map((s, j) => entryHtml(s, j, overlapping.has(s.id)))
@@ -1731,7 +1719,7 @@
     true,
   );
   // ---------------------------------------------------------------------------
-  // Drag-and-drop ordering for days and itinerary entries
+  // Drag-and-drop ordering for itinerary entries
   // ---------------------------------------------------------------------------
   let dragState = null;
   main.addEventListener("pointerdown", (e) => {
@@ -1759,26 +1747,18 @@
     const day = source.closest("[data-day]"),
       stop = source.closest("[data-stop]");
     dragState = {
-      kind: source.dataset.dragKind,
       dayId: day?.dataset.day,
       stopId: stop?.dataset.stop,
     };
     e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", dragState.kind);
+    e.dataTransfer.setData("text/plain", "activity");
     (stop || day)?.classList.add("dragging");
   });
   main.addEventListener("dragover", (e) => {
     if (!dragState) return;
-    const target =
-      dragState.kind === "day"
-        ? e.target.closest(".day")
-        : e.target.closest(".stop");
+    const target = e.target.closest(".stop");
     if (!target) return;
-    if (dragState.kind === "day") {
-      const t = Storage.active(),
-        i = t.days.findIndex((d) => d.id === target.dataset.day);
-      if (i <= 0 || i >= t.days.length - 1) return;
-    } else if (target.closest("[data-day]")?.dataset.day !== dragState.dayId)
+    if (target.closest("[data-day]")?.dataset.day !== dragState.dayId)
       return;
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
@@ -1795,30 +1775,13 @@
       targetStop = e.target.closest("[data-stop]");
     dragState = null;
     changeTrip((t) => {
-      if (state.kind === "day") {
-        const from = t.days.findIndex((d) => d.id === state.dayId),
-          to = t.days.findIndex((d) => d.id === targetDay?.dataset.day),
-          last = t.days.length - 1;
-        if (from <= 0 || from >= last || to <= 0 || to >= last || from === to)
-          return;
-        const content = t.days
-            .slice(1, last)
-            .map((d) => ({ title: d.title, stops: d.stops })),
-          [moved] = content.splice(from - 1, 1);
-        content.splice(to - 1, 0, moved);
-        t.days.slice(1, last).forEach((d, i) => {
-          d.title = content[i].title;
-          d.stops = content[i].stops;
-        });
-      } else {
-        const day = t.days.find((d) => d.id === state.dayId);
-        if (!day || targetDay?.dataset.day !== state.dayId) return;
-        const from = day.stops.findIndex((s) => s.id === state.stopId),
-          to = day.stops.findIndex((s) => s.id === targetStop?.dataset.stop);
-        if (from < 0 || to < 0 || from === to) return;
-        const [moved] = day.stops.splice(from, 1);
-        day.stops.splice(to, 0, moved);
-      }
+      const day = t.days.find((d) => d.id === state.dayId);
+      if (!day || targetDay?.dataset.day !== state.dayId) return;
+      const from = day.stops.findIndex((s) => s.id === state.stopId),
+        to = day.stops.findIndex((s) => s.id === targetStop?.dataset.stop);
+      if (from < 0 || to < 0 || from === to) return;
+      const [moved] = day.stops.splice(from, 1);
+      day.stops.splice(to, 0, moved);
     });
   });
   main.addEventListener("dragend", () => {
