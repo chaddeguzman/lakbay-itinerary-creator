@@ -12,7 +12,6 @@ const API_KEY_PLACEHOLDERS = new Set([
 const GOOGLE_SEARCH_TOOL = { google_search: {} };
 const MEMORY_STORAGE_KEY = 'gemini-chat-memory-log';
 const ITINERARY_STORAGE_KEY = 'itineraryApp:v1';
-const CHAT_POSITION_STORAGE_KEY = 'lakbay-travel-chat-position';
 const MISSING_API_KEY_MESSAGE =
   'Gemini API key is not configured. Configure the TravelBot API key before ' +
   'using the travel assistant.';
@@ -578,37 +577,17 @@ function initializeTravelChat() {
     };
   }
 
-  function saveChatPosition(left, top) {
-    try {
-      localStorage.setItem(CHAT_POSITION_STORAGE_KEY, JSON.stringify({ left, top }));
-    } catch (error) {
-      console.warn('Could not save chat position:', error);
-    }
-  }
-
-  function setChatPosition(left, top, persist = true) {
+  function setChatPosition(left, top) {
     const position = clampPosition(left, top);
     container.classList.add('is-positioned');
     container.style.left = `${position.left}px`;
     container.style.top = `${position.top}px`;
-    if (persist) saveChatPosition(position.left, position.top);
     return position;
-  }
-
-  function loadChatPosition() {
-    try {
-      const position = JSON.parse(localStorage.getItem(CHAT_POSITION_STORAGE_KEY) || 'null');
-      if (Number.isFinite(position?.left) && Number.isFinite(position?.top)) {
-        setChatPosition(position.left, position.top, false);
-      }
-    } catch (error) {
-      console.warn('Could not restore chat position:', error);
-    }
   }
 
   function keepChatInViewport() {
     const rect = container.getBoundingClientRect();
-    setChatPosition(rect.left, rect.top, true);
+    setChatPosition(rect.left, rect.top);
   }
 
   function startDrag(event) {
@@ -626,7 +605,7 @@ function initializeTravelChat() {
       if (!moved && Math.hypot(dx, dy) < 4) return;
       moved = true;
       container.classList.add('is-dragging');
-      setChatPosition(startRect.left + dx, startRect.top + dy, false);
+      setChatPosition(startRect.left + dx, startRect.top + dy);
     }
 
     function end(pointerEvent) {
@@ -650,7 +629,6 @@ function initializeTravelChat() {
     document.addEventListener('pointercancel', end);
   }
 
-  loadChatPosition();
   toggle.addEventListener('pointerdown', startDrag);
   panel.querySelector('.travel-chat-header')?.addEventListener('pointerdown', startDrag);
   window.addEventListener('resize', keepChatInViewport);
