@@ -540,6 +540,8 @@ function initializeTravelChat() {
   if (!container || !toggle || !panel || !close || !form || !input || !messages) return;
 
   const chat = createGeminiChat();
+  const chatLang = document.documentElement.lang || 'en';
+  messages.lang = chatLang;
   let sending = false,
     pendingDraft = null,
     pendingDraftMessage = null,
@@ -660,6 +662,7 @@ function initializeTravelChat() {
   function addMessage(text, type = 'bot') {
     const message = document.createElement('div');
     message.className = `travel-chat-message ${type === 'user' ? 'user-message' : 'bot-message'}`;
+    message.lang = chatLang;
     if (type === 'user') message.textContent = text;
     else renderTravelChatMarkdown(message, text);
     messages.append(message);
@@ -871,6 +874,7 @@ function initializeTravelChat() {
     discardPendingDraft();
     const message = document.createElement('div');
     message.className = 'travel-chat-message bot-message travel-draft-message';
+    message.lang = chatLang;
 
     const title = document.createElement('strong');
     title.textContent = draft.summary || 'I prepared a preview for your active trip.';
@@ -929,6 +933,7 @@ function initializeTravelChat() {
   function addLoadingMessage() {
     const message = document.createElement('div');
     message.className = 'travel-chat-message bot-message is-loading';
+    message.lang = chatLang;
     message.setAttribute('aria-label', 'Lakbay is thinking');
     for (let index = 0; index < 3; index += 1) {
       const dot = document.createElement('span');

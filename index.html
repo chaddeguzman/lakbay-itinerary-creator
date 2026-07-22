@@ -79,7 +79,7 @@
     </div>
 
     <!-- Create/edit trip dialog -->
-    <dialog class="modal" id="tripModal">
+    <dialog class="modal" id="tripModal" aria-labelledby="modalTitle">
       <form method="dialog" class="modal-body" id="tripForm">
         <h2 id="modalTitle">Create a journey</h2>
         <input type="hidden" id="editTripId" />
@@ -143,7 +143,12 @@
     </dialog>
 
     <!-- Reusable two-stage confirmation dialog for activity and tour deletion -->
-    <dialog class="modal delete-entry-modal" id="deleteEntryModal">
+    <dialog
+      class="modal delete-entry-modal"
+      id="deleteEntryModal"
+      aria-labelledby="deleteEntryTitle"
+      aria-describedby="deleteEntryMessage"
+    >
       <form method="dialog" class="modal-body delete-entry-body">
         <div class="delete-entry-stamp" aria-hidden="true">!</div>
         <p class="eyebrow" id="deleteEntryStep">Deletion warning</p>
@@ -242,6 +247,6 @@
 
     <!-- App logic is loaded last so every referenced DOM element already exists. -->
     <script src="gemini_travel_api.js"></script>
-    <script src="scripts/app.js"></script>
+    <script type="module" src="scripts/app.js"></script>
   </body>
 </html>
