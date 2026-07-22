@@ -97,6 +97,29 @@ import { createPanelRenderers } from "./render-panels.js";
     t.hotels.forEach((r) => syncRecordExpense(t, "hotel", r));
     t.foodPlaces.forEach((r) => syncRecordExpense(t, "food", r));
   }
+  function dayDifference(from, to) {
+    const dayMs = 24 * 60 * 60 * 1000;
+    return Math.round((parseDate(to) - parseDate(from)) / dayMs);
+  }
+  function tripStatusLine(t) {
+    const dates = (t.days || []).map((day) => day.date).filter(Boolean),
+      start = dates[0] || t.startDate,
+      end = dates[dates.length - 1] || t.endDate,
+      todayIso = today();
+    if (!start || !end) return "";
+    if (todayIso < start) {
+      const daysUntil = dayDifference(todayIso, start);
+      return `${t.name} trip in ${daysUntil} day${daysUntil === 1 ? "" : "s"}`;
+    }
+    if (todayIso > end) {
+      const daysAgo = dayDifference(end, todayIso);
+      return `${t.name} trip ended ${daysAgo} day${daysAgo === 1 ? "" : "s"} ago`;
+    }
+    const dayIndex = dates.indexOf(todayIso),
+      currentDay = dayIndex >= 0 ? dayIndex + 1 : dayDifference(start, todayIso) + 1,
+      totalDays = dates.length || dayDifference(start, end) + 1;
+    return `Day ${currentDay} of ${totalDays} - you're here now`;
+  }
   // ---------------------------------------------------------------------------
   // Runtime UI state and reusable interface feedback
   // ---------------------------------------------------------------------------
@@ -365,6 +388,7 @@ import { createPanelRenderers } from "./render-panels.js";
       <div>
         <div class="eyebrow">Travel itinerary</div>
         <h1 class="trip-title">${esc(t.name)}</h1>
+        <div class="trip-status-banner">${esc(tripStatusLine(t))}</div>
         <div class="destination">
           ⌖ ${esc(t.destination)} &nbsp; · &nbsp;
           ${fmt(t.startDate)} – ${fmt(t.endDate)}

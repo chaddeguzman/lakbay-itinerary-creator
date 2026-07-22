@@ -223,6 +223,20 @@ button {
   font-size: 1.05rem;
   color: var(--muted);
 }
+.trip-status-banner {
+  display: inline-flex;
+  width: fit-content;
+  margin: 0 0 8px;
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--teal) 42%, var(--line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--teal) 10%, var(--paper2));
+  color: var(--teal);
+  font:
+    700 0.78rem Arial,
+    sans-serif;
+  text-transform: uppercase;
+}
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -2131,7 +2145,8 @@ html[data-theme="dark"] .packing-group {
   outline-offset: 2px;
 }
 .today-badge,
-.overlap-badge {
+.overlap-badge,
+.next-up-badge {
   display: inline-flex;
   align-items: center;
   width: fit-content;
@@ -2154,6 +2169,18 @@ html[data-theme="dark"] .packing-group {
   border: 1px solid var(--terra);
   background: color-mix(in srgb, var(--terra) 13%, var(--paper2));
   color: var(--terra);
+}
+.next-up-badge {
+  margin-top: 7px;
+  padding: 3px 8px;
+  background: var(--gold);
+  color: #102421;
+}
+.day .stop.is-next-up {
+  border-color: var(--gold);
+  box-shadow:
+    inset 4px 0 var(--gold),
+    0 8px 20px #16332d14;
 }
 .day .stop.time-overlap {
   border-color: var(--terra);
@@ -2193,6 +2220,21 @@ html[data-theme="dark"] .today-badge {
 html[data-theme="dark"] .overlap-badge {
   background: #4a2924;
   color: #ffad98;
+}
+html[data-theme="dark"] .trip-status-banner {
+  border-color: #79c5bb;
+  background: #25433f;
+  color: #b9f0e8;
+}
+html[data-theme="dark"] .next-up-badge {
+  background: #dfb66e;
+  color: #102421;
+}
+html[data-theme="dark"] .day .stop.is-next-up {
+  border-color: #dfb66e;
+  box-shadow:
+    inset 4px 0 #dfb66e,
+    0 3px 12px #0003;
 }
 html[data-theme="dark"] .day .stop.time-overlap {
   border-color: #d97b65;

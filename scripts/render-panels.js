@@ -576,6 +576,11 @@ export function createPanelRenderers(ctx) {
     return hours * 60 + minutes;
   }
 
+  function currentMinutes() {
+    const now = new Date();
+    return now.getHours() * 60 + now.getMinutes();
+  }
+
   function entryTimeParts(entry) {
     const start = minutesFromTime(entry.time);
     if (start === null) return null;
@@ -631,11 +636,33 @@ export function createPanelRenderers(ctx) {
     return overlapping;
   }
 
+  function nextUpcomingEntryId(day) {
+    const now = currentMinutes();
+    return (day.stops || [])
+      .filter((entry) => !entry.done && minutesFromTime(entry.time) !== null)
+      .map((entry) => {
+        const start = minutesFromTime(entry.time),
+          usesRange = entry.kind === "tour" || entry.timeMode === "range",
+          end = usesRange ? minutesFromTime(entry.endTime) : null,
+          isCurrent =
+            start !== null &&
+            end !== null &&
+            (end >= start
+              ? start <= now && now < end
+              : now >= start || now < end);
+        if (isCurrent) return { entry, rank: now };
+        return start >= now ? { entry, rank: start } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.rank - b.rank)[0]?.entry.id;
+  }
+
   function dayHtml(d, i, isCollapsed = false) {
     const canCollapse = d.stops.length > 0,
       collapsed = canCollapse && isCollapsed,
       overlapping = overlappingEntryIds(d),
       isToday = d.date === today(),
+      nextEntryId = isToday ? nextUpcomingEntryId(d) : null,
       emptyDayNotice =
         d.stops.length === 0
           ? `<div class="empty-day-notice no-print" role="note">
@@ -664,7 +691,9 @@ export function createPanelRenderers(ctx) {
         <div class="icon-actions no-print">${dayCollapseButton}</div>
         </header>
         <div class="day-content">${d.stops
-          .map((s, j) => entryHtml(s, j, overlapping.has(s.id)))
+          .map((s, j) =>
+            entryHtml(s, j, overlapping.has(s.id), s.id === nextEntryId),
+          )
           .join("")}${emptyDayNotice}<footer
           class="day-foot">
         <div class="add-choice no-print">
@@ -709,7 +738,7 @@ export function createPanelRenderers(ctx) {
           aria-pressed="${s.done ? "true" : "false"}">${s.done ? "✓" : "□"}</button>`;
   }
 
-  function stopHtml(s, j, hasOverlap = false) {
+  function stopHtml(s, j, hasOverlap = false, isNextUp = false) {
     const map = mapsUrl(s.location),
       range = s.timeMode === "range",
       duration = range ? durationLabel(s.time, s.endTime) : "",
@@ -730,7 +759,7 @@ export function createPanelRenderers(ctx) {
           aria-label="Drag activity">⋮⋮</button>`;
     if (!editingActivities.has(s.id))
       return `<div class="stop activity-compact ${s.done ? "is-done" : ""}
-          ${hasOverlap ? "time-overlap" : ""}"
+          ${hasOverlap ? "time-overlap" : ""} ${isNextUp ? "is-next-up" : ""}"
           data-stop="${s.id}">
         <div class="activity-summary">
         <div class="activity-summary-line">
@@ -742,6 +771,7 @@ export function createPanelRenderers(ctx) {
         <span>·</span>
         <span>${esc(s.location)}</span>
         </div>
+        ${isNextUp ? '<span class="next-up-badge">Next up</span>' : ""}
         ${overlapBadge(hasOverlap)}
         <div class="activity-notes">${esc(s.notes)}</div>
         </div>${actions}${doneToggleButton(s)}<button type="button" class="btn small secondary"
@@ -750,7 +780,7 @@ export function createPanelRenderers(ctx) {
           aria-label="Remove activity">×</button>
         </div>
         </div>`;
-    return `<div class="stop ${hasOverlap ? "time-overlap" : ""}"
+    return `<div class="stop ${hasOverlap ? "time-overlap" : ""} ${isNextUp ? "is-next-up" : ""}"
           data-stop="${s.id}">
         <div class="stop-schedule">
         <label class="eyebrow">Activity ${j + 1}</label>
@@ -1127,11 +1157,11 @@ export function createPanelRenderers(ctx) {
           href="${mapsUrl(s.location)}">${esc(s.location)}</a>`,
     );
   }
-  function entryHtml(s, j, hasOverlap = false) {
+  function entryHtml(s, j, hasOverlap = false, isNextUp = false) {
     let html =
       s.kind === "tour"
-        ? tourHtml(s, tourOrdinal(s) - 1, hasOverlap)
-        : stopHtml(s, j, hasOverlap);
+        ? tourHtml(s, tourOrdinal(s) - 1, hasOverlap, isNextUp)
+        : stopHtml(s, j, hasOverlap, isNextUp);
     if (!editingActivities.has(s.id)) html = addCompactMapLinks(html, s);
     return editingActivities.has(s.id)
       ? html.replace(
@@ -1146,7 +1176,7 @@ export function createPanelRenderers(ctx) {
         )
       : html;
   }
-  function tourHtml(s, j, hasOverlap = false) {
+  function tourHtml(s, j, hasOverlap = false, isNextUp = false) {
     const duration = durationLabel(s.time, s.endTime),
       isUnscheduled = !s.time,
       start = s.time ? formatTime12(s.time) : "Unscheduled",
@@ -1162,7 +1192,7 @@ export function createPanelRenderers(ctx) {
           data-drag-kind="activity" title="Drag tour" aria-label="Drag tour">⋮⋮</button>`;
     if (!editingActivities.has(s.id))
       return `<div class="stop activity-compact tour-compact ${s.done ? "is-done" : ""}
-          ${hasOverlap ? "time-overlap" : ""}"
+          ${hasOverlap ? "time-overlap" : ""} ${isNextUp ? "is-next-up" : ""}"
           data-stop="${s.id}">
         <div class="activity-summary">
         <div class="activity-summary-line">
@@ -1174,6 +1204,7 @@ export function createPanelRenderers(ctx) {
         <span>·</span>
         <span>${esc(locationText)}</span>
         </div>
+        ${isNextUp ? '<span class="next-up-badge">Next up</span>' : ""}
         ${overlapBadge(hasOverlap)}
         <div class="activity-notes">${esc(s.notes)}</div>
         </div>${actions}${doneToggleButton(s)}<button type="button" class="btn small secondary"
@@ -1182,7 +1213,7 @@ export function createPanelRenderers(ctx) {
           aria-label="Remove tour">×</button>
         </div>
         </div>`;
-    return `<div class="stop tour-editor ${hasOverlap ? "time-overlap" : ""}"
+    return `<div class="stop tour-editor ${hasOverlap ? "time-overlap" : ""} ${isNextUp ? "is-next-up" : ""}"
           data-stop="${s.id}">
         <div class="stop-schedule">
         <label class="eyebrow">Tour ${j + 1}</label>
