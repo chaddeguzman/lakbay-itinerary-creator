@@ -109,11 +109,11 @@ import { createPanelRenderers } from "./render-panels.js";
     if (!start || !end) return "";
     if (todayIso < start) {
       const daysUntil = dayDifference(todayIso, start);
-      return `${t.name} trip in ${daysUntil} day${daysUntil === 1 ? "" : "s"}`;
+      return `Trip will start in ${daysUntil} day${daysUntil === 1 ? "" : "s"}`;
     }
     if (todayIso > end) {
       const daysAgo = dayDifference(end, todayIso);
-      return `${t.name} trip ended ${daysAgo} day${daysAgo === 1 ? "" : "s"} ago`;
+      return `Trip ended ${daysAgo} day${daysAgo === 1 ? "" : "s"} ago`;
     }
     const dayIndex = dates.indexOf(todayIso),
       currentDay = dayIndex >= 0 ? dayIndex + 1 : dayDifference(start, todayIso) + 1,
