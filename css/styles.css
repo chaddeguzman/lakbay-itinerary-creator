@@ -16,6 +16,8 @@
   --muted: #6f756e;
   --line: #d8cbb2;
   --shadow: 0 12px 35px #16332d1a;
+  --day-odd: #ffffff;
+  --day-even: #f4ead5;
 }
 * {
   box-sizing: border-box;
@@ -276,6 +278,12 @@ button {
   padding: 18px;
   margin: 0 0 22px;
   position: relative;
+}
+.panel[data-panel="itinerary"] > .day:nth-of-type(odd) {
+  background: var(--day-odd);
+}
+.panel[data-panel="itinerary"] > .day:nth-of-type(even) {
+  background: var(--day-even);
 }
 .day-head {
   display: grid;
@@ -1239,6 +1247,8 @@ html[data-theme="dark"] {
   --muted: #b2b9b1;
   --line: #40514d;
   --shadow: 0 12px 35px #0005;
+  --day-odd: #1c2b29;
+  --day-even: #2b7770;
 }
 html[data-theme="dark"] body {
   background-image:
