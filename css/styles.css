@@ -2091,6 +2091,31 @@ html[data-theme="dark"] .packing-group {
 /* ==========================================================================
    Day collapsing, status badges, and schedule warnings
    ========================================================================== */
+.food-day { margin-bottom: 18px; }
+.food-day .day-head h3 { margin: 0; }
+.food-day .food-groups { display: grid; gap: 16px; padding: 14px; }
+.food-group { padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper2); }
+.food-group h4 { margin: 0 0 10px; color: var(--teal); }
+.food-add, .meal-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin-top: 10px; }
+.place-picker { display: grid; gap: 4px; font-size: .78rem; }
+.place-picker select { min-width: 160px; max-width: 260px; }
+.food-shortlist { margin-top: 24px; }
+.meal-card { margin: 8px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper2); }
+.meal-card summary { display: grid; grid-template-columns: 90px minmax(130px, 1.3fr) minmax(110px, 1fr) auto; gap: 10px; align-items: center; cursor: pointer; list-style-position: inside; }
+.meal-card summary span { overflow-wrap: anywhere; }
+.meal-card summary strong { color: var(--teal); }
+.meal-fields { margin-top: 14px; }
+.meal-fields > label.field { display: grid; gap: 4px; color: var(--muted); font: 700 .68rem Arial, sans-serif; text-transform: uppercase; letter-spacing: .07em; }
+.meal-fields > label.field input, .meal-fields > label.field select, .meal-fields > label.field textarea { color: var(--ink); font: normal .88rem Arial, sans-serif; letter-spacing: normal; text-transform: none; }
+.meal-card .field select { width: 100%; }
+@media (max-width: 700px) {
+  .meal-card summary { grid-template-columns: 1fr 1fr; }
+  .meal-card summary strong { grid-column: span 2; }
+}
+@media print {
+  .meal-card .meal-fields, .meal-card .meal-actions { display: none !important; }
+  .meal-card summary { list-style: none; }
+}
 /* Rounded itinerary surfaces distinguish day groups without sharp box edges. */
 .panel[data-panel="itinerary"] .day {
   border-radius: 18px;

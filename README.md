@@ -2,7 +2,7 @@
 
 Lakbay is a private, browser-based travel planner for organizing multiple trips, day-by-day stops, flights, hotels, food shortlists, daily expense logs, and packing checklists. Everything stays in your browser using `localStorage`; there is no account, backend, cloud sync, or build step.
 
-The collapsible trip navigation keeps each planning area together. Costs entered for flights, hotels, and dated food plans are automatically linked to the matching trip day's Expenses entry.
+The collapsible trip navigation keeps each planning area together. Food is organized by the same days as Itinerary, with Breakfast, Lunch, Snacks, Dinner, and Other sections. You can add multiple timed visits per section from either tab, and scheduled meals also appear in the Itinerary timeline. Saved places remain in the Food shortlist for reuse. Costs entered for flights, hotels, and dated food visits are automatically linked to the matching trip day's Expenses entry.
 
 ## Run locally
 

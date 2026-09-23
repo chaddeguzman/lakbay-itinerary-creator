@@ -242,7 +242,8 @@ import { createPanelRenderers } from "./render-panels.js";
   // Snapshots allow existing entries to be restored when an edit is cancelled.
   // New-entry IDs are tracked separately so cancellation can remove draft rows.
   const activitySnapshots = new Map(),
-    newActivityEntries = new Set();
+    newActivityEntries = new Set(),
+    openMealCards = new Set();
   const {
     itineraryPanel,
     mapsPanel,
@@ -266,6 +267,7 @@ import { createPanelRenderers } from "./render-panels.js";
     fmt,
     getTab: () => tab,
     money,
+    openMealCards,
     render,
     today,
     toast,
@@ -352,6 +354,23 @@ import { createPanelRenderers } from "./render-panels.js";
       tourLocations: [""],
       notes: "",
       done: false,
+    };
+  }
+  function blankMeal(date = "", type = "Other", place = null) {
+    return {
+      id: uid(),
+      venue: place?.venue || "",
+      cuisine: place?.cuisine || "",
+      location: place?.location || "",
+      visitDate: date,
+      mealType: type,
+      time: place?.time || place?.reservationTime || "",
+      timeMode: "single",
+      endTime: "",
+      reservation: place?.reservation || "",
+      amount: place?.amount || "",
+      currency: place?.currency || "PHP",
+      notes: place?.notes || "",
     };
   }
   // ---------------------------------------------------------------------------
@@ -607,6 +626,26 @@ import { createPanelRenderers } from "./render-panels.js";
         });
         render();
       }
+    } else if (act === "add-place") {
+      const id = uid();
+      changeTrip((trip) => trip.foodLibrary.push({ id, venue: "", cuisine: "", location: "", notes: "" }));
+    } else if (act === "remove-place") {
+      const id = a.closest("[data-place]")?.dataset.place;
+      if (id && confirm("Remove this saved place? Scheduled visits will stay."))
+        changeTrip((trip) => trip.foodLibrary = trip.foodLibrary.filter((place) => place.id !== id));
+    } else if (act === "add-meal" && dayEl) {
+      const day = t.days.find((item) => item.id === dayEl.dataset.day);
+      const meal = blankMeal(day.date, a.dataset.mealType || "Other");
+      openMealCards.add(meal.id);
+      changeTrip((trip) => { trip.foodPlaces.push(meal); syncRecordExpense(trip, "food", meal); });
+    } else if (act === "schedule-place" && dayEl) {
+      const id = a.parentElement.querySelector("[data-place-choice]")?.value;
+      const place = t.foodLibrary.find((item) => item.id === id);
+      if (!place) { toast("Choose a saved place first"); return; }
+      const day = t.days.find((item) => item.id === dayEl.dataset.day);
+      const meal = blankMeal(day.date, a.dataset.mealType || "Other", place);
+      openMealCards.add(meal.id);
+      changeTrip((trip) => { trip.foodPlaces.push(meal); syncRecordExpense(trip, "food", meal); });
     } else if (act === "refresh-weather") {
       await refreshWeather(t);
     } else if (act === "toggle-day" && dayEl) {
@@ -977,6 +1016,26 @@ import { createPanelRenderers } from "./render-panels.js";
   // ---------------------------------------------------------------------------
   // Input events persist typing without a redraw; change events redraw derived
   // labels, maps, totals, and other values once the edit is committed.
+  main.addEventListener("toggle", (e) => {
+    const card = e.target;
+    if (!card.matches?.("details.meal-card")) return;
+    if (card.open) openMealCards.add(card.dataset.record);
+    else openMealCards.delete(card.dataset.record);
+  }, true);
+  function updatePlaceField(e, rerender) {
+    const card = e.target.closest("[data-place]");
+    if (!card) return;
+    changeTrip((trip) => {
+      const place = trip.foodLibrary.find((item) => item.id === card.dataset.place);
+      if (place) place[e.target.dataset.placeField] = e.target.value;
+    }, rerender);
+  }
+  main.addEventListener("input", (e) => {
+    if (e.target.matches("[data-place-field]")) updatePlaceField(e, false);
+  });
+  main.addEventListener("change", (e) => {
+    if (e.target.matches("[data-place-field]")) updatePlaceField(e, true);
+  });
   main.addEventListener("input", (e) => {
     if (e.target.matches("[data-record-field]")) updateRecordField(e, false);
   });

@@ -1,5 +1,6 @@
 // The app is intentionally client-only. All trip data lives in localStorage.
 export const KEY = "itineraryApp:v1";
+import { mealGroup, unscheduleMissingDays } from "./meals.js";
 export const CORRUPT_BACKUP_KEY = `${KEY}:corrupt-backup`;
 export const CATEGORIES = ["food", "transport", "activities", "lodging"];
 export const PACK_CATEGORIES = [
@@ -42,6 +43,22 @@ export function normalizeTrip(t) {
   t.flights = Array.isArray(t.flights) ? t.flights : [];
   t.hotels = Array.isArray(t.hotels) ? t.hotels : [];
   t.foodPlaces = Array.isArray(t.foodPlaces) ? t.foodPlaces : [];
+  // The old Food tab held both saved places and scheduled visits in one list.
+  // Migrate once; subsequent undated records are intentionally unscheduled visits.
+  if (!Array.isArray(t.foodLibrary)) {
+    t.foodLibrary = t.foodPlaces.filter((item) => !item.visitDate);
+    t.foodPlaces = t.foodPlaces.filter((item) => !!item.visitDate);
+  }
+  t.foodPlaces.forEach((meal) => {
+    const group = mealGroup(meal.mealType);
+    if (group === "Other" && meal.mealType && String(meal.mealType).toLowerCase() !== "other")
+      meal.originalMealType = meal.originalMealType || meal.mealType;
+    meal.mealType = group;
+    if (meal.time === undefined) meal.time = meal.reservationTime || "";
+    meal.timeMode = meal.timeMode === "range" ? "range" : "single";
+    meal.endTime = meal.endTime || "";
+  });
+  unscheduleMissingDays(t);
   t.weatherForecast =
     t.weatherForecast &&
     typeof t.weatherForecast === "object" &&

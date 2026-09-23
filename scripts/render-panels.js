@@ -1,3 +1,5 @@
+import { MEAL_TYPES, mealGroup, mealsForDay, scheduledEntries } from "./meals.js";
+
 export function createPanelRenderers(ctx) {
   const {
     CATEGORIES,
@@ -9,6 +11,7 @@ export function createPanelRenderers(ctx) {
     fmt,
     getTab,
     money,
+    openMealCards,
     render,
     today,
     toast,
@@ -27,7 +30,7 @@ export function createPanelRenderers(ctx) {
           ? `<p class="trip-description">${esc(t.description)}</p>`
           : ""
       }
-      ${t.days.map((d, i) => dayHtml(d, i, collapsedDays.has(d.id))).join("")}
+      ${t.days.map((d, i) => dayHtml(t, d, i, collapsedDays.has(d.id))).join("")}
     </section>`;
   }
   // ---------------------------------------------------------------------------
@@ -429,73 +432,71 @@ export function createPanelRenderers(ctx) {
         hotel</button>
         </section>`;
   }
+  function placePicker(t, type = "Other") {
+    if (!t.foodLibrary?.length) return "";
+    return `<label class="place-picker">Saved place <select data-place-choice>
+      <option value="">Choose a place</option>${t.foodLibrary.map((p) =>
+        `<option value="${esc(p.id)}">${esc(p.venue || "Unnamed place")}</option>`).join("")}</select></label>
+      <button class="btn small secondary" data-action="schedule-place" data-meal-type="${type}">＋ Use saved</button>`;
+  }
+  function mealCard(r, t) {
+    const days = `<option value="">Unscheduled</option>${t.days.map((d, i) =>
+      `<option value="${esc(d.date)}" ${d.date === r.visitDate ? "selected" : ""}>Day ${i} · ${esc(dayDateLabel(d.date))}</option>`).join("")}`;
+    const timeLabel = (value) => /^\d{2}:\d{2}$/.test(value || "") ? formatTime12(value) : value;
+    return `<details class="meal-card" data-record-type="food" data-record="${esc(r.id)}" ${openMealCards.has(r.id) ? "open" : ""}>
+      <summary><span>${esc(timeLabel(r.time) || "No time")}${r.timeMode === "range" && r.endTime ? `–${esc(timeLabel(r.endTime))}` : ""}</span>
+      <strong>${esc(r.mealType || "Other")}: ${esc(r.venue || "New meal")}</strong>
+      <span>${esc(r.location || "Location pending")}</span>
+      <span>${r.amount ? `${esc(r.currency || "PHP")} ${money(r.amount)}` : ""}</span></summary>
+      <div class="record-grid meal-fields">
+      ${recordField("Venue", "venue", r.venue, "text", "wide")}
+      ${recordField("Location", "location", r.location, "text", "wide")}
+      <label class="field">Meal type<select data-record-field="mealType">${MEAL_TYPES.map((type) =>
+        `<option value="${type}" ${mealGroup(r.mealType) === type ? "selected" : ""}>${type}</option>`).join("")}</select></label>
+      ${r.originalMealType ? `<small class="field">Previous label: ${esc(r.originalMealType)}</small>` : ""}
+      <label class="field">Day<select data-record-field="visitDate">${days}</select></label>
+      <label class="field">Time option<select data-record-field="timeMode"><option value="single" ${r.timeMode !== "range" ? "selected" : ""}>Start time only</option><option value="range" ${r.timeMode === "range" ? "selected" : ""}>Start and end</option></select></label>
+      ${recordField("Start time", "time", r.time, "time")}
+      ${r.timeMode === "range" ? recordField("End time", "endTime", r.endTime, "time") : ""}
+      ${recordField("Cuisine", "cuisine", r.cuisine)}
+      ${recordField("Reservation details", "reservation", r.reservation, "text", "wide")}
+      ${recordField("Amount", "amount", r.amount, "number")}
+      ${recordField("Currency", "currency", r.currency || "PHP")}
+      <label class="field full">Notes<textarea data-record-field="notes">${esc(r.notes)}</textarea></label>
+      </div>${r.location ? `<a class="map-link" target="_blank" rel="noopener" href="${mapsUrl(r.location)}">Open in Google Maps ↗</a>` : ""}
+      <div class="meal-actions no-print"><button class="btn small danger" data-action="remove-record">Remove visit</button></div>
+    </details>`;
+  }
+  function placeCard(r) {
+    const field = (label, name, wide = "") => `<label class="field ${wide}">${label}<input data-place-field="${name}" value="${esc(r[name])}"></label>`;
+    const suggestedTime = `<label class="field">Suggested time<input type="time" data-place-field="time" value="${esc(r.time || r.reservationTime || "")}"></label>`;
+    return `<article class="record-card" data-place="${esc(r.id)}"><div class="record-grid">
+      ${field("Venue", "venue", "wide")}${field("Cuisine", "cuisine")}${field("Location", "location", "wide")}
+      ${suggestedTime}${field("Reservation details", "reservation", "wide")}${field("Amount", "amount")}${field("Currency", "currency")}
+      <label class="field full">Notes<textarea data-place-field="notes">${esc(r.notes)}</textarea></label>
+      </div>${r.location ? `<a class="map-link" target="_blank" rel="noopener" href="${mapsUrl(r.location)}">Open in Google Maps ↗</a>` : ""}
+      <button class="btn small danger no-print" data-action="remove-place">Remove place</button></article>`;
+  }
   function foodPanel(t) {
+    const collapsedDays = new Set(Storage.read().ui.collapsedDaysByTrip[t.id] || []);
     return `<section class="panel ${getTab() === "food" ? "active" : ""}" data-panel="food">
-        <h2>Food shortlist</h2>
-        <p>Save restaurants to try; add a visit date when you want a cost logged to Expenses.</p>${
-          t.foodPlaces
-            .map((r, i) => {
-              const status = syncStatus(t, r.visitDate, r.amount),
-                map = mapsUrl(r.location),
-                warning =
-                  Number(r.amount) &&
-                  (!r.visitDate || !t.days.some((d) => d.date === r.visitDate)),
-                fields = [
-                  recordField("Venue", "venue", r.venue, "text", "wide"),
-                  recordField("Cuisine", "cuisine", r.cuisine),
-                  recordField("Meal type", "mealType", r.mealType),
-                  recordField(
-                    "Location",
-                    "location",
-                    r.location,
-                    "text",
-                    "wide",
-                  ),
-                  recordField(
-                    "Planned visit",
-                    "visitDate",
-                    r.visitDate,
-                    "date",
-                  ),
-                  recordField(
-                    "Reservation time",
-                    "reservationTime",
-                    r.reservationTime,
-                    "time",
-                  ),
-                  recordField(
-                    "Reservation details",
-                    "reservation",
-                    r.reservation,
-                    "text",
-                    "wide",
-                  ),
-                  recordField("Amount", "amount", r.amount, "number"),
-                  recordField("Currency", "currency", r.currency || "PHP"),
-                ].join("");
-              return `<article class="record-card" data-record-type="food" data-record="${r.id}">
-        <header class="record-head">
-        <h3>Place ${i + 1}</h3>
-        <button class="btn small danger no-print" data-action="remove-record">×</button>
-        </header>
-        <div class="record-grid">${fields}<div
-          class="field full">
-        <label>Notes</label>
-        <textarea data-record-field="notes">${esc(r.notes)}</textarea>
-        </div>
-        </div>${
-          map
-            ? `<a class="map-link" target="_blank" rel="noopener"
-          href="${map}">Open in Google Maps ↗</a>`
-            : ""
-        }<small class="sync-note ${warning ? "warning" : ""}">${status}</small>
-        </article>`;
-            })
-            .join("") ||
-          '<p class="expense-empty">No food places saved yet.</p>'
-        }<button class="btn no-print" data-action="add-record" data-record-type="food">＋ Add food
-        place</button>
-        </section>`;
+      <h2>Food</h2><p>Plan meals by day. Saved places can be used for as many visits as you like.</p>
+      ${t.days.map((day, index) => `<article class="day food-day ${collapsedDays.has(day.id) ? "collapsed" : ""}" data-day="${day.id}">
+        <header class="day-head"><div class="stamp">Day<span class="day-number">${index}</span></div>
+        <div><h3>${esc(day.title)}</h3><small>${dayDateLabel(day.date)}</small></div>
+        <div class="icon-actions no-print"><button type="button" class="day-collapse-button" data-action="toggle-day"
+          aria-expanded="${!collapsedDays.has(day.id)}" aria-label="${collapsedDays.has(day.id) ? "Expand day" : "Collapse day"}">${collapsedDays.has(day.id) ? "⌄" : "⌃"}</button></div></header>
+        <div class="day-content food-groups">${MEAL_TYPES.map((type) => `<section class="food-group">
+          <h4>${type}</h4>
+          ${mealsForDay(t, day).filter((meal) => mealGroup(meal.mealType) === type)
+            .map((meal) => mealCard(meal, t)).join("") || '<p class="expense-empty">No meals yet.</p>'}
+          <div class="food-add no-print"><button class="btn small" data-action="add-meal" data-meal-type="${type}">＋ Add ${type.toLowerCase()} row</button>
+          ${placePicker(t, type)}</div></section>`).join("")}</div></article>`).join("")}
+      <section class="food-shortlist"><h3>Unscheduled shortlist</h3><p>Saved places remain here after scheduling a visit.</p>
+        ${(t.foodLibrary || []).map(placeCard).join("") || '<p class="expense-empty">No saved places yet.</p>'}
+        <button class="btn no-print" data-action="add-place">＋ Save a place</button>
+        ${t.foodPlaces.some((meal) => !meal.visitDate) ? `<h4>Unscheduled visits</h4>${t.foodPlaces.filter((meal) => !meal.visitDate).map((meal) => mealCard(meal, t)).join("")}` : ""}
+      </section></section>`;
   }
   function recordCollection(t, type) {
     return type === "flight"
@@ -657,14 +658,15 @@ export function createPanelRenderers(ctx) {
       .sort((a, b) => a.rank - b.rank)[0]?.entry.id;
   }
 
-  function dayHtml(d, i, isCollapsed = false) {
-    const canCollapse = d.stops.length > 0,
+  function dayHtml(t, d, i, isCollapsed = false) {
+    const entries = scheduledEntries(t, d),
+      canCollapse = entries.length > 0,
       collapsed = canCollapse && isCollapsed,
       overlapping = overlappingEntryIds(d),
       isToday = d.date === today(),
       nextEntryId = isToday ? nextUpcomingEntryId(d) : null,
       emptyDayNotice =
-        d.stops.length === 0
+        entries.length === 0
           ? `<div class="empty-day-notice no-print" role="note">
         <strong>Day is empty</strong>
         <span>No activities or tours have been added yet. Add details below.</span>
@@ -690,15 +692,17 @@ export function createPanelRenderers(ctx) {
         </div>
         <div class="icon-actions no-print">${dayCollapseButton}</div>
         </header>
-        <div class="day-content">${d.stops
-          .map((s, j) =>
-            entryHtml(s, j, overlapping.has(s.id), s.id === nextEntryId),
-          )
+        <div class="day-content">${entries
+          .map(({ kind, record, index }) => kind === "meal"
+            ? mealCard(record, t)
+            : entryHtml(record, index, overlapping.has(record.id), record.id === nextEntryId))
           .join("")}${emptyDayNotice}<footer
           class="day-foot">
         <div class="add-choice no-print">
         <button class="btn small" data-action="add-activity">＋ Activity</button>
         <button class="btn small" data-action="add-tour">＋ Tour</button>
+        <button class="btn small" data-action="add-meal" data-meal-type="Other">＋ Meal</button>
+        ${placePicker(t)}
         </div>
         </footer>
         </div>

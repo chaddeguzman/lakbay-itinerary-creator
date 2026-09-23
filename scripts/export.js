@@ -1,3 +1,5 @@
+import { scheduledEntries } from "./meals.js";
+
 export function createExportTools({ fmt, dayDateLabel }) {
   function download(data, name, type) {
     const a = document.createElement("a");
@@ -9,7 +11,7 @@ export function createExportTools({ fmt, dayDateLabel }) {
 
   function exportPng(t) {
     const days = t.days,
-      h = 190 + days.reduce((n, d) => n + 90 + d.stops.length * 76, 0),
+      h = 190 + days.reduce((n, d) => n + 90 + scheduledEntries(t, d).length * 76, 0),
       c = document.createElement("canvas");
     c.width = 1200;
     c.height = Math.max(h, 500);
@@ -35,14 +37,14 @@ export function createExportTools({ fmt, dayDateLabel }) {
       x.font = "19px Georgia";
       x.fillText(dayDateLabel(d.date), 70, y);
       y += 32;
-      d.stops.forEach((s) => {
+      scheduledEntries(t, d).forEach(({ kind, record: s }) => {
         const time =
           s.timeMode === "range" && s.endTime
             ? `${s.time || "-"} - ${s.endTime}`
             : s.time || "-";
         x.fillStyle = "#253735";
         x.font = "bold 20px Georgia";
-        x.fillText(`${time}   ${s.activity || "Untitled stop"}`, 90, y);
+        x.fillText(`${time}   ${kind === "meal" ? `${s.mealType || "Other"}: ${s.venue || "Meal"}` : s.activity || "Untitled stop"}`, 90, y);
         x.font = "17px Georgia";
         x.fillText(s.location || "", 210, y + 25);
         if (s.notes) {
