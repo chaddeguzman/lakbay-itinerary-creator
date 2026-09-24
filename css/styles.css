@@ -17,7 +17,7 @@
   --line: #d8cbb2;
   --shadow: 0 12px 35px #16332d1a;
   --day-odd: #ffffff;
-  --day-even: #f4ead5;
+  --day-even: #f7dcc6;
 }
 * {
   box-sizing: border-box;
@@ -1247,8 +1247,8 @@ html[data-theme="dark"] {
   --muted: #b2b9b1;
   --line: #40514d;
   --shadow: 0 12px 35px #0005;
-  --day-odd: #1c2b29;
-  --day-even: #2b7770;
+  --day-odd: #31594b;
+  --day-even: #183a32;
 }
 html[data-theme="dark"] body {
   background-image:
