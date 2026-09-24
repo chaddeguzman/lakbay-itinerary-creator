@@ -781,6 +781,7 @@ export function createPanelRenderers(ctx) {
           data-stop="${s.id}">
         <div class="activity-summary">
         <div class="activity-summary-line">
+        ${doneToggleButton(s)}
         <strong class="${isUnscheduled ? "unscheduled-label" : ""}">
           ${esc(time)}
         </strong>
@@ -792,7 +793,7 @@ export function createPanelRenderers(ctx) {
         ${isNextUp ? '<span class="next-up-badge">Next up</span>' : ""}
         ${overlapBadge(hasOverlap)}
         <div class="activity-notes">${esc(s.notes)}</div>
-        </div>${actions}${doneToggleButton(s)}<button type="button" class="btn small secondary"
+        </div>${actions}<button type="button" class="btn small secondary"
           data-action="edit-activity" title="Edit activity" aria-label="Edit activity">✎</button>
         <button class="btn small danger" data-action="remove-stop" title="Remove activity"
           aria-label="Remove activity">×</button>
@@ -1214,6 +1215,7 @@ export function createPanelRenderers(ctx) {
           data-stop="${s.id}">
         <div class="activity-summary">
         <div class="activity-summary-line">
+        ${doneToggleButton(s)}
         <strong class="${isUnscheduled ? "unscheduled-label" : ""}">
           ${esc(time)}
         </strong>
@@ -1225,7 +1227,7 @@ export function createPanelRenderers(ctx) {
         ${isNextUp ? '<span class="next-up-badge">Next up</span>' : ""}
         ${overlapBadge(hasOverlap)}
         <div class="activity-notes">${esc(s.notes)}</div>
-        </div>${actions}${doneToggleButton(s)}<button type="button" class="btn small secondary"
+        </div>${actions}<button type="button" class="btn small secondary"
           data-action="edit-activity" title="Edit tour" aria-label="Edit tour">✎</button>
         <button class="btn small danger" data-action="remove-stop" title="Remove tour"
           aria-label="Remove tour">×</button>

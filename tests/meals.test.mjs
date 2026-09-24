@@ -158,3 +158,21 @@ test("meal venue links to Google Maps and meal time uses half-hour choices", () 
   assert.match(html, /<option value="PM" selected/);
   assert.doesNotMatch(html, /type="time" data-record-field="time"/);
 });
+
+test("activity and tour compact rows put Done before time and keep edit actions expandable", () => {
+  const t = trip();
+  t.days[0].stops.push(
+    { id: "activity", kind: "activity", time: "08:00", activity: "Temple visit", location: "Old City", notes: "Bring water", done: false },
+    { id: "tour", kind: "tour", time: "10:00", endTime: "12:00", activity: "Food tour", tourLocations: ["Market"], notes: "Meet guide", done: false },
+  );
+  const html = panels(t).itineraryPanel(t),
+    done = html.indexOf('data-action="toggle-done"'),
+    time = html.indexOf("8:00 AM"),
+    edit = html.indexOf('data-action="edit-activity"'),
+    notes = html.indexOf("Bring water");
+  assert.ok(done >= 0 && done < time);
+  assert.ok(time < edit);
+  assert.ok(notes >= 0);
+  assert.match(html, /class="stop activity-compact/);
+  assert.match(html, /class="stop activity-compact tour-compact/);
+});

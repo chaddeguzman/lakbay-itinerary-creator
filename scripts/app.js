@@ -790,6 +790,11 @@ import { createPanelRenderers } from "./render-panels.js";
     compact.setAttribute("draggable", "true");
     compact.dataset.dragKind = "activity";
   });
+  main.addEventListener("click", (e) => {
+    const compact = e.target.closest(".activity-compact");
+    if (!compact || e.target.closest("button,a")) return;
+    compact.classList.toggle("is-expanded");
+  });
   main.addEventListener("dragstart", (e) => {
     const source = e.target.closest(
       '.drag-handle,.activity-compact[draggable="true"]',
