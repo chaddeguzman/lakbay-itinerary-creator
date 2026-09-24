@@ -734,7 +734,8 @@ export function createPanelRenderers(ctx) {
         : "";
     return `<article class="day ${collapsed ? "collapsed" : ""}"
           data-day="${d.id}">
-        <header class="day-head">
+        <header class="day-head${canCollapse ? " day-toggle" : ""}"
+          ${canCollapse ? `data-action="toggle-day" role="button" tabindex="0" aria-expanded="${!collapsed}" aria-label="${collapsed ? "Expand day" : "Collapse day"}"` : ""}>
         <div class="stamp">Day<span class="day-number">${i}</span></div>
         <div>
         <input class="day-title" data-field="title" value="${esc(d.title)}"

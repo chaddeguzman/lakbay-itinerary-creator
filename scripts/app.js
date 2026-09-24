@@ -525,6 +525,10 @@ import { createPanelRenderers } from "./render-panels.js?v=d455b2b";
     (e) => {
       const a = e.target.closest("[data-action]");
       if (!a) return;
+      if (a.dataset.action === "toggle-day" && e.target.closest("input, button, a, select, textarea")) {
+        e.stopImmediatePropagation();
+        return;
+      }
       const act = a.dataset.action;
       if (act === "toggle-nav") {
         e.stopImmediatePropagation();
@@ -608,6 +612,13 @@ import { createPanelRenderers } from "./render-panels.js?v=d455b2b";
     },
     true,
   );
+  main.addEventListener("keydown", (e) => {
+    const toggle = e.target.closest('[data-action="toggle-day"]');
+    if (toggle && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      toggle.click();
+    }
+  });
   main.addEventListener("click", async (e) => {
     const a = e.target.closest("[data-action]");
     if (!a) return;
