@@ -190,6 +190,7 @@ export function createPanelRenderers(ctx) {
         updated && !Number.isNaN(updated.getTime())
           ? updated.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
           : "",
+      sourceLabel = forecast?.sourceLabel || "This year's forecast",
       rainyDays = (forecast?.days || []).filter(isRainyForecast).length;
     return `<section class="panel ${getTab() === "weather" ? "active" : ""}" data-panel="weather">
         <div class="weather-heading">
@@ -213,7 +214,7 @@ export function createPanelRenderers(ctx) {
         </div>
         ${
           forecast
-            ? `<small class="weather-updated">Updated ${esc(updatedLabel || "recently")} via Open-Meteo.</small>
+            ? `<small class="weather-updated">Updated ${esc(updatedLabel || "recently")} · ${esc(sourceLabel)} via Open-Meteo.</small>
         <div class="weather-days">${t.days.map((day, index) => weatherDayHtml(day, index, forecast)).join("")}</div>`
             : '<p class="expense-empty">No forecast saved yet. Fetch weather to show daily planning notes for this destination.</p>'
         }
@@ -249,6 +250,49 @@ export function createPanelRenderers(ctx) {
         <p>${rainy ? "Rain is possible. Ask TravelBot for indoor alternatives or a lower-walking version of this day." : "Weather looks workable, but verify locally before locking plans."}</p>
         </article>`;
   }
+  function shiftedYear(date, offset) {
+    const [year, month, day] = String(date || "").split("-");
+    return `${Number(year) + offset}-${month}-${day}`;
+  }
+  function weatherQuery(latitude, longitude, startDate, endDate, includeRainProbability = true) {
+    const daily = [
+      "weather_code",
+      "temperature_2m_max",
+      "temperature_2m_min",
+      ...(includeRainProbability ? ["precipitation_probability_max"] : []),
+      "precipitation_sum",
+    ];
+    return new URLSearchParams({
+      latitude,
+      longitude,
+      daily: daily.join(","),
+      timezone: "auto",
+      start_date: startDate,
+      end_date: endDate,
+    });
+  }
+  function weatherForecastFromData(data, place, t, source, sourceLabel, sourceYear) {
+    const daily = data.daily || {},
+      dates = daily.time || [];
+    return {
+      locationName: [place.name, place.admin1, place.country].filter(Boolean).join(", "),
+      latitude: place.latitude,
+      longitude: place.longitude,
+      updatedAt: new Date().toISOString(),
+      source,
+      sourceLabel,
+      sourceYear,
+      days: t.days.map((day, index) => ({
+        date: day.date,
+        weatherCode: daily.weather_code?.[index] ?? null,
+        temperatureMax: daily.temperature_2m_max?.[index] ?? null,
+        temperatureMin: daily.temperature_2m_min?.[index] ?? null,
+        precipitationProbabilityMax: daily.precipitation_probability_max?.[index] ?? null,
+        precipitationSum: daily.precipitation_sum?.[index] ?? null,
+        sourceDate: dates[index] || "",
+      })),
+    };
+  }
   async function fetchTripWeather(t) {
     const query = (t.destination || t.name || "").trim();
     if (!query) throw new Error("Add a destination before fetching weather.");
@@ -260,40 +304,25 @@ export function createPanelRenderers(ctx) {
     const geoData = await geoResponse.json(),
       place = geoData?.results?.[0];
     if (!place) throw new Error("No weather location found for this destination.");
-    const params = new URLSearchParams({
-      latitude: place.latitude,
-      longitude: place.longitude,
-      daily: [
-        "weather_code",
-        "temperature_2m_max",
-        "temperature_2m_min",
-        "precipitation_probability_max",
-        "precipitation_sum",
-      ].join(","),
-      timezone: "auto",
-      start_date: t.startDate,
-      end_date: t.endDate,
-    });
-    const forecastResponse = await fetch("https://api.open-meteo.com/v1/forecast?" + params);
-    if (!forecastResponse.ok) throw new Error("Weather forecast is unavailable for these dates.");
-    const data = await forecastResponse.json(),
-      daily = data.daily || {},
-      dates = daily.time || [];
-    return {
-      locationName: [place.name, place.admin1, place.country].filter(Boolean).join(", "),
-      latitude: place.latitude,
-      longitude: place.longitude,
-      updatedAt: new Date().toISOString(),
-      days: dates.map((date, index) => ({
-        date,
-        weatherCode: daily.weather_code?.[index] ?? null,
-        temperatureMax: daily.temperature_2m_max?.[index] ?? null,
-        temperatureMin: daily.temperature_2m_min?.[index] ?? null,
-        precipitationProbabilityMax:
-          daily.precipitation_probability_max?.[index] ?? null,
-        precipitationSum: daily.precipitation_sum?.[index] ?? null,
-      })),
-    };
+    const params = weatherQuery(place.latitude, place.longitude, t.startDate, t.endDate),
+      forecastResponse = await fetch("https://api.open-meteo.com/v1/forecast?" + params);
+    if (forecastResponse.ok)
+      return weatherForecastFromData(await forecastResponse.json(), place, t, "forecast", "This year's forecast", Number(t.startDate.slice(0, 4)));
+
+    const historicalStart = shiftedYear(t.startDate, -1),
+      historicalEnd = shiftedYear(t.endDate, -1),
+      archiveParams = weatherQuery(place.latitude, place.longitude, historicalStart, historicalEnd, false),
+      archiveResponse = await fetch("https://archive-api.open-meteo.com/v1/archive?" + archiveParams);
+    if (!archiveResponse.ok)
+      throw new Error("This year's forecast is not available yet, and last year's historical weather could not be loaded.");
+    return weatherForecastFromData(
+      await archiveResponse.json(),
+      place,
+      t,
+      "historical",
+      `Last year's historical weather (${historicalStart} to ${historicalEnd})`,
+      Number(historicalStart.slice(0, 4)),
+    );
   }
   async function refreshWeather(t) {
     const activeId = t?.id;
