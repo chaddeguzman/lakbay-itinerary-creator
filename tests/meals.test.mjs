@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { createStorage, normalizeTrip } from "../scripts/state.js";
 import { createActions } from "../scripts/actions.js";
 import { mealGroup, scheduledEntries, unscheduleMissingDays } from "../scripts/meals.js";
@@ -175,4 +176,10 @@ test("activity and tour compact rows put Done before time and keep edit actions 
   assert.ok(notes >= 0);
   assert.match(html, /class="stop activity-compact/);
   assert.match(html, /class="stop activity-compact tour-compact/);
+});
+
+test("compact activity notes stay visible as one truncated line", () => {
+  const css = readFileSync(new URL("../css/styles.css", import.meta.url), "utf8");
+  assert.doesNotMatch(css, /\.activity-compact:not\(\.is-expanded\) \.activity-notes\s*\{\s*display:\s*none/);
+  assert.match(css, /\.activity-notes\s*\{[\s\S]*white-space:\s*nowrap;[\s\S]*text-overflow:\s*ellipsis;/);
 });

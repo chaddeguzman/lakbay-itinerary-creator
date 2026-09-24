@@ -1598,9 +1598,10 @@ html[data-theme="dark"] .day-drag-handle {
   flex: 0 0 auto;
 }
 .activity-notes {
-  margin-top: 6px;
+  margin-top: 3px;
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: inherit;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1763,16 +1764,10 @@ html[data-theme="dark"] .done-toggle.is-active {
 .activity-compact > [data-action="remove-stop"] {
   display: none !important;
 }
-.activity-compact:not(.is-expanded) .activity-notes {
-  display: none;
-}
 .activity-compact.is-expanded > .activity-actions,
 .activity-compact.is-expanded > [data-action="edit-activity"],
 .activity-compact.is-expanded > [data-action="remove-stop"] {
   display: grid !important;
-}
-.activity-compact.is-expanded .activity-notes {
-  display: block;
 }
 .stop:not(.activity-compact) .activity-actions {
   grid-template-columns: repeat(3, 34px);
