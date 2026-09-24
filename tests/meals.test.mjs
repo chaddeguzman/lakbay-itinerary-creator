@@ -105,6 +105,12 @@ test("editing one visit persists across both views and keeps one linked expense"
   result = Storage.active();
   assert.equal(result.days[0].expenses.length, 1);
   assert.equal(result.days[0].expenses[0].amount, "9");
+  const editTimePart = (field, timePart, value) => updateRecordField({ target: {
+    dataset: { recordField: field, timePart }, value, closest: () => card,
+  } }, false);
+  editTimePart("time", "clock", "01:30");
+  editTimePart("timePeriod", "period", "PM");
+  assert.equal(Storage.active().foodPlaces[0].time, "13:30");
   assert.equal((panels(result).itineraryPanel(result).match(/data-record="first"/g) || []).length, 1);
   assert.equal((panels(result).foodPanel(result).match(/data-record="first"/g) || []).length, 1);
 });
@@ -145,8 +151,9 @@ test("meal venue links to Google Maps and meal time uses half-hour choices", () 
   const html = panels(t).itineraryPanel(t);
   assert.match(html, /href="https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=Old%20City%20Cafe"/);
   assert.match(html, /target="_blank"/);
-  assert.match(html, /<option value="12:00"/);
+  assert.match(html, /data-time-part="clock"/);
   assert.match(html, /<option value="12:30" selected/);
-  assert.match(html, /<option value="13:00"/);
+  assert.match(html, /data-time-part="period"/);
+  assert.match(html, /<option value="PM" selected/);
   assert.doesNotMatch(html, /type="time" data-record-field="time"/);
 });

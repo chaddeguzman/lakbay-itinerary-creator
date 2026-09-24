@@ -326,15 +326,24 @@ export function createPanelRenderers(ctx) {
           ${type === "number" ? 'min="0" step="0.01"' : ""}>
         </div>`;
   }
+  function mealTimeParts(value) {
+    const match = /^(\d{2}):(\d{2})$/.exec(String(value || "")),
+      hour24 = match ? Number(match[1]) : 0,
+      hour12 = hour24 % 12 || 12;
+    return {
+      clock: match ? `${String(hour12).padStart(2, "0")}:${match[2]}` : "",
+      period: hour24 >= 12 ? "PM" : "AM",
+    };
+  }
   function mealTimeOptions(value) {
-    const current = String(value || "");
-    const values = Array.from({ length: 48 }, (_, index) => {
-      const hour = String(Math.floor(index / 2)).padStart(2, "0");
-      return `${hour}:${index % 2 ? "30" : "00"}`;
-    });
+    const current = mealTimeParts(value).clock,
+      values = Array.from({ length: 23 }, (_, index) => {
+        const hour = Math.floor(index / 2) + 1;
+        return `${String(hour).padStart(2, "0")}:${index % 2 ? "30" : "00"}`;
+      });
     if (current && !values.includes(current)) values.unshift(current);
     return values
-      .map((time) => `<option value="${time}" ${time === current ? "selected" : ""}>${formatTime12(time)}</option>`)
+      .map((time) => `<option value="${time}" ${time === current ? "selected" : ""}>${time}</option>`)
       .join("");
   }
   function flightPanel(t) {
@@ -454,20 +463,21 @@ export function createPanelRenderers(ctx) {
     const days = `<option value="">Unscheduled</option>${t.days.map((d, i) =>
       `<option value="${esc(d.date)}" ${d.date === r.visitDate ? "selected" : ""}>Day ${i} · ${esc(dayDateLabel(d.date))}</option>`).join("")}`;
     const timeLabel = (value) => /^\d{2}:\d{2}$/.test(value || "") ? formatTime12(value) : value;
-    const venue = String(r.venue || "").trim();
+    const venue = String(r.venue || "").trim(),
+      timeParts = mealTimeParts(r.time);
     return `<details class="meal-card" data-record-type="food" data-record="${esc(r.id)}" ${openMealCards.has(r.id) ? "open" : ""}>
       <summary><span>${esc(timeLabel(r.time) || "No time")}${r.timeMode === "range" && r.endTime ? `–${esc(timeLabel(r.endTime))}` : ""}</span>
-      <strong>${esc(r.mealType || "Other")}: ${esc(r.venue || "New meal")}</strong>
+      <strong>${esc(r.mealType || "Other")}: ${venue ? `<a target="_blank" rel="noopener" href="${mapsUrl(venue)}">${esc(venue)}</a>` : "New meal"}</strong>
       </summary>
       <div class="record-grid meal-fields">
       ${recordField("Venue", "venue", r.venue, "text", "wide")}
       <label class="field">Meal type<select data-record-field="mealType">${MEAL_TYPES.map((type) =>
         `<option value="${type}" ${mealGroup(r.mealType) === type ? "selected" : ""}>${type}</option>`).join("")}</select></label>
       ${showDay ? `<label class="field">Day<select data-record-field="visitDate">${days}</select></label>` : ""}
-      <label class="field">Time<select data-record-field="time">${mealTimeOptions(r.time)}</select></label>
+      <label class="field">Time<select data-record-field="time" data-time-part="clock">${mealTimeOptions(r.time)}</select></label>
+      <label class="field">AM/PM<select data-record-field="timePeriod" data-time-part="period"><option value="AM" ${timeParts.period === "AM" && r.time ? "selected" : ""}>AM</option><option value="PM" ${timeParts.period === "PM" && r.time ? "selected" : ""}>PM</option></select></label>
       <label class="field full">Notes<textarea data-record-field="notes">${esc(r.notes)}</textarea></label>
       </div>
-      ${venue ? `<a class="map-link" target="_blank" rel="noopener" href="${mapsUrl(venue)}">Open in Google Maps ↗</a>` : ""}
       <div class="meal-actions no-print"><button class="btn small danger" data-action="remove-record">Remove visit</button></div>
     </details>`;
   }

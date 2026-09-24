@@ -28,7 +28,22 @@ export function createActions({
       const type = card.dataset.recordType,
         r = recordCollection(t, type).find((x) => x.id === card.dataset.record);
       if (!r) return;
-      r[el.dataset.recordField] = el.value;
+      if (el.dataset.timePart) {
+        const match = /^(\d{2}):(\d{2})$/.exec(String(r.time || "")),
+          currentHour24 = match ? Number(match[1]) : 0,
+          currentHour12 = currentHour24 % 12 || 12,
+          currentClock = match
+            ? `${String(currentHour12).padStart(2, "0")}:${match[2]}`
+            : "12:00",
+          currentPeriod = currentHour24 >= 12 ? "PM" : "AM",
+          clock = el.dataset.timePart === "clock" ? el.value : currentClock,
+          period = el.dataset.timePart === "period" ? el.value : currentPeriod,
+          [hour, minute] = clock.split(":").map(Number),
+          hour24 = (hour % 12) + (period === "PM" ? 12 : 0);
+        r.time = `${String(hour24).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+      } else {
+        r[el.dataset.recordField] = el.value;
+      }
       syncRecordExpense(t, type, r);
     }, rerender);
   }
