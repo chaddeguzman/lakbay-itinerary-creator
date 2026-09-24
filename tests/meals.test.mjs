@@ -132,3 +132,21 @@ test("day meal editor uses the clicked day and shows only informative fields", (
   assert.doesNotMatch(html, /data-record-field="cuisine"/);
   assert.doesNotMatch(html, /data-record-field="reservation"/);
 });
+
+test("meal venue links to Google Maps and meal time uses half-hour choices", () => {
+  const t = trip();
+  t.foodPlaces.push({
+    id: "meal",
+    visitDate: t.days[0].date,
+    mealType: "Lunch",
+    venue: "Old City Cafe",
+    time: "12:30",
+  });
+  const html = panels(t).itineraryPanel(t);
+  assert.match(html, /href="https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=Old%20City%20Cafe"/);
+  assert.match(html, /target="_blank"/);
+  assert.match(html, /<option value="12:00"/);
+  assert.match(html, /<option value="12:30" selected/);
+  assert.match(html, /<option value="13:00"/);
+  assert.doesNotMatch(html, /type="time" data-record-field="time"/);
+});

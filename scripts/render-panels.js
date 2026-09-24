@@ -326,6 +326,17 @@ export function createPanelRenderers(ctx) {
           ${type === "number" ? 'min="0" step="0.01"' : ""}>
         </div>`;
   }
+  function mealTimeOptions(value) {
+    const current = String(value || "");
+    const values = Array.from({ length: 48 }, (_, index) => {
+      const hour = String(Math.floor(index / 2)).padStart(2, "0");
+      return `${hour}:${index % 2 ? "30" : "00"}`;
+    });
+    if (current && !values.includes(current)) values.unshift(current);
+    return values
+      .map((time) => `<option value="${time}" ${time === current ? "selected" : ""}>${formatTime12(time)}</option>`)
+      .join("");
+  }
   function flightPanel(t) {
     return `<section class="panel ${getTab() === "flight" ? "active" : ""}" data-panel="flight">
         <h2>Flights</h2>
@@ -443,6 +454,7 @@ export function createPanelRenderers(ctx) {
     const days = `<option value="">Unscheduled</option>${t.days.map((d, i) =>
       `<option value="${esc(d.date)}" ${d.date === r.visitDate ? "selected" : ""}>Day ${i} · ${esc(dayDateLabel(d.date))}</option>`).join("")}`;
     const timeLabel = (value) => /^\d{2}:\d{2}$/.test(value || "") ? formatTime12(value) : value;
+    const venue = String(r.venue || "").trim();
     return `<details class="meal-card" data-record-type="food" data-record="${esc(r.id)}" ${openMealCards.has(r.id) ? "open" : ""}>
       <summary><span>${esc(timeLabel(r.time) || "No time")}${r.timeMode === "range" && r.endTime ? `–${esc(timeLabel(r.endTime))}` : ""}</span>
       <strong>${esc(r.mealType || "Other")}: ${esc(r.venue || "New meal")}</strong>
@@ -452,9 +464,10 @@ export function createPanelRenderers(ctx) {
       <label class="field">Meal type<select data-record-field="mealType">${MEAL_TYPES.map((type) =>
         `<option value="${type}" ${mealGroup(r.mealType) === type ? "selected" : ""}>${type}</option>`).join("")}</select></label>
       ${showDay ? `<label class="field">Day<select data-record-field="visitDate">${days}</select></label>` : ""}
-      ${recordField("Time", "time", r.time, "time")}
+      <label class="field">Time<select data-record-field="time">${mealTimeOptions(r.time)}</select></label>
       <label class="field full">Notes<textarea data-record-field="notes">${esc(r.notes)}</textarea></label>
       </div>
+      ${venue ? `<a class="map-link" target="_blank" rel="noopener" href="${mapsUrl(venue)}">Open in Google Maps ↗</a>` : ""}
       <div class="meal-actions no-print"><button class="btn small danger" data-action="remove-record">Remove visit</button></div>
     </details>`;
   }
