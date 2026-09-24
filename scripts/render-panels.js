@@ -174,6 +174,14 @@ export function createPanelRenderers(ctx) {
   function weatherSummary(code) {
     return WEATHER_CODES[Number(code)] || "Forecast";
   }
+  const WEATHER_EMOJIS = {
+    0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 48: "🌫️",
+    51: "🌦️", 53: "🌦️", 55: "🌧️", 61: "🌧️", 63: "🌧️", 65: "🌧️",
+    71: "🌨️", 73: "❄️", 75: "❄️", 80: "🌦️", 81: "🌧️", 82: "🌧️", 95: "⛈️",
+  };
+  function weatherEmoji(code) {
+    return WEATHER_EMOJIS[Number(code)] || "🌡️";
+  }
   function isRainyForecast(day) {
     const code = Number(day?.weatherCode),
       probability = Number(day?.precipitationProbabilityMax || 0),
@@ -244,7 +252,7 @@ export function createPanelRenderers(ctx) {
         ${rainy ? '<span class="weather-badge">Indoor backup</span>' : ""}
         </header>
         <div class="weather-metrics">
-        <strong>${esc(weather ? weatherSummary(weather.weatherCode) : "Unavailable")}</strong>
+        <strong><span class="weather-condition-icon" role="img" aria-label="${esc(weather ? weatherSummary(weather.weatherCode) : "Unavailable")}">${weatherEmoji(weather?.weatherCode)}</span>${esc(weather ? weatherSummary(weather.weatherCode) : "Unavailable")}</strong>
         <span>${esc(temp)}</span>
         <span>${esc(rain)}</span>
         </div>

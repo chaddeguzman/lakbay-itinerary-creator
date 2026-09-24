@@ -966,6 +966,19 @@ html[data-theme="dark"] .toast button {
   border-radius: 999px;
   padding: 6px 10px;
 }
+.weather-metrics strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.weather-condition-icon {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 0 !important;
+}
 /* Primary tablet and mobile layout adjustments. */
 @media (max-width: 900px) {
   .app {

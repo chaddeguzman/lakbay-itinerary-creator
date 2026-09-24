@@ -55,7 +55,7 @@ test("weather falls back to last year's same date range and labels the source", 
           weather_code: [61, 3],
           temperature_2m_max: [30, 31],
           temperature_2m_min: [22, 23],
-          precipitation_probability_max: [70, 10],
+          precipitation_probability_max: [null, null],
           precipitation_sum: [4, 0],
         },
       }),
@@ -71,6 +71,8 @@ test("weather falls back to last year's same date range and labels the source", 
     assert.match(calls.find((call) => call.includes("archive-api")), /start_date=2025-10-23/);
     assert.doesNotMatch(calls.find((call) => call.includes("archive-api")), /precipitation_probability_max/);
     assert.match(panel.weatherPanel(t), /Last year's historical weather/);
+    assert.match(panel.weatherPanel(t), /🌧️/);
+    assert.match(panel.weatherPanel(t), /Rain chance unavailable/);
     assert.doesNotMatch(panel.weatherPanel(t), /null% rain/);
     assert.deepEqual(toasts, ["Fetching weather...", "Weather forecast updated"]);
   } finally {
