@@ -439,31 +439,22 @@ export function createPanelRenderers(ctx) {
         `<option value="${esc(p.id)}">${esc(p.venue || "Unnamed place")}</option>`).join("")}</select></label>
       <button class="btn small secondary" data-action="schedule-place" data-meal-type="${type}">＋ Use saved</button>`;
   }
-  function mealCard(r, t) {
+  function mealCard(r, t, { showDay = false } = {}) {
     const days = `<option value="">Unscheduled</option>${t.days.map((d, i) =>
       `<option value="${esc(d.date)}" ${d.date === r.visitDate ? "selected" : ""}>Day ${i} · ${esc(dayDateLabel(d.date))}</option>`).join("")}`;
     const timeLabel = (value) => /^\d{2}:\d{2}$/.test(value || "") ? formatTime12(value) : value;
     return `<details class="meal-card" data-record-type="food" data-record="${esc(r.id)}" ${openMealCards.has(r.id) ? "open" : ""}>
       <summary><span>${esc(timeLabel(r.time) || "No time")}${r.timeMode === "range" && r.endTime ? `–${esc(timeLabel(r.endTime))}` : ""}</span>
       <strong>${esc(r.mealType || "Other")}: ${esc(r.venue || "New meal")}</strong>
-      <span>${esc(r.location || "Location pending")}</span>
-      <span>${r.amount ? `${esc(r.currency || "PHP")} ${money(r.amount)}` : ""}</span></summary>
+      </summary>
       <div class="record-grid meal-fields">
       ${recordField("Venue", "venue", r.venue, "text", "wide")}
-      ${recordField("Location", "location", r.location, "text", "wide")}
       <label class="field">Meal type<select data-record-field="mealType">${MEAL_TYPES.map((type) =>
         `<option value="${type}" ${mealGroup(r.mealType) === type ? "selected" : ""}>${type}</option>`).join("")}</select></label>
-      ${r.originalMealType ? `<small class="field">Previous label: ${esc(r.originalMealType)}</small>` : ""}
-      <label class="field">Day<select data-record-field="visitDate">${days}</select></label>
-      <label class="field">Time option<select data-record-field="timeMode"><option value="single" ${r.timeMode !== "range" ? "selected" : ""}>Start time only</option><option value="range" ${r.timeMode === "range" ? "selected" : ""}>Start and end</option></select></label>
-      ${recordField("Start time", "time", r.time, "time")}
-      ${r.timeMode === "range" ? recordField("End time", "endTime", r.endTime, "time") : ""}
-      ${recordField("Cuisine", "cuisine", r.cuisine)}
-      ${recordField("Reservation details", "reservation", r.reservation, "text", "wide")}
-      ${recordField("Amount", "amount", r.amount, "number")}
-      ${recordField("Currency", "currency", r.currency || "PHP")}
+      ${showDay ? `<label class="field">Day<select data-record-field="visitDate">${days}</select></label>` : ""}
+      ${recordField("Time", "time", r.time, "time")}
       <label class="field full">Notes<textarea data-record-field="notes">${esc(r.notes)}</textarea></label>
-      </div>${r.location ? `<a class="map-link" target="_blank" rel="noopener" href="${mapsUrl(r.location)}">Open in Google Maps ↗</a>` : ""}
+      </div>
       <div class="meal-actions no-print"><button class="btn small danger" data-action="remove-record">Remove visit</button></div>
     </details>`;
   }
@@ -495,7 +486,7 @@ export function createPanelRenderers(ctx) {
       <section class="food-shortlist"><h3>Unscheduled shortlist</h3><p>Saved places remain here after scheduling a visit.</p>
         ${(t.foodLibrary || []).map(placeCard).join("") || '<p class="expense-empty">No saved places yet.</p>'}
         <button class="btn no-print" data-action="add-place">＋ Save a place</button>
-        ${t.foodPlaces.some((meal) => !meal.visitDate) ? `<h4>Unscheduled visits</h4>${t.foodPlaces.filter((meal) => !meal.visitDate).map((meal) => mealCard(meal, t)).join("")}` : ""}
+        ${t.foodPlaces.some((meal) => !meal.visitDate) ? `<h4>Unscheduled visits</h4>${t.foodPlaces.filter((meal) => !meal.visitDate).map((meal) => mealCard(meal, t, { showDay: true })).join("")}` : ""}
       </section></section>`;
   }
   function recordCollection(t, type) {

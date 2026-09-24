@@ -108,3 +108,27 @@ test("editing one visit persists across both views and keeps one linked expense"
   assert.equal((panels(result).itineraryPanel(result).match(/data-record="first"/g) || []).length, 1);
   assert.equal((panels(result).foodPanel(result).match(/data-record="first"/g) || []).length, 1);
 });
+
+test("day meal editor uses the clicked day and shows only informative fields", () => {
+  const t = trip();
+  t.foodPlaces.push({
+    id: "meal",
+    visitDate: t.days[0].date,
+    mealType: "Breakfast",
+    venue: "Early Cafe",
+    time: "07:00",
+    notes: "Takeaway",
+    amount: "12",
+  });
+  const html = panels(t).itineraryPanel(t);
+  assert.match(html, /data-record-field="venue"/);
+  assert.match(html, /data-record-field="mealType"/);
+  assert.match(html, /data-record-field="time"/);
+  assert.match(html, /data-record-field="notes"/);
+  assert.doesNotMatch(html, /data-record-field="visitDate"/);
+  assert.doesNotMatch(html, /data-record-field="amount"/);
+  assert.doesNotMatch(html, /data-record-field="currency"/);
+  assert.doesNotMatch(html, /data-record-field="location"/);
+  assert.doesNotMatch(html, /data-record-field="cuisine"/);
+  assert.doesNotMatch(html, /data-record-field="reservation"/);
+});
