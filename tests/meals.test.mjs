@@ -128,6 +128,7 @@ test("day meal editor uses the clicked day and shows only informative fields", (
   });
   const html = panels(t).itineraryPanel(t);
   assert.match(html, /data-record-field="venue"/);
+  assert.match(html, /class="field meal-venue"/);
   assert.match(html, /data-record-field="mealType"/);
   assert.match(html, /data-record-field="time"/);
   assert.match(html, /data-record-field="notes"/);

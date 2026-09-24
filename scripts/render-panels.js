@@ -470,7 +470,7 @@ export function createPanelRenderers(ctx) {
       <strong>${esc(r.mealType || "Other")}: ${venue ? `<a target="_blank" rel="noopener" href="${mapsUrl(venue)}">${esc(venue)}</a>` : "New meal"}</strong>
       </summary>
       <div class="record-grid meal-fields">
-      ${recordField("Venue", "venue", r.venue, "text", "wide")}
+      ${recordField("Venue", "venue", r.venue, "text", "meal-venue")}
       <label class="field">Meal type<select data-record-field="mealType">${MEAL_TYPES.map((type) =>
         `<option value="${type}" ${mealGroup(r.mealType) === type ? "selected" : ""}>${type}</option>`).join("")}</select></label>
       ${showDay ? `<label class="field">Day<select data-record-field="visitDate">${days}</select></label>` : ""}
