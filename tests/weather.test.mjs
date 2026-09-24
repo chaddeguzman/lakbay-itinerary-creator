@@ -71,6 +71,7 @@ test("weather falls back to last year's same date range and labels the source", 
     assert.match(calls.find((call) => call.includes("archive-api")), /start_date=2025-10-23/);
     assert.doesNotMatch(calls.find((call) => call.includes("archive-api")), /precipitation_probability_max/);
     assert.match(panel.weatherPanel(t), /Last year's historical weather/);
+    assert.doesNotMatch(panel.weatherPanel(t), /null% rain/);
     assert.deepEqual(toasts, ["Fetching weather...", "Weather forecast updated"]);
   } finally {
     globalThis.fetch = originalFetch;

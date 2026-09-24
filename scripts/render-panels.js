@@ -225,14 +225,15 @@ export function createPanelRenderers(ctx) {
       rainy = isRainyForecast(weather),
       minTemp = Number(weather?.temperatureMin),
       maxTemp = Number(weather?.temperatureMax),
-      rainChance = Number(weather?.precipitationProbabilityMax),
+      rainChanceValue = weather?.precipitationProbabilityMax,
+      rainChance = Number(rainChanceValue),
       temp =
         weather && Number.isFinite(minTemp) && Number.isFinite(maxTemp)
           ? `${Math.round(weather.temperatureMin)}-${Math.round(weather.temperatureMax)}°C`
           : "No forecast",
       rain =
-        weather && Number.isFinite(rainChance)
-          ? `${weather.precipitationProbabilityMax}% rain`
+        weather && rainChanceValue !== null && rainChanceValue !== undefined && Number.isFinite(rainChance)
+          ? `${rainChanceValue}% rain`
           : "Rain chance unavailable";
     return `<article class="weather-day-card ${rainy ? "is-rainy" : ""}">
         <header>
