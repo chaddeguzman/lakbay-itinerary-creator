@@ -7,7 +7,7 @@ import {
 } from "./state.js";
 import { createActions } from "./actions.js";
 import { createExportTools } from "./export.js";
-import { createPanelRenderers } from "./render-panels.js?v=ee6f852";
+import { createPanelRenderers } from "./render-panels.js?v=3f92837";
 
   // ---------------------------------------------------------------------------
   // Shared formatting, escaping, date, and identifier helpers
