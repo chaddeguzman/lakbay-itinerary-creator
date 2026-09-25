@@ -286,6 +286,7 @@ button {
   background: var(--day-even);
 }
 .day-head {
+  position: relative;
   display: grid;
   grid-template-columns: 74px 1fr auto;
   gap: 14px;
@@ -295,16 +296,16 @@ button {
 .day-completed-watermark {
   position: absolute;
   top: 50%;
-  left: 50%;
+  right: 4%;
   z-index: 2;
   color: #27834b;
-  font-size: clamp(2rem, 5vw, 4.5rem);
+  font-size: clamp(1rem, 2vw, 1.8rem);
   font-weight: 800;
   letter-spacing: 0.04em;
   opacity: 0.2;
   pointer-events: none;
   text-transform: uppercase;
-  transform: translate(-50%, -50%) rotate(-18deg);
+  transform: translateY(-50%) rotate(-12deg);
   white-space: nowrap;
 }
 html[data-theme="dark"] .day-completed-watermark {

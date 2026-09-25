@@ -739,7 +739,6 @@ export function createPanelRenderers(ctx) {
         : "";
     return `<article class="day ${collapsed ? "collapsed" : ""}"
           data-day="${d.id}">
-        ${isDayCompleted(d) ? '<span class="day-completed-watermark" aria-label="Completed">✓ Completed</span>' : ""}
         <header class="day-head${canCollapse ? " day-toggle" : ""}"
           ${canCollapse ? `data-action="toggle-day" role="button" tabindex="0" aria-expanded="${!collapsed}" aria-label="${collapsed ? "Expand day" : "Collapse day"}"` : ""}>
         <div class="stamp">Day<span class="day-number">${i}</span></div>
@@ -749,6 +748,7 @@ export function createPanelRenderers(ctx) {
         <small class="day-date-label">${dayDateLabel(d.date)}</small>
         ${isToday ? '<span class="today-badge">Today</span>' : ""}
         </div>
+        ${isDayCompleted(d) ? '<span class="day-completed-watermark" aria-label="Completed">✓ Completed</span>' : ""}
         </header>
         <div class="day-content">${entries
           .map(({ kind, record, index }) => kind === "meal"
