@@ -307,19 +307,19 @@ html[data-theme="dark"] .panel[data-panel="itinerary"] > .day.is-completed {
   right: auto;
   left: 88px;
   z-index: 2;
-  color: #27834b;
+  color: #16a34a;
   font-size: clamp(1rem, 2vw, 1.8rem);
   font-weight: 800;
   letter-spacing: 0.04em;
-  opacity: 0.2;
+  opacity: 0.34;
   pointer-events: none;
   text-transform: uppercase;
   transform: translateY(-50%) rotate(-12deg);
   white-space: nowrap;
 }
 html[data-theme="dark"] .day-completed-watermark {
-  color: #7ee29b;
-  opacity: 0.24;
+  color: #86efac;
+  opacity: 0.4;
 }
 .stamp {
   width: 70px;
