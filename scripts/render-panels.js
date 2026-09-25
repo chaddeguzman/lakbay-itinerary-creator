@@ -717,6 +717,7 @@ export function createPanelRenderers(ctx) {
 
   function dayHtml(t, d, i, isCollapsed = false) {
     const entries = scheduledEntries(t, d),
+      completed = isDayCompleted(d),
       canCollapse = entries.length > 0,
       collapsed = canCollapse && isCollapsed,
       overlapping = overlappingEntryIds(d),
@@ -737,7 +738,7 @@ export function createPanelRenderers(ctx) {
           ${collapsed ? "⌄" : "⌃"}
         </button>`
         : "";
-    return `<article class="day ${collapsed ? "collapsed" : ""}"
+    return `<article class="day ${collapsed ? "collapsed" : ""}${completed ? " is-completed" : ""}"
           data-day="${d.id}">
         <header class="day-head${canCollapse ? " day-toggle" : ""}"
           ${canCollapse ? `data-action="toggle-day" role="button" tabindex="0" aria-expanded="${!collapsed}" aria-label="${collapsed ? "Expand day" : "Collapse day"}"` : ""}>
@@ -748,7 +749,7 @@ export function createPanelRenderers(ctx) {
         <small class="day-date-label">${dayDateLabel(d.date)}</small>
         ${isToday ? '<span class="today-badge">Today</span>' : ""}
         </div>
-        ${isDayCompleted(d) ? '<span class="day-completed-watermark" aria-label="Completed">✓ Completed</span>' : ""}
+        ${completed ? '<span class="day-completed-watermark" aria-label="Completed">✓ Completed</span>' : ""}
         </header>
         <div class="day-content">${entries
           .map(({ kind, record, index }) => kind === "meal"

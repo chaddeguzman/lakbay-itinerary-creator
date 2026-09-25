@@ -285,6 +285,14 @@ button {
 .panel[data-panel="itinerary"] > .day:nth-of-type(even) {
   background: var(--day-even);
 }
+.panel[data-panel="itinerary"] > .day.is-completed {
+  background: color-mix(in srgb, var(--paper2) 70%, #8b948c);
+  border-color: color-mix(in srgb, var(--line) 62%, #8b948c);
+}
+html[data-theme="dark"] .panel[data-panel="itinerary"] > .day.is-completed {
+  background: color-mix(in srgb, #172522 70%, #8b948c);
+  border-color: #53615d;
+}
 .day-head {
   position: relative;
   display: grid;
