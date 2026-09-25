@@ -329,7 +329,7 @@ button {
 .day-date-label {
   display: inline-block;
   margin-left: 10ch;
-  font-size: 1.6rem;
+  font-size: 0.96rem;
   line-height: 1.2;
 }
 .icon-actions {
