@@ -128,9 +128,9 @@ export function createStorage({ onSaved = () => {}, onCorrupt = () => {} } = {})
         return normalizeState(null);
       }
     },
-    write(s) {
+    write(s, { silent = false } = {}) {
       localStorage.setItem(KEY, JSON.stringify(normalizeState(s)));
-      onSaved();
+      if (!silent) onSaved();
     },
     all() {
       return this.read().trips;
@@ -144,10 +144,10 @@ export function createStorage({ onSaved = () => {}, onCorrupt = () => {} } = {})
       s.activeTripId = id;
       this.write(s);
     },
-    mutate(fn) {
+    mutate(fn, options) {
       const s = this.read();
       fn(s);
-      this.write(s);
+      this.write(s, options);
     },
   };
 }

@@ -667,7 +667,7 @@ import { createPanelRenderers } from "./render-panels.js?v=20b2c34";
         if (collapsed.has(dayId)) collapsed.delete(dayId);
         else collapsed.add(dayId);
         collapsedByTrip[t.id] = [...collapsed];
-      });
+      }, { silent: true });
       render();
     } else if (dayEl) {
       let removedEntryType = "";
