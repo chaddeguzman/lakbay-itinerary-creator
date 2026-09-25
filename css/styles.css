@@ -320,8 +320,8 @@ button {
   border: 0;
   border-bottom: 1px dashed var(--line);
   background: transparent;
-  width: min(100%, 420px);
-  max-width: 420px;
+  width: min(100%, 450px);
+  max-width: 450px;
   font-size: 1.3rem;
   font-weight: bold;
   padding: 5px;
