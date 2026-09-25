@@ -296,7 +296,8 @@ button {
 .day-completed-watermark {
   position: absolute;
   top: 50%;
-  right: 4%;
+  right: auto;
+  left: 88px;
   z-index: 2;
   color: #27834b;
   font-size: clamp(1rem, 2vw, 1.8rem);
