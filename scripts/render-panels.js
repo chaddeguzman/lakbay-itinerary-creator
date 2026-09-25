@@ -738,12 +738,11 @@ export function createPanelRenderers(ctx) {
           ${canCollapse ? `data-action="toggle-day" role="button" tabindex="0" aria-expanded="${!collapsed}" aria-label="${collapsed ? "Expand day" : "Collapse day"}"` : ""}>
         <div class="stamp">Day<span class="day-number">${i}</span></div>
         <div>
-        <input class="day-title" data-field="title" value="${esc(d.title)}"
+        <input class="day-title" data-field="title" maxlength="40" value="${esc(String(d.title || "").slice(0, 40))}"
           aria-label="Day title">
         <small>${dayDateLabel(d.date)}</small>
         ${isToday ? '<span class="today-badge">Today</span>' : ""}
         </div>
-        <div class="icon-actions no-print">${dayCollapseButton}</div>
         </header>
         <div class="day-content">${entries
           .map(({ kind, record, index }) => kind === "meal"

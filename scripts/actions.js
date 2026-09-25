@@ -67,7 +67,7 @@ export function createActions({
             ? d.stops.find((x) => x.id === stop.dataset.stop)
             : d;
       }
-      obj[field] = el.type === "checkbox" ? el.checked : el.value;
+      obj[field] = el.type === "checkbox" ? el.checked : field === "title" ? el.value.slice(0, 40) : el.value;
     }, rerender);
   }
 

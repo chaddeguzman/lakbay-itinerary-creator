@@ -51,6 +51,15 @@ test("multiple breakfasts appear in time order with activities; untimed meals fo
   assert.equal((food.match(/Breakfast: /g) || []).length, 3);
 });
 
+test("day titles are limited to 40 characters", () => {
+  const t = trip();
+  t.days[0].title = "A very long itinerary day title that exceeds forty characters";
+  const html = panels(t).itineraryPanel(t);
+  assert.match(html, /maxlength="40"/);
+  assert.match(html, /value="A very long itinerary day title that ex/);
+  assert.doesNotMatch(html, /exceeds forty characters/);
+});
+
 test("removing a trip day keeps visits unscheduled and clears linked expenses", () => {
   const t = trip();
   const meal = { id: "meal", visitDate: t.days[0].date, venue: "Cafe", mealType: "Lunch", amount: "9", currency: "PHP" };

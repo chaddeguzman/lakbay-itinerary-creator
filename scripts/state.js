@@ -19,6 +19,7 @@ export const DEFAULT_PACK = [
 export function normalizeTrip(t) {
   t.days = Array.isArray(t.days) ? t.days : [];
   t.days.forEach((d) => {
+    d.title = String(d.title || "").slice(0, 40);
     d.stops = Array.isArray(d.stops) ? d.stops : [];
     d.stops.forEach((s) => {
       s.kind = s.kind === "tour" ? "tour" : "activity";
