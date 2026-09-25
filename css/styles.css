@@ -292,6 +292,25 @@ button {
   align-items: center;
   margin-bottom: 18px;
 }
+.day-completed-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  color: #27834b;
+  font-size: clamp(2rem, 5vw, 4.5rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  opacity: 0.2;
+  pointer-events: none;
+  text-transform: uppercase;
+  transform: translate(-50%, -50%) rotate(-18deg);
+  white-space: nowrap;
+}
+html[data-theme="dark"] .day-completed-watermark {
+  color: #7ee29b;
+  opacity: 0.24;
+}
 .stamp {
   width: 70px;
   height: 70px;

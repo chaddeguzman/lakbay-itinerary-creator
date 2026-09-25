@@ -188,6 +188,22 @@ test("activity and tour compact rows put Done before time and keep edit actions 
   assert.match(html, /class="stop activity-compact tour-compact/);
 });
 
+test("completed watermark requires every activity and tour to be done", () => {
+  const t = trip();
+  t.days[0].stops.push(
+    { id: "activity", kind: "activity", activity: "Temple visit", done: true },
+    { id: "tour", kind: "tour", activity: "Food tour", done: true },
+  );
+  t.foodPlaces.push({ id: "meal", visitDate: t.days[0].date, mealType: "Lunch", venue: "Cafe" });
+  assert.match(panels(t).itineraryPanel(t), /day-completed-watermark/);
+
+  t.days[0].stops[1].done = false;
+  assert.doesNotMatch(panels(t).itineraryPanel(t), /day-completed-watermark/);
+
+  t.days[0].stops = [];
+  assert.doesNotMatch(panels(t).itineraryPanel(t), /day-completed-watermark/);
+});
+
 test("compact activity notes stay visible as one truncated line", () => {
   const css = readFileSync(new URL("../css/styles.css", import.meta.url), "utf8");
   assert.doesNotMatch(css, /\.activity-compact:not\(\.is-expanded\) \.activity-notes\s*\{\s*display:\s*none/);
