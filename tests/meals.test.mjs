@@ -195,7 +195,9 @@ test("completed watermark requires every activity and tour to be done", () => {
     { id: "tour", kind: "tour", activity: "Food tour", done: true },
   );
   t.foodPlaces.push({ id: "meal", visitDate: t.days[0].date, mealType: "Lunch", venue: "Cafe" });
-  assert.match(panels(t).itineraryPanel(t), /day-completed-watermark/);
+  const completedHtml = panels(t).itineraryPanel(t);
+  assert.match(completedHtml, /day-completed-watermark/);
+  assert.match(completedHtml, /class="day\s+is-completed/);
 
   t.days[0].stops[1].done = false;
   assert.doesNotMatch(panels(t).itineraryPanel(t), /day-completed-watermark/);
