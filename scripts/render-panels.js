@@ -740,7 +740,7 @@ export function createPanelRenderers(ctx) {
         <div>
         <input class="day-title" data-field="title" maxlength="40" value="${esc(String(d.title || "").slice(0, 40))}"
           aria-label="Day title">
-        <small>${dayDateLabel(d.date)}</small>
+        <small class="day-date-label">${dayDateLabel(d.date)}</small>
         ${isToday ? '<span class="today-badge">Today</span>' : ""}
         </div>
         </header>

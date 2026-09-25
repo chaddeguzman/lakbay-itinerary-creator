@@ -56,6 +56,7 @@ test("day titles are limited to 40 characters", () => {
   t.days[0].title = "A very long itinerary day title that exceeds forty characters";
   const html = panels(t).itineraryPanel(t);
   assert.match(html, /maxlength="40"/);
+  assert.match(html, /class="day-date-label"/);
   assert.match(html, /value="A very long itinerary day title that ex/);
   assert.doesNotMatch(html, /exceeds forty characters/);
 });

@@ -320,11 +320,17 @@ button {
   border: 0;
   border-bottom: 1px dashed var(--line);
   background: transparent;
-  width: min(100%, 260px);
-  max-width: 260px;
+  width: min(100%, 420px);
+  max-width: 420px;
   font-size: 1.3rem;
   font-weight: bold;
   padding: 5px;
+}
+.day-date-label {
+  display: inline-block;
+  margin-left: 10ch;
+  font-size: 1.6rem;
+  line-height: 1.2;
 }
 .icon-actions {
   display: flex;
