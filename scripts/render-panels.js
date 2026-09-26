@@ -1,4 +1,5 @@
 import { MEAL_TYPES, mealGroup, mealsForDay, scheduledEntries } from "./meals.js";
+import { formatTime12, timePickerHtml } from "./time-picker.js";
 
 export function createPanelRenderers(ctx) {
   const {
@@ -12,6 +13,7 @@ export function createPanelRenderers(ctx) {
     getTab,
     money,
     openMealCards,
+    timeDrafts,
     render,
     today,
     toast,
@@ -364,26 +366,7 @@ export function createPanelRenderers(ctx) {
           ${type === "number" ? 'min="0" step="0.01"' : ""}>
         </div>`;
   }
-  function mealTimeParts(value) {
-    const match = /^(\d{2}):(\d{2})$/.exec(String(value || "")),
-      hour24 = match ? Number(match[1]) : 0,
-      hour12 = hour24 % 12 || 12;
-    return {
-      clock: match ? `${String(hour12).padStart(2, "0")}:${match[2]}` : "",
-      period: hour24 >= 12 ? "PM" : "AM",
-    };
-  }
-  function mealTimeOptions(value) {
-    const current = mealTimeParts(value).clock,
-      values = Array.from({ length: 23 }, (_, index) => {
-        const hour = Math.floor(index / 2) + 1;
-        return `${String(hour).padStart(2, "0")}:${index % 2 ? "30" : "00"}`;
-      });
-    if (current && !values.includes(current)) values.unshift(current);
-    return values
-      .map((time) => `<option value="${time}" ${time === current ? "selected" : ""}>${time}</option>`)
-      .join("");
-  }
+
   function flightPanel(t) {
     return `<section class="panel ${getTab() === "flight" ? "active" : ""}" data-panel="flight">
         <h2>Flights</h2>
@@ -502,7 +485,7 @@ export function createPanelRenderers(ctx) {
       `<option value="${esc(d.date)}" ${d.date === r.visitDate ? "selected" : ""}>Day ${i} · ${esc(dayDateLabel(d.date))}</option>`).join("")}`;
     const timeLabel = (value) => /^\d{2}:\d{2}$/.test(value || "") ? formatTime12(value) : value;
     const venue = String(r.venue || "").trim(),
-      timeParts = mealTimeParts(r.time);
+      timeKey = `meal:${r.id}:time`;
     return `<details class="meal-card" data-record-type="food" data-record="${esc(r.id)}" ${openMealCards.has(r.id) ? "open" : ""}>
       <summary><span>${esc(timeLabel(r.time) || "No time")}${r.timeMode === "range" && r.endTime ? `–${esc(timeLabel(r.endTime))}` : ""}</span>
       <strong>${esc(r.mealType || "Other")}: ${venue ? `<a target="_blank" rel="noopener" href="${mapsUrl(venue)}">${esc(venue)}</a>` : "New meal"}</strong>
@@ -511,9 +494,10 @@ export function createPanelRenderers(ctx) {
       ${recordField("Venue", "venue", r.venue, "text", "meal-venue")}
       <label class="field">Meal type<select data-record-field="mealType">${MEAL_TYPES.map((type) =>
         `<option value="${type}" ${mealGroup(r.mealType) === type ? "selected" : ""}>${type}</option>`).join("")}</select></label>
+      <div class="field meal-time-field">${timePickerHtml({
+        label: "Time", field: "time", value: r.time, key: timeKey, draft: timeDrafts?.get(timeKey),
+      })}</div>
       ${showDay ? `<label class="field">Day<select data-record-field="visitDate">${days}</select></label>` : ""}
-      <label class="field">Time<select data-record-field="time" data-time-part="clock">${mealTimeOptions(r.time)}</select></label>
-      <label class="field">AM/PM<select data-record-field="timePeriod" data-time-part="period"><option value="AM" ${timeParts.period === "AM" && r.time ? "selected" : ""}>AM</option><option value="PM" ${timeParts.period === "PM" && r.time ? "selected" : ""}>PM</option></select></label>
       <label class="field full">Notes<textarea data-record-field="notes">${esc(r.notes)}</textarea></label>
       </div>
       <div class="meal-actions no-print"><button class="btn small danger" data-action="remove-record">Remove visit</button></div>
@@ -777,11 +761,6 @@ export function createPanelRenderers(ctx) {
       m = minutes % 60;
     return `${h ? h + " hr " : ""}${m ? m + " min" : ""}`.trim() || "0 min";
   }
-  function formatTime12(value) {
-    const [hour, minute] = value.split(":").map(Number),
-      period = hour >= 12 ? "PM" : "AM";
-    return `${hour % 12 || 12}:${String(minute).padStart(2, "0")} ${period}`;
-  }
 
   function overlapBadge(hasOverlap) {
     return hasOverlap
@@ -844,7 +823,7 @@ export function createPanelRenderers(ctx) {
           aria-label="Remove activity">×</button>
         </div>
         </div>`;
-    return `<div class="stop ${hasOverlap ? "time-overlap" : ""} ${isNextUp ? "is-next-up" : ""}"
+    return `<div class="stop stop-editor ${hasOverlap ? "time-overlap" : ""} ${isNextUp ? "is-next-up" : ""}"
           data-stop="${s.id}">
         <div class="stop-schedule">
         <label class="eyebrow">Activity ${j + 1}</label>
@@ -854,19 +833,12 @@ export function createPanelRenderers(ctx) {
         <option value="single" ${!range ? "selected" : ""}>Start time only</option>
         <option value="range" ${range ? "selected" : ""}>Start &amp; end</option>
         </select>
-        <label class="time-label">Start time</label>
-        <input class="stop-time" type="time" data-field="time" value="${esc(s.time)}">${
-          range
-            ? `<label
-          class="time-label">End time</label>
-        <input class="stop-time" type="time" data-field="endTime" value="${esc(s.endTime)}">${
-          duration
-            ? `<small
-          class="duration">Duration: ${duration}</small>`
-            : ""
-        }`
-            : ""
-        }</div>
+        ${timePickerHtml({ label: "Start time", field: "time", value: s.time,
+          key: `stop:${s.id}:time`, draft: timeDrafts?.get(`stop:${s.id}:time`) })}
+        ${range ? timePickerHtml({ label: "End time", field: "endTime", value: s.endTime,
+          key: `stop:${s.id}:endTime`, draft: timeDrafts?.get(`stop:${s.id}:endTime`) }) : ""}
+        ${range && duration ? `<small class="duration">Duration: ${duration}</small>` : ""}
+        </div>
         <div class="fields">
         <div class="field">
         <label>Activity</label>
@@ -1283,14 +1255,11 @@ export function createPanelRenderers(ctx) {
         <div class="stop-schedule">
         <label class="eyebrow">Tour ${j + 1}</label>
         ${overlapBadge(hasOverlap)}
-        <label class="time-label">Start time <span class="required">*</span>
-        </label>
-        <input class="stop-time" type="time" data-field="time" value="${esc(s.time)}"
-          required>
-        <label class="time-label">End time <span class="required">*</span>
-        </label>
-        <input class="stop-time" type="time" data-field="endTime" value="${esc(s.endTime)}"
-          required>${duration ? `<small class="duration">Duration: ${duration}</small>` : ""}</div>
+        ${timePickerHtml({ label: "Start time", field: "time", value: s.time,
+          key: `stop:${s.id}:time`, required: true, draft: timeDrafts?.get(`stop:${s.id}:time`) })}
+        ${timePickerHtml({ label: "End time", field: "endTime", value: s.endTime,
+          key: `stop:${s.id}:endTime`, required: true, draft: timeDrafts?.get(`stop:${s.id}:endTime`) })}
+        ${duration ? `<small class="duration">Duration: ${duration}</small>` : ""}</div>
         <div class="fields">
         <div class="field notes">
         <label>Tour name</label>

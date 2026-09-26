@@ -10,9 +10,9 @@ const day = (date = "2026-10-28") => ({ id: date, date, title: "Explore", stops:
 const trip = () => ({ id: "trip", days: [day()], foodPlaces: [], foodLibrary: [] });
 const esc = (value) => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll('"', "&quot;");
 globalThis.window = {};
-const panels = (current = trip()) => createPanelRenderers({
+const panels = (current = trip(), editingActivities = new Set()) => createPanelRenderers({
   CATEGORIES: [], PACK_CATEGORIES: [], Storage: { read: () => ({ ui: { collapsedDaysByTrip: {} } }), active: () => current },
-  dayDateLabel: (value) => value, editingActivities: new Set(), esc, fmt: (value) => value,
+  dayDateLabel: (value) => value, editingActivities, esc, fmt: (value) => value,
   getTab: () => "itinerary", money: (value) => String(value), openMealCards: new Set(),
   render() {}, today: () => "2026-10-28", toast() {}, uid: () => "expense-id",
 });
@@ -97,7 +97,7 @@ test("editing one visit persists across both views and keeps one linked expense"
   const Storage = createStorage();
   Storage.write({ trips: [t], activeTripId: t.id });
   const { syncRecordExpense } = panels(t);
-  const { updateRecordField } = createActions({
+  const { updateRecordField, updateScheduledTime } = createActions({
     Storage, recordCollection: (current) => current.foodPlaces, rememberUndo() {}, render() {}, syncRecordExpense,
   });
   const card = { dataset: { recordType: "food", record: "first" } };
@@ -116,11 +116,10 @@ test("editing one visit persists across both views and keeps one linked expense"
   result = Storage.active();
   assert.equal(result.days[0].expenses.length, 1);
   assert.equal(result.days[0].expenses[0].amount, "9");
-  const editTimePart = (field, timePart, value) => updateRecordField({ target: {
-    dataset: { recordField: field, timePart }, value, closest: () => card,
-  } }, false);
-  editTimePart("time", "clock", "01:30");
-  editTimePart("timePeriod", "period", "PM");
+  updateScheduledTime({
+    dataset: { timeField: "time" },
+    closest: (selector) => selector === "[data-record]" ? card : null,
+  }, "13:30");
   assert.equal(Storage.active().foodPlaces[0].time, "13:30");
   assert.equal((panels(result).itineraryPanel(result).match(/data-record="first"/g) || []).length, 1);
   assert.equal((panels(result).foodPanel(result).match(/data-record="first"/g) || []).length, 1);
@@ -141,7 +140,7 @@ test("day meal editor uses the clicked day and shows only informative fields", (
   assert.match(html, /data-record-field="venue"/);
   assert.match(html, /class="field meal-venue"/);
   assert.match(html, /data-record-field="mealType"/);
-  assert.match(html, /data-record-field="time"/);
+  assert.match(html, /data-time-field="time"/);
   assert.match(html, /data-record-field="notes"/);
   assert.doesNotMatch(html, /data-record-field="visitDate"/);
   assert.doesNotMatch(html, /data-record-field="amount"/);
@@ -151,7 +150,7 @@ test("day meal editor uses the clicked day and shows only informative fields", (
   assert.doesNotMatch(html, /data-record-field="reservation"/);
 });
 
-test("meal venue links to Google Maps and meal time uses half-hour choices", () => {
+test("meal time uses compact period, hour, and five-minute menus", () => {
   const t = trip();
   t.foodPlaces.push({
     id: "meal",
@@ -163,11 +162,24 @@ test("meal venue links to Google Maps and meal time uses half-hour choices", () 
   const html = panels(t).itineraryPanel(t);
   assert.match(html, /href="https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=Old%20City%20Cafe"/);
   assert.match(html, /target="_blank"/);
-  assert.match(html, /data-time-part="clock"/);
-  assert.match(html, /<option value="12:30" selected/);
-  assert.match(html, /data-time-part="period"/);
-  assert.match(html, /<option value="PM" selected/);
+  const period = html.indexOf('data-time-trigger="period"');
+  const hour = html.indexOf('data-time-trigger="hour"');
+  const minute = html.indexOf('data-time-trigger="minute"');
+  assert.ok(period >= 0 && period < hour && hour < minute);
+  assert.match(html, /data-time-option="05"/);
+  assert.match(html, /data-time-option="55"/);
+  assert.match(html, /data-time-option="30"[^>]*aria-selected="true"/);
+  assert.match(html, /12:30 PM/);
   assert.doesNotMatch(html, /type="time" data-record-field="time"/);
+});
+
+test("saved off-step minutes remain available without rounding", () => {
+  const t = trip();
+  t.foodPlaces.push({ id: "meal", visitDate: t.days[0].date, mealType: "Breakfast", venue: "Cafe", time: "08:07" });
+  const html = panels(t).itineraryPanel(t);
+  assert.match(html, /08:07 AM/);
+  assert.match(html, /data-time-option="07"[^>]*aria-selected="true"/);
+  assert.match(html, /data-time-option="05"/);
 });
 
 test("activity and tour compact rows put Done before time and keep edit actions expandable", () => {
@@ -210,4 +222,55 @@ test("compact activity notes stay visible as one truncated line", () => {
   const css = readFileSync(new URL("../css/styles.css", import.meta.url), "utf8");
   assert.doesNotMatch(css, /\.activity-compact:not\(\.is-expanded\) \.activity-notes\s*\{\s*display:\s*none/);
   assert.match(css, /\.activity-notes\s*\{[\s\S]*white-space:\s*nowrap;[\s\S]*text-overflow:\s*ellipsis;/);
+});
+
+test("all day-card editors share the blank three-part picker", () => {
+  const t = trip();
+  t.days[0].stops.push(
+    { id: "activity", kind: "activity", time: "", timeMode: "range", endTime: "", activity: "Walk" },
+    { id: "tour", kind: "tour", time: "", endTime: "", activity: "Tour", tourLocations: ["Gate"] },
+  );
+  t.foodPlaces.push({ id: "meal", visitDate: t.days[0].date, mealType: "Dinner", venue: "" });
+  const html = panels(t, new Set(["activity", "tour"])).itineraryPanel(t);
+  assert.equal((html.match(/data-time-trigger="period"/g) || []).length, 5);
+  assert.equal((html.match(/data-time-trigger="hour"/g) || []).length, 5);
+  assert.equal((html.match(/data-time-trigger="minute"/g) || []).length, 5);
+  assert.match(html, /aria-expanded="false">AM\/PM<\/button>/);
+  assert.match(html, /aria-expanded="false">HH<\/button>/);
+  assert.match(html, /aria-expanded="false">MM<\/button>/);
+  assert.doesNotMatch(html, /class="stop-time" type="time"/);
+  assert.equal((panels(t).foodPanel(t).match(/data-time-trigger="period"/g) || []).length, 1);
+});
+
+test("saving shared picker values keeps 24-hour times for sorting and durations", () => {
+  const saved = new Map();
+  globalThis.localStorage = {
+    getItem: (key) => saved.get(key) ?? null,
+    setItem: (key, value) => saved.set(key, value),
+    removeItem: (key) => saved.delete(key),
+  };
+  const t = trip();
+  t.days[0].stops.push({ id: "tour", kind: "tour", time: "", endTime: "", activity: "Tour", tourLocations: ["Gate"] });
+  t.foodPlaces.push({ id: "meal", visitDate: t.days[0].date, mealType: "Dinner", venue: "Cafe", time: "" });
+  const Storage = createStorage();
+  Storage.write({ trips: [t], activeTripId: t.id });
+  const { updateScheduledTime } = createActions({
+    Storage, recordCollection: (current) => current.foodPlaces, rememberUndo() {}, render() {},
+    syncRecordExpense() {},
+  });
+  const dayEl = { dataset: { day: t.days[0].id } };
+  const stopEl = { dataset: { stop: "tour" } };
+  const recordEl = { dataset: { recordType: "food", record: "meal" } };
+  const stopPicker = (field) => ({ dataset: { timeField: field }, closest: (selector) =>
+    selector === "[data-stop]" ? stopEl : selector === "[data-day]" ? dayEl : null });
+  const mealPicker = { dataset: { timeField: "time" }, closest: (selector) =>
+    selector === "[data-record]" ? recordEl : null };
+  updateScheduledTime(stopPicker("time"), "00:05");
+  updateScheduledTime(stopPicker("endTime"), "12:55");
+  updateScheduledTime(mealPicker, "18:10");
+  const result = Storage.active();
+  assert.equal(result.days[0].stops[0].time, "00:05");
+  assert.equal(result.days[0].stops[0].endTime, "12:55");
+  assert.equal(result.foodPlaces[0].time, "18:10");
+  assert.deepEqual(scheduledEntries(result, result.days[0]).map((entry) => entry.record.id), ["tour", "meal"]);
 });

@@ -7,7 +7,8 @@ import {
 } from "./state.js";
 import { createActions } from "./actions.js";
 import { createExportTools } from "./export.js";
-import { createPanelRenderers } from "./render-panels.js?v=d0be164";
+import { createPanelRenderers } from "./render-panels.js?v=picker-20260926";
+import { bindTimePickers } from "./time-picker.js";
 
   // ---------------------------------------------------------------------------
   // Shared formatting, escaping, date, and identifier helpers
@@ -130,6 +131,7 @@ import { createPanelRenderers } from "./render-panels.js?v=d0be164";
   const main = $("#main"),
     list = $("#tripList"),
     editingActivities = new Set(),
+    timeDrafts = new Map(),
     choosingAddForDays = new Set(),
     HOUSE_ICON = [
       '<svg viewBox="0 0 24 24" aria-hidden="true">',
@@ -268,12 +270,13 @@ import { createPanelRenderers } from "./render-panels.js?v=d0be164";
     getTab: () => tab,
     money,
     openMealCards,
+    timeDrafts,
     render,
     today,
     toast,
     uid,
   });
-  const { changeTrip, mutateWithUndo, updateField, updateRecordField } =
+  const { changeTrip, mutateWithUndo, updateField, updateRecordField, updateScheduledTime } =
     createActions({
       Storage,
       recordCollection,
@@ -281,6 +284,8 @@ import { createPanelRenderers } from "./render-panels.js?v=d0be164";
       render,
       syncRecordExpense,
     });
+
+  bindTimePickers(main, { drafts: timeDrafts, onCommit: updateScheduledTime });
 
   // Activity/tour deletion uses two explicit confirmation stages.
   function showEntryDeleteStage(stage, title, message, confirmLabel) {
@@ -349,7 +354,7 @@ import { createPanelRenderers } from "./render-panels.js?v=d0be164";
       kind: "tour",
       time: "",
       timeMode: "range",
-      endTime: "17:00",
+      endTime: "",
       activity: "",
       tourLocations: [""],
       notes: "",
@@ -513,6 +518,7 @@ import { createPanelRenderers } from "./render-panels.js?v=d0be164";
       }
     });
     $("#tripModal").close();
+    if (!id) timeDrafts.clear();
     render();
     toast(id ? "Trip updated" : "Trip created");
   });
@@ -605,6 +611,8 @@ import { createPanelRenderers } from "./render-panels.js?v=d0be164";
                 )),
             );
           });
+          timeDrafts.delete(`meal:${id}:time`);
+          openMealCards.delete(id);
           render();
         }
         return;
@@ -719,6 +727,10 @@ import { createPanelRenderers } from "./render-panels.js?v=d0be164";
             [d.stops[j + 1], d.stops[j]] = [d.stops[j], d.stops[j + 1]];
         }
       });
+      if (act === "remove-stop" && removedEntryType) {
+        timeDrafts.delete(`stop:${stopEl.dataset.stop}:time`);
+        timeDrafts.delete(`stop:${stopEl.dataset.stop}:endTime`);
+      }
       if (act === "remove-stop" && removedEntryType)
         toast(`${removedEntryType} deleted`, {
           label: "Undo",
@@ -897,6 +909,8 @@ import { createPanelRenderers } from "./render-panels.js?v=d0be164";
         const id = stop.dataset.stop,
           snapshot = activitySnapshots.get(id),
           isNew = newActivityEntries.has(id);
+        timeDrafts.delete(`stop:${id}:time`);
+        timeDrafts.delete(`stop:${id}:endTime`);
         editingActivities.delete(id);
         activitySnapshots.delete(id);
         newActivityEntries.delete(id);
@@ -982,6 +996,11 @@ import { createPanelRenderers } from "./render-panels.js?v=d0be164";
         const t = Storage.active(),
           d = t.days.find((x) => x.id === day.dataset.day),
           item = d.stops.find((x) => x.id === stop.dataset.stop);
+        if (timeDrafts.has(`stop:${item.id}:time`) ||
+            timeDrafts.has(`stop:${item.id}:endTime`)) {
+          toast("Finish choosing the time or clear it");
+          return;
+        }
         if (
           item.kind === "tour" &&
           (!item.time || !item.endTime || !item.tourLocations.some(Boolean))
@@ -990,6 +1009,8 @@ import { createPanelRenderers } from "./render-panels.js?v=d0be164";
           return;
         }
         const isNew = newActivityEntries.has(item.id);
+        timeDrafts.delete(`stop:${item.id}:time`);
+        timeDrafts.delete(`stop:${item.id}:endTime`);
         editingActivities.delete(stop.dataset.stop);
         render();
         toast(
@@ -1058,7 +1079,13 @@ import { createPanelRenderers } from "./render-panels.js?v=d0be164";
   main.addEventListener("change", (e) => {
     if (e.target.matches("[data-record-field]")) updateRecordField(e, true);
   });
-  main.addEventListener("change", updateField);
+  main.addEventListener("change", (e) => {
+    if (e.target.matches('select[data-field="timeMode"]') && e.target.value === "single") {
+      const id = e.target.closest("[data-stop]")?.dataset.stop;
+      if (id) timeDrafts.delete(`stop:${id}:endTime`);
+    }
+    updateField(e);
+  });
   main.addEventListener("input", (e) => {
     if (e.target.matches("textarea,input[data-field],select[data-field]"))
       updateField(e, false);
@@ -1094,6 +1121,7 @@ import { createPanelRenderers } from "./render-panels.js?v=d0be164";
     const x = e.target.closest("[data-trip]");
     if (x) {
       Storage.setActive(x.dataset.trip);
+      timeDrafts.clear();
       render();
       $(".sidebar").classList.remove("open");
     }
@@ -1131,6 +1159,7 @@ import { createPanelRenderers } from "./render-panels.js?v=d0be164";
           trips: x.trips,
           activeTripId: x.activeTripId || x.trips[0]?.id || null,
         });
+        timeDrafts.clear();
         render();
         rememberUndo("Backup restored", before);
       }
