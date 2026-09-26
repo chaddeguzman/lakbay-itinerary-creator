@@ -500,7 +500,7 @@ export function createPanelRenderers(ctx) {
       ${showDay ? `<label class="field">Day<select data-record-field="visitDate">${days}</select></label>` : ""}
       <label class="field full">Notes<textarea data-record-field="notes">${esc(r.notes)}</textarea></label>
       </div>
-      <div class="meal-actions no-print"><button class="btn small danger" data-action="remove-record">Remove visit</button></div>
+      <div class="meal-actions no-print"><button class="btn small danger" data-action="remove-record">Discard</button></div>
     </details>`;
   }
   function placeCard(r) {

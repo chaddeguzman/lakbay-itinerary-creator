@@ -2888,6 +2888,11 @@ html[data-theme="dark"] .panel[data-panel="itinerary"] .day .meal-card {
 .panel[data-panel="itinerary"] .day .meal-card summary a {
   color: #4a2e16;
 }
-.panel[data-panel="itinerary"] .day .meal-card .meal-fields > label.field {
+.panel[data-panel="itinerary"] .day .meal-card .meal-time-field .time-picker-label,
+.panel[data-panel="itinerary"] .day .meal-card .meal-fields > label.field,
+.panel[data-panel="itinerary"] .day .meal-card .meal-actions .btn.danger {
   color: #4a2e16;
+}
+.panel[data-panel="itinerary"] .day .meal-card .meal-actions .btn.danger {
+  border-color: #9a714a;
 }
