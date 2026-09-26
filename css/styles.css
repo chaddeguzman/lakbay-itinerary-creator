@@ -2873,3 +2873,17 @@ html[data-theme="dark"] .time-menu { background: #172522; }
   .time-trigger { border: 0; background: transparent; padding: 0; min-height: 0; }
   .time-trigger::after { content: none; }
 }
+
+/* Warm meal cards stand apart from activity and tour cards in both themes. */
+.panel[data-panel="itinerary"] .day .meal-card {
+  background: #f4c68a;
+  border-color: #d6a364;
+  color: #4a2e16;
+}
+.panel[data-panel="itinerary"] .day .meal-card summary strong,
+.panel[data-panel="itinerary"] .day .meal-card summary a {
+  color: #4a2e16;
+}
+.panel[data-panel="itinerary"] .day .meal-card .meal-fields > label.field {
+  color: #4a2e16;
+}
