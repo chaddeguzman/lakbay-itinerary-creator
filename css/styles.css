@@ -2897,3 +2897,6 @@ html[data-theme="dark"] .panel[data-panel="itinerary"] .day .meal-card {
 .panel[data-panel="itinerary"] .day .meal-card .meal-actions .btn.danger {
   border-color: #9a714a;
 }
+html[data-theme="dark"] .panel[data-panel="itinerary"] .day .meal-card .meal-actions .btn.danger {
+  font-weight: 400;
+}
