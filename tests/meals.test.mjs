@@ -274,3 +274,15 @@ test("saving shared picker values keeps 24-hour times for sorting and durations"
   assert.equal(result.foodPlaces[0].time, "18:10");
   assert.deepEqual(scheduledEntries(result, result.days[0]).map((entry) => entry.record.id), ["tour", "meal"]);
 });
+
+test("only the day stamp toggles the itinerary day card", () => {
+  const t = trip();
+  t.days[0].stops.push({ id: "activity", kind: "activity", activity: "Temple visit" });
+  const html = panels(t).itineraryPanel(t);
+  const header = html.match(/<header class="day-head[\s\S]*?<\/header>/)?.[0];
+  assert.ok(header);
+  const stamp = header.match(/<div class="stamp[\s\S]*?<\/div>/)?.[0];
+  assert.match(stamp, /class="stamp day-stamp-toggle" data-action="toggle-day" role="button" tabindex="0" aria-expanded="true" aria-label="Collapse day"/);
+  const headerWithoutStamp = header.replace(stamp, "");
+  assert.doesNotMatch(headerWithoutStamp, /data-action="toggle-day"|role="button"/);
+});

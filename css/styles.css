@@ -2218,13 +2218,13 @@ html[data-theme="dark"] .packing-group {
 .day.collapsed .day-head {
   margin-bottom: 0;
 }
-.day-toggle {
+.day-stamp-toggle {
   cursor: pointer;
 }
-.day-toggle:hover {
+.day-stamp-toggle:hover {
   background: color-mix(in srgb, var(--teal) 6%, transparent);
 }
-.day-toggle:focus-visible {
+.day-stamp-toggle:focus-visible {
   outline: 3px solid var(--gold);
   outline-offset: 2px;
 }

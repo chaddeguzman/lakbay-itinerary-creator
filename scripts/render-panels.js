@@ -713,20 +713,11 @@ export function createPanelRenderers(ctx) {
         <strong>Day is empty</strong>
         <span>No activities or tours have been added yet. Add details below.</span>
         </div>`
-          : "",
-      dayCollapseButton = canCollapse
-        ? `<button type="button" class="day-collapse-button"
-          data-action="toggle-day" aria-expanded="${!collapsed}"
-          title="${collapsed ? "Expand day" : "Collapse day"}"
-          aria-label="${collapsed ? "Expand day" : "Collapse day"}">
-          ${collapsed ? "⌄" : "⌃"}
-        </button>`
-        : "";
+          : "";
     return `<article class="day ${collapsed ? "collapsed" : ""}${completed ? " is-completed" : ""}"
           data-day="${d.id}">
-        <header class="day-head${canCollapse ? " day-toggle" : ""}"
-          ${canCollapse ? `data-action="toggle-day" role="button" tabindex="0" aria-expanded="${!collapsed}" aria-label="${collapsed ? "Expand day" : "Collapse day"}"` : ""}>
-        <div class="stamp">Day<span class="day-number">${i}</span></div>
+        <header class="day-head">
+        <div class="stamp${canCollapse ? " day-stamp-toggle" : ""}"${canCollapse ? ` data-action="toggle-day" role="button" tabindex="0" aria-expanded="${!collapsed}" aria-label="${collapsed ? "Expand day" : "Collapse day"}"` : ""}>Day<span class="day-number">${i}</span></div>
         <div>
         <input class="day-title" data-field="title" maxlength="40" value="${esc(String(d.title || "").slice(0, 40))}"
           aria-label="Day title">
