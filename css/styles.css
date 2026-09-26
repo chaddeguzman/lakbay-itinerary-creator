@@ -2876,7 +2876,7 @@ html[data-theme="dark"] .time-menu { background: #172522; }
 
 /* Warm meal cards stand apart from activity and tour cards in both themes. */
 .panel[data-panel="itinerary"] .day .meal-card {
-  background: #f4c68a;
+  background: #d5a96f;
   border-color: #d6a364;
   color: #4a2e16;
 }
