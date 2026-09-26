@@ -2171,6 +2171,7 @@ html[data-theme="dark"] .packing-group {
 .place-picker select { min-width: 160px; max-width: 260px; }
 .food-shortlist { margin-top: 24px; }
 .meal-card { margin: 8px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper2); }
+.meal-card summary > span { font-weight: 700; }
 .meal-card summary { display: grid; grid-template-columns: 90px minmax(130px, 1.3fr) minmax(110px, 1fr) auto; gap: 10px; align-items: center; cursor: pointer; list-style-position: inside; }
 .meal-card summary span { overflow-wrap: anywhere; }
 .meal-card summary strong { color: var(--teal); }
@@ -2876,9 +2877,12 @@ html[data-theme="dark"] .time-menu { background: #172522; }
 
 /* Warm meal cards stand apart from activity and tour cards in both themes. */
 .panel[data-panel="itinerary"] .day .meal-card {
-  background: #d5a96f;
+  background: #f4c68a;
   border-color: #d6a364;
   color: #4a2e16;
+}
+html[data-theme="dark"] .panel[data-panel="itinerary"] .day .meal-card {
+  background: #d5a96f;
 }
 .panel[data-panel="itinerary"] .day .meal-card summary strong,
 .panel[data-panel="itinerary"] .day .meal-card summary a {
