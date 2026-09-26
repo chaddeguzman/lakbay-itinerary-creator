@@ -7,7 +7,7 @@ import {
 } from "./state.js";
 import { createActions } from "./actions.js";
 import { createExportTools } from "./export.js";
-import { createPanelRenderers } from "./render-panels.js?v=picker-20260926";
+import { createPanelRenderers } from "./render-panels.js?v=day-stamp-toggle-20260926";
 import { bindTimePickers } from "./time-picker.js";
 
   // ---------------------------------------------------------------------------
