@@ -6,7 +6,7 @@ import {
   normalizeTrip,
 } from "./state.js";
 import { createActions } from "./actions.js";
-import { defaultTravelDay } from "./meals.js";
+import { defaultTravelDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
 import { createExportTools } from "./export.js";
 import { createPanelRenderers } from "./render-panels.js?v=travel-day-20260928";
 import { bindTimePickers } from "./time-picker.js";
@@ -130,7 +130,8 @@ import { bindTimePickers } from "./time-picker.js";
     saveStatusTimer,
     undoSnapshot = null,
     travelDayTripId = null,
-    travelDayId = null;
+    travelDayId = null,
+    travelDayClockTimer = null;
   const main = $("#main"),
     travelDayModal = $("#travelDayModal"),
     travelDayContentEl = $("#travelDayContent"),
@@ -307,7 +308,75 @@ import { bindTimePickers } from "./time-picker.js";
       todayIso: localIso(now),
       nowMinutes: now.getHours() * 60 + now.getMinutes(),
     });
+    scheduleTravelDayClock();
   }
+
+  function refreshTravelDayNextStop() {
+    if (!travelDayModal.open) return;
+    const trip = Storage.active(),
+      day = trip?.days.find((item) => item.id === travelDayId);
+    if (!day) return;
+    const now = new Date(),
+      entries = scheduledEntries(trip, day),
+      next = nextScheduledEntry(trip, day, {
+        todayIso: localIso(now),
+        nowMinutes: now.getHours() * 60 + now.getMinutes(),
+      }),
+      nextLabel = next?.kind === "meal"
+        ? next.record.venue || next.record.mealType || "Meal"
+        : next?.record.activity || (next?.record.kind === "tour" ? "Tour" : "Activity"),
+      status = !entries.length ? "No scheduled entries."
+        : entries.every(({ record }) => record.done) ? "Day complete."
+          : next ? `Next Stop: ${nextLabel}` : "No upcoming stops.",
+      scrollTop = travelDayContentEl.scrollTop,
+      statusEl = travelDayContentEl.querySelector(".travel-day-status");
+    if (statusEl) statusEl.textContent = status;
+    for (const card of travelDayContentEl.querySelectorAll(".travel-day-entry")) {
+      const button = card.querySelector('[data-action="toggle-travel-day-done"]'),
+        selected = !!next && button?.dataset.entryId === next.record.id && button.dataset.entryKind === next.kind,
+        main = card.querySelector(".travel-day-entry-main"),
+        badge = main?.querySelector(".next-up-badge");
+      card.classList.toggle("is-next-stop", selected);
+      if (selected && !badge && main) {
+        const nextBadge = document.createElement("span");
+        nextBadge.className = "next-up-badge";
+        nextBadge.textContent = "Next Stop";
+        main.append(nextBadge);
+      } else if (!selected && badge) badge.remove();
+    }
+    travelDayContentEl.scrollTop = scrollTop;
+  }
+
+  function stopTravelDayClock() {
+    if (travelDayClockTimer !== null) clearTimeout(travelDayClockTimer);
+    travelDayClockTimer = null;
+  }
+
+  function scheduleTravelDayClock() {
+    stopTravelDayClock();
+    const trip = Storage.active(),
+      day = trip?.days.find((item) => item.id === travelDayId);
+    if (!travelDayModal.open || document.hidden || day?.date !== today()) return;
+    const now = new Date(),
+      delay = 60000 - now.getSeconds() * 1000 - now.getMilliseconds();
+    travelDayClockTimer = setTimeout(() => {
+      travelDayClockTimer = null;
+      refreshTravelDayNextStop();
+      scheduleTravelDayClock();
+    }, delay);
+  }
+
+  function onTravelDayVisibilityChange() {
+    if (document.hidden) {
+      stopTravelDayClock();
+      return;
+    }
+    if (!travelDayModal.open) return;
+    refreshTravelDayNextStop();
+    scheduleTravelDayClock();
+  }
+
+  document.addEventListener("visibilitychange", onTravelDayVisibilityChange);
 
   function openTravelDay() {
     const trip = Storage.active();
@@ -342,6 +411,7 @@ import { bindTimePickers } from "./time-picker.js";
     travelDayContentEl.querySelector('[data-action="select-travel-day"]')?.focus();
   });
   travelDayModal.addEventListener("close", () => {
+    stopTravelDayClock();
     travelDayTripId = null;
     travelDayId = null;
     main.querySelector('[data-action="open-travel-day"]')?.focus();

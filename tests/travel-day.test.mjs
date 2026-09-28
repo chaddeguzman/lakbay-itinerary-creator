@@ -1,9 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { runInNewContext } from "node:vm";
 import { createActions } from "../scripts/actions.js";
 import { createStorage } from "../scripts/state.js";
 import { createPanelRenderers } from "../scripts/render-panels.js";
+import { nextScheduledEntry, scheduledEntries } from "../scripts/meals.js";
 
 globalThis.window = {};
 
@@ -220,4 +222,93 @@ test("Travel Day and completed meals have responsive completion styles", () => {
   assert.match(css, /\.travel-day-entry\.is-done/);
   assert.match(css, /\.meal-card\.is-done/);
   assert.match(css, /@media \(max-width: 620px\)[\s\S]*\.travel-day-modal/);
+});
+
+function clockFunctions(context, ...names) {
+  const source = readFileSync(new URL("../scripts/app.js", import.meta.url), "utf8");
+  for (const name of names) {
+    const declaration = source.match(new RegExp(`  function ${name}\\([^]*?\\n  \\}`))?.[0];
+    assert.ok(declaration, `${name} must exist`);
+    runInNewContext(declaration, context);
+  }
+  return context;
+}
+
+test("clock refresh moves Next Stop from an ended range to a meal without replacing controls", () => {
+  const t = {
+    id: "trip",
+    days: [{ id: "day-1", date: "2026-10-28", stops: [
+      { id: "tour", kind: "tour", timeMode: "range", time: "08:55", endTime: "09:00", activity: "Walk", done: false },
+    ] }],
+    foodPlaces: [{ id: "meal", visitDate: "2026-10-28", time: "10:00", venue: "Cafe", done: false }],
+  };
+  const status = { textContent: "Next Stop: Walk" };
+  function article(id, kind, highlighted) {
+    const classes = new Set(highlighted ? ["is-next-stop"] : []);
+    const button = { dataset: { entryId: id, entryKind: kind } };
+    const main = { badge: highlighted ? { remove() { main.badge = null; } } : null,
+      querySelector: () => main.badge,
+      append(node) { main.badge = node; } };
+    return {
+      classes, main, button,
+      classList: { toggle: (name, on) => on ? classes.add(name) : classes.delete(name) },
+      querySelector: (selector) => selector.includes("toggle-travel-day-done")
+        ? button : main,
+    };
+  }
+  const tour = article("tour", "stop", true), meal = article("meal", "meal", false);
+  const focusedButton = tour.button;
+  const content = { scrollTop: 137,
+    set innerHTML(_) { throw new Error("clock refresh replaced modal content"); },
+    querySelector: () => status,
+    querySelectorAll: () => [tour, meal],
+  };
+  const context = clockFunctions({
+    travelDayModal: { open: true }, travelDayId: "day-1", travelDayContentEl: content,
+    Storage: { active: () => t }, scheduledEntries, nextScheduledEntry,
+    Date: class { getHours() { return 9; } getMinutes() { return 0; } },
+    localIso: () => "2026-10-28",
+    document: { activeElement: focusedButton, createElement: () => ({}) },
+  }, "refreshTravelDayNextStop");
+  context.refreshTravelDayNextStop();
+  assert.equal(status.textContent, "Next Stop: Cafe");
+  assert.equal(tour.classes.has("is-next-stop"), false);
+  assert.equal(meal.classes.has("is-next-stop"), true);
+  assert.equal(tour.main.badge, null);
+  assert.equal(meal.main.badge?.textContent, "Next Stop");
+  assert.equal(content.scrollTop, 137);
+  assert.equal(context.document.activeElement, focusedButton);
+  assert.equal(context.travelDayId, "day-1");
+});
+
+test("clock schedules the next local minute and visibility restoration refreshes immediately", () => {
+  const day = { id: "day-1", date: "2026-10-28" }, calls = [], cleared = [];
+  let now = { seconds: 30, milliseconds: 250 };
+  const context = clockFunctions({
+    travelDayModal: { open: true }, travelDayId: day.id, travelDayClockTimer: null,
+    Storage: { active: () => ({ days: [day] }) }, today: () => day.date,
+    document: { hidden: false },
+    Date: class { getSeconds() { return now.seconds; } getMilliseconds() { return now.milliseconds; } },
+    setTimeout: (callback, delay) => { calls.push({ callback, delay }); return calls.length; },
+    clearTimeout: (id) => cleared.push(id),
+    refreshTravelDayNextStop: () => calls.push({ refreshed: true }),
+  }, "stopTravelDayClock", "scheduleTravelDayClock", "onTravelDayVisibilityChange");
+  context.scheduleTravelDayClock();
+  assert.equal(calls[0].delay, 29750);
+  now = { seconds: 0, milliseconds: 0 };
+  calls[0].callback();
+  assert.equal(calls.some((call) => call.refreshed), true);
+  assert.equal(calls.at(-1).delay, 60000);
+  const scheduledId = context.travelDayClockTimer;
+  context.document.hidden = true;
+  context.onTravelDayVisibilityChange();
+  assert.equal(context.travelDayClockTimer, null);
+  assert.ok(cleared.includes(scheduledId));
+  context.document.hidden = false;
+  context.onTravelDayVisibilityChange();
+  assert.equal(calls.filter((call) => call.refreshed).length, 2);
+  assert.equal(calls.at(-1).delay, 60000);
+  context.travelDayModal.open = false;
+  context.stopTravelDayClock();
+  assert.equal(context.travelDayClockTimer, null);
 });
