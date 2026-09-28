@@ -276,7 +276,7 @@ import { bindTimePickers } from "./time-picker.js";
     toast,
     uid,
   });
-  const { changeTrip, mutateWithUndo, updateField, updateRecordField, updateScheduledTime } =
+  const { changeTrip, mutateWithUndo, toggleScheduledEntryDone, updateField, updateRecordField, updateScheduledTime } =
     createActions({
       Storage,
       recordCollection,
@@ -970,19 +970,7 @@ import { bindTimePickers } from "./time-picker.js";
       }
       if (act === "toggle-done" && stop) {
         e.stopImmediatePropagation();
-        const before = Storage.read();
-        let done = false,
-          type = "Activity";
-        changeTrip((t) => {
-          const item = t.days
-            .find((x) => x.id === day.dataset.day)
-            ?.stops.find((x) => x.id === stop.dataset.stop);
-          if (!item) return;
-          item.done = !item.done;
-          done = item.done;
-          type = item.kind === "tour" ? "Tour" : "Activity";
-        });
-        rememberUndo(done ? `${type} marked done` : `${type} reopened`, before);
+        toggleScheduledEntryDone(day.dataset.day, stop.dataset.stop, "stop");
         return;
       }
       if (act === "edit-activity") {
