@@ -26,6 +26,39 @@ export function scheduledEntries(trip, day) {
   });
 }
 
+export function defaultTravelDay(trip, todayIso) {
+  const days = trip?.days || [];
+  return days.find((day) => day.date === todayIso) || days[0] || null;
+}
+
+function timeMinutes(time) {
+  if (!/^\d{2}:\d{2}$/.test(time || "")) return null;
+  const [hour, minute] = time.split(":").map(Number);
+  return hour < 24 && minute < 60 ? hour * 60 + minute : null;
+}
+
+function isActive(entry, nowMinutes) {
+  const { time, endTime, timeMode } = entry.record;
+  if (timeMode !== "range") return false;
+  const start = timeMinutes(time), end = timeMinutes(endTime);
+  if (start === null || end === null || start === end) return false;
+  return start < end
+    ? start <= nowMinutes && nowMinutes < end
+    : nowMinutes >= start || nowMinutes < end;
+}
+
+export function nextScheduledEntry(trip, day, { todayIso, nowMinutes }) {
+  if (!day) return null;
+  const unfinished = scheduledEntries(trip, day).filter((entry) => !entry.record.done);
+  if (day.date !== todayIso) return unfinished[0] || null;
+  return unfinished.find((entry) => isActive(entry, nowMinutes)) ||
+    unfinished.find((entry) => {
+      const start = timeMinutes(entry.record.time);
+      return start !== null && start >= nowMinutes;
+    }) ||
+    unfinished.find((entry) => !entry.record.time) || null;
+}
+
 export function unscheduleMissingDays(trip) {
   const dates = new Set((trip.days || []).map((day) => day.date));
   (trip.foodPlaces || []).forEach((meal) => {

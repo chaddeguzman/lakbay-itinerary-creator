@@ -51,6 +51,7 @@ export function normalizeTrip(t) {
     t.foodPlaces = t.foodPlaces.filter((item) => !!item.visitDate);
   }
   t.foodPlaces.forEach((meal) => {
+    meal.done = !!meal.done;
     const group = mealGroup(meal.mealType);
     if (group === "Other" && meal.mealType && String(meal.mealType).toLowerCase() !== "other")
       meal.originalMealType = meal.originalMealType || meal.mealType;

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createStorage, normalizeTrip } from "../scripts/state.js";
 import { createActions } from "../scripts/actions.js";
-import { mealGroup, scheduledEntries, unscheduleMissingDays } from "../scripts/meals.js";
+import { defaultTravelDay, mealGroup, nextScheduledEntry, scheduledEntries, unscheduleMissingDays } from "../scripts/meals.js";
 import { createPanelRenderers } from "../scripts/render-panels.js";
 
 const day = (date = "2026-10-28") => ({ id: date, date, title: "Explore", stops: [], expenses: [] });
@@ -32,6 +32,73 @@ test("older undated places migrate once; existing timed visits keep their detail
   t.foodPlaces[0].time = "";
   normalizeTrip(t);
   assert.equal(t.foodPlaces[0].time, "");
+});
+
+test("scheduled meals normalize completion without losing older details", () => {
+  const t = trip();
+  t.foodPlaces = [
+    { id: "old", visitDate: t.days[0].date, venue: "Cafe", reservation: "Window" },
+    { id: "done", visitDate: t.days[0].date, venue: "Diner", done: true },
+  ];
+  normalizeTrip(t);
+  assert.equal(t.foodPlaces[0].done, false);
+  assert.equal(t.foodPlaces[0].reservation, "Window");
+  assert.equal(t.foodPlaces[1].done, true);
+});
+
+test("default Travel Day selects today at either trip boundary, else first day", () => {
+  const t = { ...trip(), days: [day("2026-10-28"), day("2026-10-29")] };
+  assert.equal(defaultTravelDay(t, "2026-10-28"), t.days[0]);
+  assert.equal(defaultTravelDay(t, "2026-10-29"), t.days[1]);
+  assert.equal(defaultTravelDay(t, "2026-11-01"), t.days[0]);
+  assert.equal(defaultTravelDay({ ...t, days: [] }, "2026-10-28"), null);
+});
+
+test("today selects an active range before a future timed meal and skips done entries", () => {
+  const t = trip(), d = t.days[0];
+  d.stops.push(
+    { id: "done", time: "08:00", done: true },
+    { id: "active", time: "09:00", endTime: "10:30", timeMode: "range", done: false },
+  );
+  t.foodPlaces.push({ id: "meal", visitDate: d.date, time: "10:00", done: false });
+  assert.equal(nextScheduledEntry(t, d, { todayIso: d.date, nowMinutes: 10 * 60 }).record.id, "active");
+  d.stops[1].done = true;
+  assert.equal(nextScheduledEntry(t, d, { todayIso: d.date, nowMinutes: 10 * 60 }).record.id, "meal");
+});
+
+test("today treats a midnight-crossing range as active after midnight", () => {
+  const t = trip(), d = t.days[0];
+  d.stops.push({ id: "overnight", time: "23:00", endTime: "01:00", timeMode: "range", done: false });
+  t.foodPlaces.push({ id: "breakfast", visitDate: d.date, time: "08:00", done: false });
+  assert.equal(nextScheduledEntry(t, d, { todayIso: d.date, nowMinutes: 30 }).record.id, "overnight");
+  assert.equal(nextScheduledEntry(t, d, { todayIso: d.date, nowMinutes: 60 }).record.id, "breakfast");
+});
+
+test("today falls back to earliest untimed item after timed entries pass", () => {
+  const t = trip(), d = t.days[0];
+  d.stops.push({ id: "past", time: "08:00", done: false }, { id: "untimed-stop", done: false });
+  t.foodPlaces.push({ id: "untimed-meal", visitDate: d.date, time: "", done: false });
+  assert.equal(nextScheduledEntry(t, d, { todayIso: d.date, nowMinutes: 12 * 60 }).record.id, "untimed-stop");
+  d.stops[1].done = true;
+  assert.equal(nextScheduledEntry(t, d, { todayIso: d.date, nowMinutes: 12 * 60 }).record.id, "untimed-meal");
+  t.foodPlaces[0].done = true;
+  assert.equal(nextScheduledEntry(t, d, { todayIso: d.date, nowMinutes: 12 * 60 }), null);
+});
+
+test("another selected day returns earliest unfinished scheduled item regardless of time", () => {
+  const t = trip(), d = t.days[0];
+  d.stops.push({ id: "done", time: "07:00", done: true }, { id: "past", time: "08:00", done: false });
+  t.foodPlaces.push({ id: "meal", visitDate: d.date, time: "09:00", done: false });
+  assert.equal(nextScheduledEntry(t, d, { todayIso: "2026-10-29", nowMinutes: 23 * 60 }).record.id, "past");
+});
+
+test("empty days, unscheduled-only meals, and all-done days have no next entry", () => {
+  const t = trip(), d = t.days[0], args = { todayIso: d.date, nowMinutes: 12 * 60 };
+  assert.equal(nextScheduledEntry(t, d, args), null);
+  t.foodPlaces.push({ id: "unscheduled", visitDate: "", time: "13:00" });
+  assert.equal(nextScheduledEntry(t, d, args), null);
+  d.stops.push({ id: "finished", time: "13:00", done: true });
+  assert.equal(nextScheduledEntry(t, d, args), null);
 });
 
 test("multiple breakfasts appear in time order with activities; untimed meals follow", () => {
