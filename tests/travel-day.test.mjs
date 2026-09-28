@@ -153,15 +153,16 @@ test("Travel Day renders one day's ordered schedule and highlights the next time
   assert.doesNotMatch(html, /data-field=|data-record-field=|data-time-field=|data-action="(edit-activity|remove-stop|remove-record|add-meal)"/);
 });
 
-test("Travel Day completion styling, map links, and Done/Undo actions reflect each entry", () => {
+test("Travel Day leading checkbox toggles completion accessibly and keeps map links", () => {
   const t = renderTrip();
   t.days[0].stops[0].done = true;
   t.foodPlaces[0].done = true;
   const html = panels(t).travelDayContent(t, "day-1", { todayIso: "2026-10-28", nowMinutes: 7 * 60 });
   assert.match(html, /data-entry-id="later"[^>]*is-done/);
   assert.match(html, /data-entry-id="meal"[^>]*is-done/);
-  assert.match(html, /data-entry-id="meal"[\s\S]*?data-action="toggle-travel-day-done"[^>]*>Undo</);
-  assert.match(html, /data-entry-id="tour"[\s\S]*?data-action="toggle-travel-day-done"[^>]*>Done</);
+  assert.match(html, /data-entry-id="meal"[^>]*>[\s\S]*?<button[^>]*data-action="toggle-travel-day-done"[^>]*role="checkbox"[^>]*aria-checked="true"[^>]*aria-label="Undo: Cafe"/);
+  assert.match(html, /data-entry-id="tour"[^>]*>[\s\S]*?<button[^>]*data-action="toggle-travel-day-done"[^>]*role="checkbox"[^>]*aria-checked="false"[^>]*aria-label="Mark done: Market"/);
+  assert.doesNotMatch(html, />(?:Done|Undo)<\/button>/);
   assert.match(html, /https:\/\/www\.google\.com\/maps\/search\/\?api=1&amp;query=Old%20City/);
   assert.match(html, /https:\/\/www\.google\.com\/maps\/dir\/\?/);
   assert.match(html, /target="_blank" rel="noopener"/);
