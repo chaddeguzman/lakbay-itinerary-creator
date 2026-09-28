@@ -2930,10 +2930,15 @@ html[data-theme="dark"] .panel[data-panel="itinerary"] .day .meal-card .meal-act
 .travel-day-picker select { width: 100%; min-height: 42px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper2); color: var(--ink); font: inherit; }
 .travel-day-status { margin: 0; padding: 12px 16px; border-left: 4px solid var(--teal); border-radius: 8px; background: color-mix(in srgb, var(--teal) 12%, var(--paper2)); font-weight: 700; }
 .travel-day-schedule { display: grid; gap: 10px; }
-.travel-day-entry { display: grid; gap: 8px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper2); }
+.travel-day-entry { display: grid; grid-template-columns: 30px minmax(0, 1fr); align-items: start; gap: 10px 12px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper2); }
 .travel-day-entry.is-next-stop { border-color: var(--teal); background: color-mix(in srgb, var(--teal) 10%, var(--paper2)); }
+.travel-day-entry.is-done .travel-day-entry-content { opacity: .67; }
 .travel-day-entry.is-done .travel-day-entry-main,
-.travel-day-entry.is-done .travel-day-entry-notes { opacity: .67; text-decoration: line-through; text-decoration-thickness: 1px; }
+.travel-day-entry.is-done .travel-day-entry-notes { text-decoration: line-through; text-decoration-thickness: 1px; }
+.travel-day-done-toggle { display: grid; place-items: center; width: 28px; height: 28px; margin-top: 2px; padding: 0; border: 2px solid var(--line); border-radius: 6px; background: var(--paper); color: transparent; cursor: pointer; }
+.travel-day-done-toggle[aria-checked="true"] { border-color: var(--teal); background: var(--teal); color: #fff; }
+.travel-day-done-toggle span { font-size: 18px; font-weight: 800; line-height: 1; }
+.travel-day-entry-content { display: grid; gap: 8px; min-width: 0; }
 .travel-day-entry-main { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 12px; }
 .travel-day-entry-time { min-width: 115px; font-weight: 700; }
 .travel-day-entry-kind { color: var(--muted); font-size: .78rem; font-weight: 700; text-transform: uppercase; }

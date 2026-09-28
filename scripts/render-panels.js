@@ -778,18 +778,21 @@ export function createPanelRenderers(ctx) {
           cleanLocations = locations.map((value) => String(value || "").trim()).filter(Boolean),
           map = cleanLocations.length > 1 ? mapsRouteUrl(cleanLocations) : mapsUrl(cleanLocations[0] || "");
         return `<article data-entry-id="${esc(record.id)}" class="travel-day-entry${record.done ? " is-done" : ""}${isNext ? " is-next-stop" : ""}">
-          <div class="travel-day-entry-main">
-            <span class="travel-day-entry-time">${esc(time)}</span>
-            <span class="travel-day-entry-kind">${type}</span>
-            <strong class="travel-day-entry-label">${esc(label)}</strong>
-            ${isNext ? '<span class="next-up-badge">Next Stop</span>' : ""}
-          </div>
-          ${record.notes ? `<p class="travel-day-entry-notes">${esc(record.notes)}</p>` : ""}
-          <div class="travel-day-entry-actions">
-            ${map ? `<a href="${esc(map)}" target="_blank" rel="noopener">Open map</a>` : ""}
-            <button type="button" class="btn small secondary" data-action="toggle-travel-day-done"
-              data-entry-kind="${kind}" data-entry-id="${esc(record.id)}"
-              aria-label="${record.done ? "Undo" : "Mark done"}: ${esc(label)}">${record.done ? "Undo" : "Done"}</button>
+          <button type="button" class="travel-day-done-toggle" data-action="toggle-travel-day-done"
+            data-entry-kind="${kind}" data-entry-id="${esc(record.id)}" role="checkbox"
+            aria-checked="${record.done ? "true" : "false"}"
+            aria-label="${record.done ? "Undo" : "Mark done"}: ${esc(label)}"><span aria-hidden="true">✓</span></button>
+          <div class="travel-day-entry-content">
+            <div class="travel-day-entry-main">
+              <span class="travel-day-entry-time">${esc(time)}</span>
+              <span class="travel-day-entry-kind">${type}</span>
+              <strong class="travel-day-entry-label">${esc(label)}</strong>
+              ${isNext ? '<span class="next-up-badge">Next Stop</span>' : ""}
+            </div>
+            ${record.notes ? `<p class="travel-day-entry-notes">${esc(record.notes)}</p>` : ""}
+            <div class="travel-day-entry-actions">
+              ${map ? `<a href="${esc(map)}" target="_blank" rel="noopener">Open map</a>` : ""}
+            </div>
           </div>
         </article>`;
       }).join("")}</div>
