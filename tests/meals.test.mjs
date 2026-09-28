@@ -66,12 +66,13 @@ test("today selects an active range before a future timed meal and skips done en
   assert.equal(nextScheduledEntry(t, d, { todayIso: d.date, nowMinutes: 10 * 60 }).record.id, "meal");
 });
 
-test("today treats a midnight-crossing range as active after midnight", () => {
+test("today starts an overnight range tonight, not before its start", () => {
   const t = trip(), d = t.days[0];
   d.stops.push({ id: "overnight", time: "23:00", endTime: "01:00", timeMode: "range", done: false });
   t.foodPlaces.push({ id: "breakfast", visitDate: d.date, time: "08:00", done: false });
-  assert.equal(nextScheduledEntry(t, d, { todayIso: d.date, nowMinutes: 30 }).record.id, "overnight");
+  assert.equal(nextScheduledEntry(t, d, { todayIso: d.date, nowMinutes: 30 }).record.id, "breakfast");
   assert.equal(nextScheduledEntry(t, d, { todayIso: d.date, nowMinutes: 60 }).record.id, "breakfast");
+  assert.equal(nextScheduledEntry(t, d, { todayIso: d.date, nowMinutes: 23 * 60 + 30 }).record.id, "overnight");
 });
 
 test("today falls back to earliest untimed item after timed entries pass", () => {

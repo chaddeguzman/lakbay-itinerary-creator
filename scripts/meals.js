@@ -44,7 +44,7 @@ function isActive(entry, nowMinutes) {
   if (start === null || end === null || start === end) return false;
   return start < end
     ? start <= nowMinutes && nowMinutes < end
-    : nowMinutes >= start || nowMinutes < end;
+    : nowMinutes >= start;
 }
 
 export function nextScheduledEntry(trip, day, { todayIso, nowMinutes }) {
