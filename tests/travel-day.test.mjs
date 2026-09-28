@@ -150,7 +150,19 @@ test("Travel Day renders one day's ordered schedule and highlights the next time
   assert.match(html, /data-action="toggle-travel-day-done"/);
   assert.match(html, /data-entry-kind="meal"/);
   assert.match(html, /data-entry-kind="stop"/);
+  assert.match(html, /data-action="travel-day-previous"[^>]*disabled/);
+  assert.match(html, /<span class="travel-day-current">Day 1 · 2026-10-28<\/span>/);
+  assert.match(html, /data-action="travel-day-next"(?![^>]*disabled)/);
+  assert.doesNotMatch(html, /<select[^>]*data-action="select-travel-day"/);
   assert.doesNotMatch(html, /data-field=|data-record-field=|data-time-field=|data-action="(edit-activity|remove-stop|remove-record|add-meal)"/);
+});
+
+test("Travel Day navigation disables Next on the final trip day", () => {
+  const t = renderTrip();
+  const html = panels(t).travelDayContent(t, "day-2", { todayIso: "2026-10-28", nowMinutes: 7 * 60 });
+  assert.match(html, /data-action="travel-day-previous"(?![^>]*disabled)/);
+  assert.match(html, /<span class="travel-day-current">Day 2 · 2026-10-29<\/span>/);
+  assert.match(html, /data-action="travel-day-next"[^>]*disabled/);
 });
 
 test("Travel Day leading checkbox toggles completion accessibly and keeps map links", () => {
@@ -209,12 +221,34 @@ test("app opens the dialog with the default day, routes day changes and completi
   assert.match(app, /defaultTravelDay\(.*today\(\)\)/);
   assert.match(app, /travelDayModal\.showModal\(\)/);
   assert.match(app, /data-action="open-travel-day"|act === "open-travel-day"/);
-  assert.match(app, /select-travel-day/);
+  assert.match(app, /travel-day-previous/);
+  assert.match(app, /travel-day-next/);
+  assert.doesNotMatch(app, /select-travel-day/);
   assert.match(app, /toggle-travel-day-done/);
   assert.match(app, /toggleScheduledEntryDone\(travelDayId, entryId, entryKind\)/);
   assert.match(app, /travelDayModal\.addEventListener\("close"/);
   assert.match(app, /renderTravelDay\(\)/);
   assert.doesNotMatch(app, /act === "toggle-done"/);
+});
+
+test("Travel Day navigation advances and returns one trip day while restoring focus", () => {
+  const trip = renderTrip(), renders = [], focused = [];
+  let context;
+  context = clockFunctions({
+    travelDayId: "day-1",
+    Storage: { active: () => trip },
+    renderTravelDay: () => renders.push(context.travelDayId),
+    travelDayContentEl: { querySelector: (selector) => ({ focus: () => focused.push(selector) }) },
+  }, "navigateTravelDay");
+  context.navigateTravelDay(1);
+  assert.equal(context.travelDayId, "day-2");
+  context.navigateTravelDay(-1);
+  assert.equal(context.travelDayId, "day-1");
+  assert.deepEqual(renders, ["day-2", "day-1"]);
+  assert.deepEqual(focused, [
+    '[data-action="travel-day-next"]',
+    '[data-action="travel-day-previous"]',
+  ]);
 });
 
 test("Travel Day and completed meals have responsive completion styles", () => {

@@ -387,11 +387,26 @@ import { bindTimePickers } from "./time-picker.js";
     renderTravelDay();
   }
 
+  function navigateTravelDay(direction) {
+    const trip = Storage.active(),
+      dayIndex = trip?.days.findIndex((day) => day.id === travelDayId) ?? -1,
+      nextDay = trip?.days[dayIndex + direction];
+    if (!nextDay) return;
+    travelDayId = nextDay.id;
+    renderTravelDay();
+    const action = direction < 0 ? "travel-day-previous" : "travel-day-next";
+    travelDayContentEl.querySelector(`[data-action="${action}"]`)?.focus();
+  }
+
   travelDayModal.addEventListener("click", (event) => {
     const action = event.target.closest("[data-action]");
     if (!action) return;
     if (action.dataset.action === "close-travel-day") {
       travelDayModal.close();
+      return;
+    }
+    if (action.dataset.action === "travel-day-previous" || action.dataset.action === "travel-day-next") {
+      navigateTravelDay(action.dataset.action === "travel-day-previous" ? -1 : 1);
       return;
     }
     if (action.dataset.action !== "toggle-travel-day-done") return;
@@ -401,14 +416,6 @@ import { bindTimePickers } from "./time-picker.js";
     if (!result) renderTravelDay();
     [...travelDayContentEl.querySelectorAll('[data-action="toggle-travel-day-done"]')]
       .find((button) => button.dataset.entryId === entryId && button.dataset.entryKind === entryKind)?.focus();
-  });
-  travelDayModal.addEventListener("change", (event) => {
-    if (!event.target.matches('[data-action="select-travel-day"]')) return;
-    const selectedId = event.target.value;
-    if (!Storage.active()?.days.some((day) => day.id === selectedId)) return;
-    travelDayId = selectedId;
-    renderTravelDay();
-    travelDayContentEl.querySelector('[data-action="select-travel-day"]')?.focus();
   });
   travelDayModal.addEventListener("close", () => {
     stopTravelDayClock();
