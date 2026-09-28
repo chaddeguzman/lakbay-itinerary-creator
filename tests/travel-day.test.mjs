@@ -2,6 +2,40 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createActions } from "../scripts/actions.js";
 import { createStorage } from "../scripts/state.js";
+import { createPanelRenderers } from "../scripts/render-panels.js";
+
+globalThis.window = {};
+
+function panels(trip) {
+  return createPanelRenderers({
+    CATEGORIES: [], PACK_CATEGORIES: [],
+    Storage: { read: () => ({ ui: { collapsedDaysByTrip: {} } }), active: () => trip },
+    dayDateLabel: (date) => date, editingActivities: new Set(),
+    esc: (value) => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll('"', "&quot;"),
+    fmt: (value) => value, getTab: () => "itinerary", money: String,
+    openMealCards: new Set(), render() {}, today: () => "2026-10-28", toast() {}, uid: () => "id",
+  });
+}
+
+function renderTrip() {
+  return {
+    id: "trip",
+    days: [
+      { id: "day-1", date: "2026-10-28", stops: [
+        { id: "later", kind: "activity", time: "10:00", activity: "Temple", location: "Old City", done: false },
+        { id: "tour", kind: "tour", time: "09:00", endTime: "09:45", timeMode: "range", activity: "Market", tourLocations: ["Gate", "Market"], done: false },
+        { id: "untimed", kind: "activity", time: "", activity: "Wander", location: "", done: false },
+      ] },
+      { id: "day-2", date: "2026-10-29", stops: [{ id: "other-day", kind: "activity", time: "08:00", activity: "Park", done: false }] },
+    ],
+    foodPlaces: [
+      { id: "meal", visitDate: "2026-10-28", mealType: "Breakfast", time: "08:00", venue: "Cafe", done: false },
+      { id: "empty-location", visitDate: "2026-10-28", mealType: "Lunch", time: "12:00", venue: "", done: false },
+      { id: "unscheduled-meal", visitDate: "", mealType: "Dinner", time: "18:00", venue: "Elsewhere" },
+    ],
+    foodLibrary: [],
+  };
+}
 
 function setup() {
   const saved = new Map(), renders = [], undos = [];
@@ -99,4 +133,61 @@ test("missing, unscheduled, wrong-day, and invalid-kind targets do not mutate or
   assert.deepEqual(Storage.read(), before);
   assert.equal(renders.length, 0);
   assert.equal(undos.length, 0);
+});
+
+test("Travel Day renders one day's ordered schedule and highlights the next timed meal", () => {
+  const t = renderTrip();
+  const html = panels(t).travelDayContent(t, "day-1", { todayIso: "2026-10-28", nowMinutes: 7 * 60 });
+  assert.ok(html.indexOf('data-entry-id="meal"') < html.indexOf('data-entry-id="tour"'));
+  assert.ok(html.indexOf('data-entry-id="tour"') < html.indexOf('data-entry-id="later"'));
+  assert.ok(html.indexOf('data-entry-id="later"') < html.indexOf('data-entry-id="untimed"'));
+  assert.doesNotMatch(html, /Park|Elsewhere/);
+  assert.match(html, /data-entry-id="meal"[^>]*is-next-stop/);
+  assert.match(html, /Next Stop/);
+  assert.match(html, /data-action="toggle-travel-day-done"/);
+  assert.match(html, /data-entry-kind="meal"/);
+  assert.match(html, /data-entry-kind="stop"/);
+  assert.doesNotMatch(html, /data-field=|data-record-field=|data-time-field=|data-action="(edit-activity|remove-stop|remove-record|add-meal)"/);
+});
+
+test("Travel Day completion styling, map links, and Done/Undo actions reflect each entry", () => {
+  const t = renderTrip();
+  t.days[0].stops[0].done = true;
+  t.foodPlaces[0].done = true;
+  const html = panels(t).travelDayContent(t, "day-1", { todayIso: "2026-10-28", nowMinutes: 7 * 60 });
+  assert.match(html, /data-entry-id="later"[^>]*is-done/);
+  assert.match(html, /data-entry-id="meal"[^>]*is-done/);
+  assert.match(html, /data-entry-id="meal"[\s\S]*?data-action="toggle-travel-day-done"[^>]*>Undo</);
+  assert.match(html, /data-entry-id="tour"[\s\S]*?data-action="toggle-travel-day-done"[^>]*>Done</);
+  assert.match(html, /https:\/\/www\.google\.com\/maps\/search\/\?api=1&amp;query=Old%20City/);
+  assert.match(html, /https:\/\/www\.google\.com\/maps\/dir\/\?/);
+  assert.match(html, /target="_blank" rel="noopener"/);
+  assert.equal((html.match(/>Open map</g) || []).length, 3);
+});
+
+test("Travel Day distinguishes empty, complete, and no upcoming stops", () => {
+  const t = renderTrip();
+  const renderDay = (nowMinutes) => panels(t).travelDayContent(t, "day-1", { todayIso: "2026-10-28", nowMinutes });
+  t.days[0].stops[2].done = true;
+  assert.match(renderDay(23 * 60), /No upcoming stops/);
+  t.days[0].stops.forEach((stop) => { stop.done = true; });
+  t.foodPlaces.filter((meal) => meal.visitDate === t.days[0].date).forEach((meal) => { meal.done = true; });
+  assert.match(renderDay(23 * 60), /Day complete/);
+  assert.doesNotMatch(renderDay(23 * 60), /is-next-stop/);
+  t.days[0].stops = [];
+  t.foodPlaces = [];
+  assert.match(renderDay(23 * 60), /No scheduled entries/);
+  assert.match(panels(t).travelDayContent(t, "missing", { todayIso: "2026-10-28", nowMinutes: 0 }), /No trip day selected/);
+});
+
+test("Itinerary exposes the Travel Day button and keeps completion cues without Done controls", () => {
+  const t = renderTrip();
+  t.days[0].stops.forEach((stop) => { stop.done = true; });
+  t.foodPlaces.filter((meal) => meal.visitDate === t.days[0].date).forEach((meal) => { meal.done = true; });
+  const html = panels(t).itineraryPanel(t);
+  assert.match(html, /data-action="open-travel-day"/);
+  assert.doesNotMatch(html, /data-action="toggle-done"/);
+  assert.match(html, /day-completed-watermark/);
+  assert.match(html, /class="meal-card is-done"/);
+  assert.match(html, /class="stop activity-compact is-done/);
 });

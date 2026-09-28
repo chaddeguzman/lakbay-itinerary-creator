@@ -250,39 +250,44 @@ test("saved off-step minutes remain available without rounding", () => {
   assert.match(html, /data-time-option="05"/);
 });
 
-test("activity and tour compact rows put Done before time and keep edit actions expandable", () => {
+test("activity and tour compact rows keep edit actions without Itinerary Done controls", () => {
   const t = trip();
   t.days[0].stops.push(
     { id: "activity", kind: "activity", time: "08:00", activity: "Temple visit", location: "Old City", notes: "Bring water", done: false },
     { id: "tour", kind: "tour", time: "10:00", endTime: "12:00", activity: "Food tour", tourLocations: ["Market"], notes: "Meet guide", done: false },
   );
   const html = panels(t).itineraryPanel(t),
-    done = html.indexOf('data-action="toggle-done"'),
     time = html.indexOf("8:00 AM"),
     edit = html.indexOf('data-action="edit-activity"'),
     notes = html.indexOf("Bring water");
-  assert.ok(done >= 0 && done < time);
+  assert.doesNotMatch(html, /data-action="toggle-done"/);
+  assert.ok(time >= 0);
   assert.ok(time < edit);
   assert.ok(notes >= 0);
   assert.match(html, /class="stop activity-compact/);
   assert.match(html, /class="stop activity-compact tour-compact/);
 });
 
-test("completed watermark requires every activity and tour to be done", () => {
+test("completed watermark requires every scheduled activity, tour, and meal to be done", () => {
   const t = trip();
   t.days[0].stops.push(
     { id: "activity", kind: "activity", activity: "Temple visit", done: true },
     { id: "tour", kind: "tour", activity: "Food tour", done: true },
   );
-  t.foodPlaces.push({ id: "meal", visitDate: t.days[0].date, mealType: "Lunch", venue: "Cafe" });
+  t.foodPlaces.push({ id: "meal", visitDate: t.days[0].date, mealType: "Lunch", venue: "Cafe", done: false });
+  assert.doesNotMatch(panels(t).itineraryPanel(t), /day-completed-watermark/);
+  t.foodPlaces[0].done = true;
   const completedHtml = panels(t).itineraryPanel(t);
   assert.match(completedHtml, /day-completed-watermark/);
   assert.match(completedHtml, /class="day\s+is-completed/);
+  assert.match(completedHtml, /class="meal-card is-done"/);
 
   t.days[0].stops[1].done = false;
   assert.doesNotMatch(panels(t).itineraryPanel(t), /day-completed-watermark/);
 
   t.days[0].stops = [];
+  assert.match(panels(t).itineraryPanel(t), /day-completed-watermark/);
+  t.foodPlaces[0].visitDate = "";
   assert.doesNotMatch(panels(t).itineraryPanel(t), /day-completed-watermark/);
 });
 
