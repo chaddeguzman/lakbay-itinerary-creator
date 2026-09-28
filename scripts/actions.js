@@ -79,9 +79,37 @@ export function createActions({
     }, rerender);
   }
 
+  function toggleScheduledEntryDone(dayId, entryId, kind) {
+    if (kind !== "stop" && kind !== "meal") return null;
+    const before = Storage.read(),
+      trip = before.trips.find((t) => t.id === before.activeTripId) || before.trips[0],
+      day = trip?.days.find((d) => d.id === dayId);
+    if (!day) return null;
+    const entry = kind === "stop"
+      ? day.stops.find((item) => item.id === entryId)
+      : trip.foodPlaces.find((item) => item.id === entryId && day.date && item.visitDate === day.date);
+    if (!entry) return null;
+
+    const done = !entry.done,
+      type = kind === "meal" ? "Meal" : entry.kind === "tour" ? "Tour" : "Activity",
+      label = kind === "meal" ? entry.venue || entry.mealType || "Meal" : entry.activity || type;
+    Storage.mutate((state) => {
+      const current = state.trips.find((t) => t.id === trip.id),
+        currentDay = current.days.find((d) => d.id === dayId),
+        record = kind === "stop"
+          ? currentDay.stops.find((item) => item.id === entryId)
+          : current.foodPlaces.find((item) => item.id === entryId && item.visitDate === currentDay.date);
+      record.done = done;
+    });
+    render();
+    rememberUndo(done ? `${type} marked done` : `${type} reopened`, before);
+    return { done, label };
+  }
+
   return {
     changeTrip,
     mutateWithUndo,
+    toggleScheduledEntryDone,
     updateField,
     updateRecordField,
     updateScheduledTime,

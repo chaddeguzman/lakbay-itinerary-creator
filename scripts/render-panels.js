@@ -1,4 +1,4 @@
-import { MEAL_TYPES, mealGroup, mealsForDay, scheduledEntries } from "./meals.js";
+import { MEAL_TYPES, mealGroup, mealsForDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
 import { formatTime12, timePickerHtml } from "./time-picker.js";
 
 export function createPanelRenderers(ctx) {
@@ -32,6 +32,8 @@ export function createPanelRenderers(ctx) {
           ? `<p class="trip-description">${esc(t.description)}</p>`
           : ""
       }
+      <div class="itinerary-toolbar no-print"><button type="button" class="btn secondary"
+        data-action="open-travel-day">Open Travel Day</button></div>
       ${t.days.map((d, i) => dayHtml(t, d, i, collapsedDays.has(d.id))).join("")}
     </section>`;
   }
@@ -486,7 +488,7 @@ export function createPanelRenderers(ctx) {
     const timeLabel = (value) => /^\d{2}:\d{2}$/.test(value || "") ? formatTime12(value) : value;
     const venue = String(r.venue || "").trim(),
       timeKey = `meal:${r.id}:time`;
-    return `<details class="meal-card" data-record-type="food" data-record="${esc(r.id)}" ${openMealCards.has(r.id) ? "open" : ""}>
+    return `<details class="meal-card${r.done ? " is-done" : ""}" data-record-type="food" data-record="${esc(r.id)}" ${openMealCards.has(r.id) ? "open" : ""}>
       <summary><span>${esc(timeLabel(r.time) || "No time")}${r.timeMode === "range" && r.endTime ? `–${esc(timeLabel(r.endTime))}` : ""}</span>
       <strong>${esc(r.mealType || "Other")}: ${venue ? `<a target="_blank" rel="noopener" href="${mapsUrl(venue)}">${esc(venue)}</a>` : "New meal"}</strong>
       </summary>
@@ -694,14 +696,13 @@ export function createPanelRenderers(ctx) {
       .sort((a, b) => a.rank - b.rank)[0]?.entry.id;
   }
 
-  function isDayCompleted(day) {
-    const activities = (day.stops || []).filter((stop) => stop.kind === "activity" || stop.kind === "tour");
-    return activities.length > 0 && activities.every((stop) => stop.done === true);
+  function isDayCompleted(entries) {
+    return entries.length > 0 && entries.every(({ record }) => record.done === true);
   }
 
   function dayHtml(t, d, i, isCollapsed = false) {
     const entries = scheduledEntries(t, d),
-      completed = isDayCompleted(d),
+      completed = isDayCompleted(entries),
       canCollapse = entries.length > 0,
       collapsed = canCollapse && isCollapsed,
       overlapping = overlappingEntryIds(d),
@@ -742,6 +743,59 @@ export function createPanelRenderers(ctx) {
         </div>
         </article>`;
   }
+
+  function travelDayContent(trip, dayId, { todayIso, nowMinutes }) {
+    const days = trip?.days || [],
+      day = days.find((item) => item.id === dayId);
+    if (!day) return '<p class="travel-day-empty" role="status">No trip day selected.</p>';
+
+    const entries = scheduledEntries(trip, day),
+      next = nextScheduledEntry(trip, day, { todayIso, nowMinutes }),
+      nextLabel = next ? next.kind === "meal"
+        ? next.record.venue || next.record.mealType || "Meal"
+        : next.record.activity || (next.record.kind === "tour" ? "Tour" : "Activity") : "",
+      status = !entries.length ? "No scheduled entries."
+        : entries.every(({ record }) => record.done) ? "Day complete."
+          : next ? `Next Stop: ${esc(nextLabel)}` : "No upcoming stops.";
+
+    return `<div class="travel-day-view" data-day="${esc(day.id)}">
+      <label class="travel-day-picker">Trip day
+        <select data-action="select-travel-day" aria-label="Select trip day">
+          ${days.map((item, index) => `<option value="${esc(item.id)}" ${item.id === day.id ? "selected" : ""}>Day ${index + 1} · ${esc(dayDateLabel(item.date))}</option>`).join("")}
+        </select>
+      </label>
+      <p class="travel-day-status" role="status">${status}</p>
+      <div class="travel-day-schedule">${entries.map((entry) => {
+        const { kind, record } = entry,
+          isNext = next?.kind === kind && next.record.id === record.id,
+          type = kind === "meal" ? "Meal" : record.kind === "tour" ? "Tour" : "Activity",
+          label = kind === "meal" ? record.venue || record.mealType || "Meal" : record.activity || type,
+          start = record.time ? formatTime12(record.time) : "Unscheduled",
+          time = record.timeMode === "range" && record.endTime
+            ? `${start} – ${formatTime12(record.endTime)}` : start,
+          locations = kind === "meal" ? [record.location || record.venue]
+            : record.kind === "tour" ? record.tourLocations || [] : [record.location],
+          cleanLocations = locations.map((value) => String(value || "").trim()).filter(Boolean),
+          map = cleanLocations.length > 1 ? mapsRouteUrl(cleanLocations) : mapsUrl(cleanLocations[0] || "");
+        return `<article data-entry-id="${esc(record.id)}" class="travel-day-entry${record.done ? " is-done" : ""}${isNext ? " is-next-stop" : ""}">
+          <div class="travel-day-entry-main">
+            <span class="travel-day-entry-time">${esc(time)}</span>
+            <span class="travel-day-entry-kind">${type}</span>
+            <strong class="travel-day-entry-label">${esc(label)}</strong>
+            ${isNext ? '<span class="next-up-badge">Next Stop</span>' : ""}
+          </div>
+          ${record.notes ? `<p class="travel-day-entry-notes">${esc(record.notes)}</p>` : ""}
+          <div class="travel-day-entry-actions">
+            ${map ? `<a href="${esc(map)}" target="_blank" rel="noopener">Open map</a>` : ""}
+            <button type="button" class="btn small secondary" data-action="toggle-travel-day-done"
+              data-entry-kind="${kind}" data-entry-id="${esc(record.id)}"
+              aria-label="${record.done ? "Undo" : "Mark done"}: ${esc(label)}">${record.done ? "Undo" : "Done"}</button>
+          </div>
+        </article>`;
+      }).join("")}</div>
+    </div>`;
+  }
+
   function durationLabel(start, end) {
     if (!start || !end) return "";
     const [sh, sm] = start.split(":").map(Number),
@@ -758,17 +812,6 @@ export function createPanelRenderers(ctx) {
       ? '<span class="overlap-badge" title="This entry overlaps another time">' +
           "Time overlap</span>"
       : "";
-  }
-
-  function doneToggleButton(s) {
-    const type = s.kind === "tour" ? "tour" : "activity",
-      label = s.done ? `Mark ${type} not done` : `Mark ${type} done`;
-    return `<button type="button"
-          class="btn small secondary done-toggle ${s.done ? "is-active" : ""}"
-          data-action="toggle-done"
-          title="${label}"
-          aria-label="${label}"
-          aria-pressed="${s.done ? "true" : "false"}">${s.done ? "✓" : "□"}</button>`;
   }
 
   function stopHtml(s, j, hasOverlap = false, isNextUp = false) {
@@ -796,7 +839,6 @@ export function createPanelRenderers(ctx) {
           data-stop="${s.id}">
         <div class="activity-summary">
         <div class="activity-summary-line">
-        ${doneToggleButton(s)}
         <strong class="${isUnscheduled ? "unscheduled-label" : ""}">
           ${esc(time)}
         </strong>
@@ -1223,7 +1265,6 @@ export function createPanelRenderers(ctx) {
           data-stop="${s.id}">
         <div class="activity-summary">
         <div class="activity-summary-line">
-        ${doneToggleButton(s)}
         <strong class="${isUnscheduled ? "unscheduled-label" : ""}">
           ${esc(time)}
         </strong>
@@ -1306,6 +1347,7 @@ export function createPanelRenderers(ctx) {
 
   return {
     itineraryPanel,
+    travelDayContent,
     mapsPanel,
     weatherPanel,
     flightPanel,

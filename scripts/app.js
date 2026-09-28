@@ -6,8 +6,9 @@ import {
   normalizeTrip,
 } from "./state.js";
 import { createActions } from "./actions.js";
+import { defaultTravelDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
 import { createExportTools } from "./export.js";
-import { createPanelRenderers } from "./render-panels.js?v=day-stamp-toggle-20260926";
+import { createPanelRenderers } from "./render-panels.js?v=travel-day-20260928";
 import { bindTimePickers } from "./time-picker.js";
 
   // ---------------------------------------------------------------------------
@@ -127,8 +128,13 @@ import { bindTimePickers } from "./time-picker.js";
   let tab = "itinerary",
     toastTimer,
     saveStatusTimer,
-    undoSnapshot = null;
+    undoSnapshot = null,
+    travelDayTripId = null,
+    travelDayId = null,
+    travelDayClockTimer = null;
   const main = $("#main"),
+    travelDayModal = $("#travelDayModal"),
+    travelDayContentEl = $("#travelDayContent"),
     list = $("#tripList"),
     editingActivities = new Set(),
     timeDrafts = new Map(),
@@ -248,6 +254,7 @@ import { bindTimePickers } from "./time-picker.js";
     openMealCards = new Set();
   const {
     itineraryPanel,
+    travelDayContent,
     mapsPanel,
     weatherPanel,
     flightPanel,
@@ -276,7 +283,7 @@ import { bindTimePickers } from "./time-picker.js";
     toast,
     uid,
   });
-  const { changeTrip, mutateWithUndo, updateField, updateRecordField, updateScheduledTime } =
+  const { changeTrip, mutateWithUndo, toggleScheduledEntryDone, updateField, updateRecordField, updateScheduledTime } =
     createActions({
       Storage,
       recordCollection,
@@ -284,6 +291,131 @@ import { bindTimePickers } from "./time-picker.js";
       render,
       syncRecordExpense,
     });
+
+  function renderTravelDay() {
+    if (!travelDayModal.open) return;
+    const trip = Storage.active();
+    if (!trip) {
+      travelDayModal.close();
+      return;
+    }
+    if (trip.id !== travelDayTripId || !trip.days.some((day) => day.id === travelDayId)) {
+      travelDayTripId = trip.id;
+      travelDayId = defaultTravelDay(trip, today())?.id || null;
+    }
+    const now = new Date();
+    travelDayContentEl.innerHTML = travelDayContent(trip, travelDayId, {
+      todayIso: localIso(now),
+      nowMinutes: now.getHours() * 60 + now.getMinutes(),
+    });
+    scheduleTravelDayClock();
+  }
+
+  function refreshTravelDayNextStop() {
+    if (!travelDayModal.open) return;
+    const trip = Storage.active(),
+      day = trip?.days.find((item) => item.id === travelDayId);
+    if (!day) return;
+    const now = new Date(),
+      entries = scheduledEntries(trip, day),
+      next = nextScheduledEntry(trip, day, {
+        todayIso: localIso(now),
+        nowMinutes: now.getHours() * 60 + now.getMinutes(),
+      }),
+      nextLabel = next?.kind === "meal"
+        ? next.record.venue || next.record.mealType || "Meal"
+        : next?.record.activity || (next?.record.kind === "tour" ? "Tour" : "Activity"),
+      status = !entries.length ? "No scheduled entries."
+        : entries.every(({ record }) => record.done) ? "Day complete."
+          : next ? `Next Stop: ${nextLabel}` : "No upcoming stops.",
+      scrollTop = travelDayContentEl.scrollTop,
+      statusEl = travelDayContentEl.querySelector(".travel-day-status");
+    if (statusEl) statusEl.textContent = status;
+    for (const card of travelDayContentEl.querySelectorAll(".travel-day-entry")) {
+      const button = card.querySelector('[data-action="toggle-travel-day-done"]'),
+        selected = !!next && button?.dataset.entryId === next.record.id && button.dataset.entryKind === next.kind,
+        main = card.querySelector(".travel-day-entry-main"),
+        badge = main?.querySelector(".next-up-badge");
+      card.classList.toggle("is-next-stop", selected);
+      if (selected && !badge && main) {
+        const nextBadge = document.createElement("span");
+        nextBadge.className = "next-up-badge";
+        nextBadge.textContent = "Next Stop";
+        main.append(nextBadge);
+      } else if (!selected && badge) badge.remove();
+    }
+    travelDayContentEl.scrollTop = scrollTop;
+  }
+
+  function stopTravelDayClock() {
+    if (travelDayClockTimer !== null) clearTimeout(travelDayClockTimer);
+    travelDayClockTimer = null;
+  }
+
+  function scheduleTravelDayClock() {
+    stopTravelDayClock();
+    const trip = Storage.active(),
+      day = trip?.days.find((item) => item.id === travelDayId);
+    if (!travelDayModal.open || document.hidden || day?.date !== today()) return;
+    const now = new Date(),
+      delay = 60000 - now.getSeconds() * 1000 - now.getMilliseconds();
+    travelDayClockTimer = setTimeout(() => {
+      travelDayClockTimer = null;
+      refreshTravelDayNextStop();
+      scheduleTravelDayClock();
+    }, delay);
+  }
+
+  function onTravelDayVisibilityChange() {
+    if (document.hidden) {
+      stopTravelDayClock();
+      return;
+    }
+    if (!travelDayModal.open) return;
+    refreshTravelDayNextStop();
+    scheduleTravelDayClock();
+  }
+
+  document.addEventListener("visibilitychange", onTravelDayVisibilityChange);
+
+  function openTravelDay() {
+    const trip = Storage.active();
+    if (!trip) return;
+    travelDayTripId = trip.id;
+    travelDayId = defaultTravelDay(trip, today())?.id || null;
+    travelDayModal.showModal();
+    renderTravelDay();
+  }
+
+  travelDayModal.addEventListener("click", (event) => {
+    const action = event.target.closest("[data-action]");
+    if (!action) return;
+    if (action.dataset.action === "close-travel-day") {
+      travelDayModal.close();
+      return;
+    }
+    if (action.dataset.action !== "toggle-travel-day-done") return;
+    const entryId = action.dataset.entryId,
+      entryKind = action.dataset.entryKind;
+    const result = toggleScheduledEntryDone(travelDayId, entryId, entryKind);
+    if (!result) renderTravelDay();
+    [...travelDayContentEl.querySelectorAll('[data-action="toggle-travel-day-done"]')]
+      .find((button) => button.dataset.entryId === entryId && button.dataset.entryKind === entryKind)?.focus();
+  });
+  travelDayModal.addEventListener("change", (event) => {
+    if (!event.target.matches('[data-action="select-travel-day"]')) return;
+    const selectedId = event.target.value;
+    if (!Storage.active()?.days.some((day) => day.id === selectedId)) return;
+    travelDayId = selectedId;
+    renderTravelDay();
+    travelDayContentEl.querySelector('[data-action="select-travel-day"]')?.focus();
+  });
+  travelDayModal.addEventListener("close", () => {
+    stopTravelDayClock();
+    travelDayTripId = null;
+    travelDayId = null;
+    main.querySelector('[data-action="open-travel-day"]')?.focus();
+  });
 
   bindTimePickers(main, { drafts: timeDrafts, onCommit: updateScheduledTime });
 
@@ -395,6 +527,7 @@ import { bindTimePickers } from "./time-picker.js";
         '<button class="btn" data-action="new">Create a trip</button>',
         "</section>",
       ].join("");
+      if (travelDayModal.open) travelDayModal.close();
       return;
     }
     const collapsed = Storage.read().ui.navCollapsed;
@@ -448,6 +581,7 @@ import { bindTimePickers } from "./time-picker.js";
         ${packingPanel(t)}
       </div>
     </div>`;
+    renderTravelDay();
   }
   function renderTrips() {
     const q = $("#tripSearch").value.toLowerCase(),
@@ -536,6 +670,11 @@ import { bindTimePickers } from "./time-picker.js";
         return;
       }
       const act = a.dataset.action;
+      if (act === "open-travel-day") {
+        e.stopImmediatePropagation();
+        openTravelDay();
+        return;
+      }
       if (act === "toggle-nav") {
         e.stopImmediatePropagation();
         Storage.mutate((s) => (s.ui.navCollapsed = !s.ui.navCollapsed));
@@ -966,23 +1105,6 @@ import { bindTimePickers } from "./time-picker.js";
         changeTrip((t) =>
           t.days.find((x) => x.id === day.dataset.day).stops.push(item),
         );
-        return;
-      }
-      if (act === "toggle-done" && stop) {
-        e.stopImmediatePropagation();
-        const before = Storage.read();
-        let done = false,
-          type = "Activity";
-        changeTrip((t) => {
-          const item = t.days
-            .find((x) => x.id === day.dataset.day)
-            ?.stops.find((x) => x.id === stop.dataset.stop);
-          if (!item) return;
-          item.done = !item.done;
-          done = item.done;
-          type = item.kind === "tour" ? "Tour" : "Activity";
-        });
-        rememberUndo(done ? `${type} marked done` : `${type} reopened`, before);
         return;
       }
       if (act === "edit-activity") {

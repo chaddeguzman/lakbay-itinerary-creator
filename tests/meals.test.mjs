@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createStorage, normalizeTrip } from "../scripts/state.js";
 import { createActions } from "../scripts/actions.js";
-import { mealGroup, scheduledEntries, unscheduleMissingDays } from "../scripts/meals.js";
+import { defaultTravelDay, mealGroup, nextScheduledEntry, scheduledEntries, unscheduleMissingDays } from "../scripts/meals.js";
 import { createPanelRenderers } from "../scripts/render-panels.js";
 
 const day = (date = "2026-10-28") => ({ id: date, date, title: "Explore", stops: [], expenses: [] });
@@ -32,6 +32,74 @@ test("older undated places migrate once; existing timed visits keep their detail
   t.foodPlaces[0].time = "";
   normalizeTrip(t);
   assert.equal(t.foodPlaces[0].time, "");
+});
+
+test("scheduled meals normalize completion without losing older details", () => {
+  const t = trip();
+  t.foodPlaces = [
+    { id: "old", visitDate: t.days[0].date, venue: "Cafe", reservation: "Window" },
+    { id: "done", visitDate: t.days[0].date, venue: "Diner", done: true },
+  ];
+  normalizeTrip(t);
+  assert.equal(t.foodPlaces[0].done, false);
+  assert.equal(t.foodPlaces[0].reservation, "Window");
+  assert.equal(t.foodPlaces[1].done, true);
+});
+
+test("default Travel Day selects today at either trip boundary, else first day", () => {
+  const t = { ...trip(), days: [day("2026-10-28"), day("2026-10-29")] };
+  assert.equal(defaultTravelDay(t, "2026-10-28"), t.days[0]);
+  assert.equal(defaultTravelDay(t, "2026-10-29"), t.days[1]);
+  assert.equal(defaultTravelDay(t, "2026-11-01"), t.days[0]);
+  assert.equal(defaultTravelDay({ ...t, days: [] }, "2026-10-28"), null);
+});
+
+test("today selects an active range before a future timed meal and skips done entries", () => {
+  const t = trip(), d = t.days[0];
+  d.stops.push(
+    { id: "done", time: "08:00", done: true },
+    { id: "active", time: "09:00", endTime: "10:30", timeMode: "range", done: false },
+  );
+  t.foodPlaces.push({ id: "meal", visitDate: d.date, time: "10:00", done: false });
+  assert.equal(nextScheduledEntry(t, d, { todayIso: d.date, nowMinutes: 10 * 60 }).record.id, "active");
+  d.stops[1].done = true;
+  assert.equal(nextScheduledEntry(t, d, { todayIso: d.date, nowMinutes: 10 * 60 }).record.id, "meal");
+});
+
+test("today starts an overnight range tonight, not before its start", () => {
+  const t = trip(), d = t.days[0];
+  d.stops.push({ id: "overnight", time: "23:00", endTime: "01:00", timeMode: "range", done: false });
+  t.foodPlaces.push({ id: "breakfast", visitDate: d.date, time: "08:00", done: false });
+  assert.equal(nextScheduledEntry(t, d, { todayIso: d.date, nowMinutes: 30 }).record.id, "breakfast");
+  assert.equal(nextScheduledEntry(t, d, { todayIso: d.date, nowMinutes: 60 }).record.id, "breakfast");
+  assert.equal(nextScheduledEntry(t, d, { todayIso: d.date, nowMinutes: 23 * 60 + 30 }).record.id, "overnight");
+});
+
+test("today falls back to earliest untimed item after timed entries pass", () => {
+  const t = trip(), d = t.days[0];
+  d.stops.push({ id: "past", time: "08:00", done: false }, { id: "untimed-stop", done: false });
+  t.foodPlaces.push({ id: "untimed-meal", visitDate: d.date, time: "", done: false });
+  assert.equal(nextScheduledEntry(t, d, { todayIso: d.date, nowMinutes: 12 * 60 }).record.id, "untimed-stop");
+  d.stops[1].done = true;
+  assert.equal(nextScheduledEntry(t, d, { todayIso: d.date, nowMinutes: 12 * 60 }).record.id, "untimed-meal");
+  t.foodPlaces[0].done = true;
+  assert.equal(nextScheduledEntry(t, d, { todayIso: d.date, nowMinutes: 12 * 60 }), null);
+});
+
+test("another selected day returns earliest unfinished scheduled item regardless of time", () => {
+  const t = trip(), d = t.days[0];
+  d.stops.push({ id: "done", time: "07:00", done: true }, { id: "past", time: "08:00", done: false });
+  t.foodPlaces.push({ id: "meal", visitDate: d.date, time: "09:00", done: false });
+  assert.equal(nextScheduledEntry(t, d, { todayIso: "2026-10-29", nowMinutes: 23 * 60 }).record.id, "past");
+});
+
+test("empty days, unscheduled-only meals, and all-done days have no next entry", () => {
+  const t = trip(), d = t.days[0], args = { todayIso: d.date, nowMinutes: 12 * 60 };
+  assert.equal(nextScheduledEntry(t, d, args), null);
+  t.foodPlaces.push({ id: "unscheduled", visitDate: "", time: "13:00" });
+  assert.equal(nextScheduledEntry(t, d, args), null);
+  d.stops.push({ id: "finished", time: "13:00", done: true });
+  assert.equal(nextScheduledEntry(t, d, args), null);
 });
 
 test("multiple breakfasts appear in time order with activities; untimed meals follow", () => {
@@ -182,39 +250,44 @@ test("saved off-step minutes remain available without rounding", () => {
   assert.match(html, /data-time-option="05"/);
 });
 
-test("activity and tour compact rows put Done before time and keep edit actions expandable", () => {
+test("activity and tour compact rows keep edit actions without Itinerary Done controls", () => {
   const t = trip();
   t.days[0].stops.push(
     { id: "activity", kind: "activity", time: "08:00", activity: "Temple visit", location: "Old City", notes: "Bring water", done: false },
     { id: "tour", kind: "tour", time: "10:00", endTime: "12:00", activity: "Food tour", tourLocations: ["Market"], notes: "Meet guide", done: false },
   );
   const html = panels(t).itineraryPanel(t),
-    done = html.indexOf('data-action="toggle-done"'),
     time = html.indexOf("8:00 AM"),
     edit = html.indexOf('data-action="edit-activity"'),
     notes = html.indexOf("Bring water");
-  assert.ok(done >= 0 && done < time);
+  assert.doesNotMatch(html, /data-action="toggle-done"/);
+  assert.ok(time >= 0);
   assert.ok(time < edit);
   assert.ok(notes >= 0);
   assert.match(html, /class="stop activity-compact/);
   assert.match(html, /class="stop activity-compact tour-compact/);
 });
 
-test("completed watermark requires every activity and tour to be done", () => {
+test("completed watermark requires every scheduled activity, tour, and meal to be done", () => {
   const t = trip();
   t.days[0].stops.push(
     { id: "activity", kind: "activity", activity: "Temple visit", done: true },
     { id: "tour", kind: "tour", activity: "Food tour", done: true },
   );
-  t.foodPlaces.push({ id: "meal", visitDate: t.days[0].date, mealType: "Lunch", venue: "Cafe" });
+  t.foodPlaces.push({ id: "meal", visitDate: t.days[0].date, mealType: "Lunch", venue: "Cafe", done: false });
+  assert.doesNotMatch(panels(t).itineraryPanel(t), /day-completed-watermark/);
+  t.foodPlaces[0].done = true;
   const completedHtml = panels(t).itineraryPanel(t);
   assert.match(completedHtml, /day-completed-watermark/);
   assert.match(completedHtml, /class="day\s+is-completed/);
+  assert.match(completedHtml, /class="meal-card is-done"/);
 
   t.days[0].stops[1].done = false;
   assert.doesNotMatch(panels(t).itineraryPanel(t), /day-completed-watermark/);
 
   t.days[0].stops = [];
+  assert.match(panels(t).itineraryPanel(t), /day-completed-watermark/);
+  t.foodPlaces[0].visitDate = "";
   assert.doesNotMatch(panels(t).itineraryPanel(t), /day-completed-watermark/);
 });
 
