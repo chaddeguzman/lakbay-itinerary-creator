@@ -6,8 +6,9 @@ import {
   normalizeTrip,
 } from "./state.js";
 import { createActions } from "./actions.js";
+import { defaultTravelDay } from "./meals.js";
 import { createExportTools } from "./export.js";
-import { createPanelRenderers } from "./render-panels.js?v=day-stamp-toggle-20260926";
+import { createPanelRenderers } from "./render-panels.js?v=travel-day-20260928";
 import { bindTimePickers } from "./time-picker.js";
 
   // ---------------------------------------------------------------------------
@@ -127,8 +128,12 @@ import { bindTimePickers } from "./time-picker.js";
   let tab = "itinerary",
     toastTimer,
     saveStatusTimer,
-    undoSnapshot = null;
+    undoSnapshot = null,
+    travelDayTripId = null,
+    travelDayId = null;
   const main = $("#main"),
+    travelDayModal = $("#travelDayModal"),
+    travelDayContentEl = $("#travelDayContent"),
     list = $("#tripList"),
     editingActivities = new Set(),
     timeDrafts = new Map(),
@@ -248,6 +253,7 @@ import { bindTimePickers } from "./time-picker.js";
     openMealCards = new Set();
   const {
     itineraryPanel,
+    travelDayContent,
     mapsPanel,
     weatherPanel,
     flightPanel,
@@ -284,6 +290,62 @@ import { bindTimePickers } from "./time-picker.js";
       render,
       syncRecordExpense,
     });
+
+  function renderTravelDay() {
+    if (!travelDayModal.open) return;
+    const trip = Storage.active();
+    if (!trip) {
+      travelDayModal.close();
+      return;
+    }
+    if (trip.id !== travelDayTripId || !trip.days.some((day) => day.id === travelDayId)) {
+      travelDayTripId = trip.id;
+      travelDayId = defaultTravelDay(trip, today())?.id || null;
+    }
+    const now = new Date();
+    travelDayContentEl.innerHTML = travelDayContent(trip, travelDayId, {
+      todayIso: localIso(now),
+      nowMinutes: now.getHours() * 60 + now.getMinutes(),
+    });
+  }
+
+  function openTravelDay() {
+    const trip = Storage.active();
+    if (!trip) return;
+    travelDayTripId = trip.id;
+    travelDayId = defaultTravelDay(trip, today())?.id || null;
+    travelDayModal.showModal();
+    renderTravelDay();
+  }
+
+  travelDayModal.addEventListener("click", (event) => {
+    const action = event.target.closest("[data-action]");
+    if (!action) return;
+    if (action.dataset.action === "close-travel-day") {
+      travelDayModal.close();
+      return;
+    }
+    if (action.dataset.action !== "toggle-travel-day-done") return;
+    const entryId = action.dataset.entryId,
+      entryKind = action.dataset.entryKind;
+    const result = toggleScheduledEntryDone(travelDayId, entryId, entryKind);
+    if (!result) renderTravelDay();
+    [...travelDayContentEl.querySelectorAll('[data-action="toggle-travel-day-done"]')]
+      .find((button) => button.dataset.entryId === entryId && button.dataset.entryKind === entryKind)?.focus();
+  });
+  travelDayModal.addEventListener("change", (event) => {
+    if (!event.target.matches('[data-action="select-travel-day"]')) return;
+    const selectedId = event.target.value;
+    if (!Storage.active()?.days.some((day) => day.id === selectedId)) return;
+    travelDayId = selectedId;
+    renderTravelDay();
+    travelDayContentEl.querySelector('[data-action="select-travel-day"]')?.focus();
+  });
+  travelDayModal.addEventListener("close", () => {
+    travelDayTripId = null;
+    travelDayId = null;
+    main.querySelector('[data-action="open-travel-day"]')?.focus();
+  });
 
   bindTimePickers(main, { drafts: timeDrafts, onCommit: updateScheduledTime });
 
@@ -395,6 +457,7 @@ import { bindTimePickers } from "./time-picker.js";
         '<button class="btn" data-action="new">Create a trip</button>',
         "</section>",
       ].join("");
+      if (travelDayModal.open) travelDayModal.close();
       return;
     }
     const collapsed = Storage.read().ui.navCollapsed;
@@ -448,6 +511,7 @@ import { bindTimePickers } from "./time-picker.js";
         ${packingPanel(t)}
       </div>
     </div>`;
+    renderTravelDay();
   }
   function renderTrips() {
     const q = $("#tripSearch").value.toLowerCase(),
@@ -536,6 +600,11 @@ import { bindTimePickers } from "./time-picker.js";
         return;
       }
       const act = a.dataset.action;
+      if (act === "open-travel-day") {
+        e.stopImmediatePropagation();
+        openTravelDay();
+        return;
+      }
       if (act === "toggle-nav") {
         e.stopImmediatePropagation();
         Storage.mutate((s) => (s.ui.navCollapsed = !s.ui.navCollapsed));
@@ -966,11 +1035,6 @@ import { bindTimePickers } from "./time-picker.js";
         changeTrip((t) =>
           t.days.find((x) => x.id === day.dataset.day).stops.push(item),
         );
-        return;
-      }
-      if (act === "toggle-done" && stop) {
-        e.stopImmediatePropagation();
-        toggleScheduledEntryDone(day.dataset.day, stop.dataset.stop, "stop");
         return;
       }
       if (act === "edit-activity") {

@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#174f4b" />
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
     <title>Lakbay Itinerary Creator</title>
-    <link rel="stylesheet" href="css/styles.css?v=day-stamp-toggle-20260926" />
+    <link rel="stylesheet" href="css/styles.css?v=travel-day-20260928" />
   </head>
   <body>
     <!-- Mobile navigation and theme controls stay outside the app grid so they remain fixed. -->
@@ -142,6 +142,17 @@
       </form>
     </dialog>
 
+    <dialog class="modal travel-day-modal" id="travelDayModal" aria-labelledby="travelDayTitle">
+      <div class="travel-day-modal-body">
+        <header class="travel-day-modal-head">
+          <h2 id="travelDayTitle">Travel Day</h2>
+          <button type="button" class="btn small secondary" id="closeTravelDay"
+            data-action="close-travel-day" aria-label="Close Travel Day">Close</button>
+        </header>
+        <div id="travelDayContent"></div>
+      </div>
+    </dialog>
+
     <!-- Reusable two-stage confirmation dialog for activity and tour deletion -->
     <dialog
       class="modal delete-entry-modal"
@@ -247,6 +258,6 @@
 
     <!-- App logic is loaded last so every referenced DOM element already exists. -->
     <script src="gemini_travel_api.js"></script>
-    <script type="module" src="scripts/app.js?v=day-stamp-toggle-20260926"></script>
+    <script type="module" src="scripts/app.js?v=travel-day-20260928"></script>
   </body>
 </html>

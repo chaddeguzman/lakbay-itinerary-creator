@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { createActions } from "../scripts/actions.js";
 import { createStorage } from "../scripts/state.js";
 import { createPanelRenderers } from "../scripts/render-panels.js";
@@ -190,4 +191,33 @@ test("Itinerary exposes the Travel Day button and keeps completion cues without 
   assert.match(html, /day-completed-watermark/);
   assert.match(html, /class="meal-card is-done"/);
   assert.match(html, /class="stop activity-compact is-done/);
+});
+
+test("Travel Day has an accessible native dialog and scoped content container", () => {
+  const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+  assert.match(html, /<dialog[^>]*id="travelDayModal"[^>]*aria-labelledby="travelDayTitle"/s);
+  assert.match(html, /id="travelDayTitle">Travel Day</);
+  assert.match(html, /id="travelDayContent"/);
+  assert.match(html, /id="closeTravelDay"[^>]*aria-label="Close Travel Day"/s);
+});
+
+test("app opens the dialog with the default day, routes day changes and completion, and has no Itinerary Done handler", () => {
+  const app = readFileSync(new URL("../scripts/app.js", import.meta.url), "utf8");
+  assert.match(app, /defaultTravelDay\(.*today\(\)\)/);
+  assert.match(app, /travelDayModal\.showModal\(\)/);
+  assert.match(app, /data-action="open-travel-day"|act === "open-travel-day"/);
+  assert.match(app, /select-travel-day/);
+  assert.match(app, /toggle-travel-day-done/);
+  assert.match(app, /toggleScheduledEntryDone\(travelDayId, entryId, entryKind\)/);
+  assert.match(app, /travelDayModal\.addEventListener\("close"/);
+  assert.match(app, /renderTravelDay\(\)/);
+  assert.doesNotMatch(app, /act === "toggle-done"/);
+});
+
+test("Travel Day and completed meals have responsive completion styles", () => {
+  const css = readFileSync(new URL("../css/styles.css", import.meta.url), "utf8");
+  assert.match(css, /\.travel-day-modal\s*\{/);
+  assert.match(css, /\.travel-day-entry\.is-done/);
+  assert.match(css, /\.meal-card\.is-done/);
+  assert.match(css, /@media \(max-width: 620px\)[\s\S]*\.travel-day-modal/);
 });
