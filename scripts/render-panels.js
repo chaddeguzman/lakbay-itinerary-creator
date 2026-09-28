@@ -749,7 +749,8 @@ export function createPanelRenderers(ctx) {
       day = days.find((item) => item.id === dayId);
     if (!day) return '<p class="travel-day-empty" role="status">No trip day selected.</p>';
 
-    const entries = scheduledEntries(trip, day),
+    const dayIndex = days.findIndex((item) => item.id === day.id),
+      entries = scheduledEntries(trip, day),
       next = nextScheduledEntry(trip, day, { todayIso, nowMinutes }),
       nextLabel = next ? next.kind === "meal"
         ? next.record.venue || next.record.mealType || "Meal"
@@ -759,11 +760,11 @@ export function createPanelRenderers(ctx) {
           : next ? `Next Stop: ${esc(nextLabel)}` : "No upcoming stops.";
 
     return `<div class="travel-day-view" data-day="${esc(day.id)}">
-      <label class="travel-day-picker">Trip day
-        <select data-action="select-travel-day" aria-label="Select trip day">
-          ${days.map((item, index) => `<option value="${esc(item.id)}" ${item.id === day.id ? "selected" : ""}>Day ${index + 1} · ${esc(dayDateLabel(item.date))}</option>`).join("")}
-        </select>
-      </label>
+      <nav class="travel-day-navigation" aria-label="Travel day navigation">
+        <button type="button" class="btn small secondary" data-action="travel-day-previous" aria-label="Previous day"${dayIndex <= 0 ? " disabled" : ""}>‹ Previous</button>
+        <span class="travel-day-current">Day ${dayIndex + 1} · ${esc(dayDateLabel(day.date))}</span>
+        <button type="button" class="btn small secondary" data-action="travel-day-next" aria-label="Next day"${dayIndex >= days.length - 1 ? " disabled" : ""}>Next ›</button>
+      </nav>
       <p class="travel-day-status" role="status">${status}</p>
       <div class="travel-day-schedule">${entries.map((entry) => {
         const { kind, record } = entry,
