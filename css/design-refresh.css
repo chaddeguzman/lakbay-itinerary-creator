@@ -35,7 +35,7 @@
   }
 
   .app {
-    grid-template-columns: 264px minmax(0, 1fr);
+    grid-template-columns: 330px minmax(0, 1fr);
   }
 
   .sidebar,
@@ -72,6 +72,7 @@
   .search::placeholder { color: #c4d7d0; }
   .trip-list { gap: 6px; }
   .trip-card { padding: 12px 13px; border-radius: 10px; transition: background .16s, border-color .16s; }
+  .trip-card small { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
   .trip-card:hover { background: rgb(255 255 255 / 8%); border-color: rgb(255 255 255 / 28%); }
   .trip-card.active,
   html[data-theme="dark"] .trip-card.active {
@@ -89,7 +90,7 @@
     color: #f2f7f3;
   }
 
-  .theme-toggle { left: 186px; top: 27px; }
+  .theme-toggle { left: 252px; top: 27px; }
   .theme-toggle-track { background: #dbe4db; border-color: #dbe4db; box-shadow: none; }
 
   .main {
