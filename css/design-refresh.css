@@ -212,7 +212,7 @@
   .day-head { margin-bottom: 20px; }
   .day-title { color: var(--ink); border-bottom: 1px solid transparent; font-size: 1.32rem; }
   .day-title:focus { border-color: var(--teal); outline: none; }
-  .day-date-label { color: var(--muted); font-size: .85rem; }
+  .day-date-label { color: var(--muted); font-size: calc(.85rem + 1px); }
 
   .stop { border-top: 1px solid var(--line); }
   .day .stop { border-radius: 10px; }

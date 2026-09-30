@@ -355,11 +355,24 @@ html[data-theme="dark"] .day-completed-watermark {
   font-weight: bold;
   padding: 5px;
 }
+.day-heading {
+  min-width: 0;
+}
+.day-date-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  padding-left: 5px;
+  margin-bottom: 2px;
+}
 .day-date-label {
-  display: inline-block;
-  margin-left: 10ch;
+  display: block;
   font-size: 0.96rem;
   line-height: 1.2;
+}
+.day-date-row .today-badge {
+  margin-left: 0;
 }
 .icon-actions {
   display: flex;

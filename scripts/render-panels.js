@@ -719,11 +719,13 @@ export function createPanelRenderers(ctx) {
           data-day="${d.id}">
         <header class="day-head">
         <div class="stamp${canCollapse ? " day-stamp-toggle" : ""}"${canCollapse ? ` data-action="toggle-day" role="button" tabindex="0" aria-expanded="${!collapsed}" aria-label="${collapsed ? "Expand day" : "Collapse day"}"` : ""}>Day<span class="day-number">${i}</span></div>
-        <div>
+        <div class="day-heading">
+        <div class="day-date-row">
+          <small class="day-date-label">${dayDateLabel(d.date)}</small>
+          ${isToday ? '<span class="today-badge">Today</span>' : ""}
+        </div>
         <input class="day-title" data-field="title" maxlength="40" value="${esc(String(d.title || "").slice(0, 40))}"
           aria-label="Day title">
-        <small class="day-date-label">${dayDateLabel(d.date)}</small>
-        ${isToday ? '<span class="today-badge">Today</span>' : ""}
         </div>
         ${completed ? '<span class="day-completed-watermark" aria-label="Completed">✓ Completed</span>' : ""}
         </header>
