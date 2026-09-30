@@ -11,6 +11,7 @@
     --shadow: 0 12px 32px rgb(27 54 48 / 5%);
     --day-odd: #fffefa;
     --day-even: #fbf8f1;
+    --frost-sage: #d9ebdc;
     --frost-rim: rgb(255 255 255 / 68%);
     --frost-shade: rgb(40 65 56 / 10%);
     --frost-drop: rgb(27 54 48 / 12%);
@@ -27,6 +28,7 @@
     --shadow: 0 14px 36px rgb(0 0 0 / 16%);
     --day-odd: #1b302b;
     --day-even: #21352f;
+    --frost-sage: #355747;
     --frost-rim: rgb(255 255 255 / 19%);
     --frost-shade: rgb(0 0 0 / 23%);
     --frost-drop: rgb(0 0 0 / 26%);
@@ -178,7 +180,7 @@
   .trip-workspace { gap: 28px; margin-top: 29px; }
   .section-nav,
   html[data-theme="dark"] .section-nav {
-    background: color-mix(in srgb, var(--paper2) 45%, transparent);
+    background: color-mix(in srgb, color-mix(in srgb, var(--paper2) 35%, var(--frost-sage)) 35%, transparent);
     color: var(--ink);
     border: 1px solid var(--frost-rim);
     border-radius: 14px;
@@ -209,7 +211,7 @@
   html[data-theme="dark"] .section-tab:hover,
   html[data-theme="dark"] .section-tab.active {
     color: var(--teal);
-    background: color-mix(in srgb, var(--teal) 9%, color-mix(in srgb, var(--paper2) 45%, transparent));
+    background: color-mix(in srgb, var(--teal) 9%, color-mix(in srgb, var(--frost-sage) 35%, transparent));
   }
 
   .panel > h2 { color: var(--teal); margin-top: 0; }
@@ -232,23 +234,23 @@
   .day,
   .panel[data-panel="itinerary"] .day { padding: clamp(18px, 2vw, 26px); border-radius: 16px; margin-bottom: 18px; }
   .day {
-    background: color-mix(in srgb, var(--paper2) 45%, transparent);
+    background: color-mix(in srgb, color-mix(in srgb, var(--paper2) 35%, var(--frost-sage)) 35%, transparent);
     border-color: var(--frost-rim);
     box-shadow: inset 0 1px var(--frost-rim), inset 0 -1px var(--frost-shade), 0 14px 32px var(--frost-drop);
     -webkit-backdrop-filter: blur(10px) saturate(115%);
     backdrop-filter: blur(10px) saturate(115%);
   }
   .panel[data-panel="itinerary"] > .day:nth-of-type(odd) {
-    background: color-mix(in srgb, var(--day-odd) 45%, transparent);
+    background: color-mix(in srgb, color-mix(in srgb, var(--day-odd) 35%, var(--frost-sage)) 35%, transparent);
   }
   .panel[data-panel="itinerary"] > .day:nth-of-type(even) {
-    background: color-mix(in srgb, var(--day-even) 45%, transparent);
+    background: color-mix(in srgb, color-mix(in srgb, var(--day-even) 35%, var(--frost-sage)) 35%, transparent);
   }
   .panel[data-panel="itinerary"] > .day.is-completed {
-    background: color-mix(in srgb, color-mix(in srgb, var(--paper2) 70%, #8b948c) 45%, transparent);
+    background: color-mix(in srgb, color-mix(in srgb, color-mix(in srgb, var(--paper2) 70%, #8b948c) 65%, var(--frost-sage)) 35%, transparent);
   }
   html[data-theme="dark"] .panel[data-panel="itinerary"] > .day.is-completed {
-    background: color-mix(in srgb, color-mix(in srgb, #172522 70%, #8b948c) 45%, transparent);
+    background: color-mix(in srgb, color-mix(in srgb, color-mix(in srgb, #172522 70%, #8b948c) 65%, var(--frost-sage)) 35%, transparent);
   }
   .day-head { margin-bottom: 20px; }
   .day-title { color: var(--ink); border-bottom: 1px solid transparent; font-size: 1.32rem; }
