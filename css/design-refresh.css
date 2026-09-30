@@ -172,7 +172,7 @@
   .trip-workspace { gap: 28px; margin-top: 29px; }
   .section-nav,
   html[data-theme="dark"] .section-nav {
-    background: var(--paper2);
+    background: color-mix(in srgb, var(--paper2) 55%, transparent);
     color: var(--ink);
     border: 1px solid var(--line);
     border-radius: 14px;
@@ -201,7 +201,7 @@
   html[data-theme="dark"] .section-tab:hover,
   html[data-theme="dark"] .section-tab.active {
     color: var(--teal);
-    background: color-mix(in srgb, var(--teal) 9%, var(--paper2));
+    background: color-mix(in srgb, var(--teal) 9%, color-mix(in srgb, var(--paper2) 55%, transparent));
   }
 
   .panel > h2 { color: var(--teal); margin-top: 0; }
@@ -223,6 +223,19 @@
 
   .day,
   .panel[data-panel="itinerary"] .day { padding: clamp(18px, 2vw, 26px); border-radius: 16px; margin-bottom: 18px; }
+  .day { background: color-mix(in srgb, var(--paper2) 55%, transparent); }
+  .panel[data-panel="itinerary"] > .day:nth-of-type(odd) {
+    background: color-mix(in srgb, var(--day-odd) 55%, transparent);
+  }
+  .panel[data-panel="itinerary"] > .day:nth-of-type(even) {
+    background: color-mix(in srgb, var(--day-even) 55%, transparent);
+  }
+  .panel[data-panel="itinerary"] > .day.is-completed {
+    background: color-mix(in srgb, color-mix(in srgb, var(--paper2) 70%, #8b948c) 55%, transparent);
+  }
+  html[data-theme="dark"] .panel[data-panel="itinerary"] > .day.is-completed {
+    background: color-mix(in srgb, color-mix(in srgb, #172522 70%, #8b948c) 55%, transparent);
+  }
   .day-head { margin-bottom: 20px; }
   .day-title { color: var(--ink); border-bottom: 1px solid transparent; font-size: 1.32rem; }
   .day-title:focus { border-color: var(--teal); outline: none; }
