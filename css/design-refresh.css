@@ -232,6 +232,8 @@
     background: color-mix(in srgb, var(--teal) 9%, color-mix(in srgb, var(--frost-sage) 35%, transparent));
   }
 
+  .section-icon-mobile { display: none; }
+
   .panel > h2 { color: var(--teal); margin-top: 0; }
   .panel > p { color: var(--muted); }
 
@@ -316,6 +318,16 @@
   .travel-chat-panel { border-radius: 16px; }
 
   @media (max-width: 900px) {
+    .section-icon-default { display: none; }
+    .section-icon-mobile { display: block; }
+    .section-tab[data-tab="flight"] .section-icon {
+      width: 24px;
+      flex-basis: 24px;
+    }
+    .section-tab[data-tab="flight"] .section-icon svg {
+      width: 24px;
+      height: 24px;
+    }
     .app { grid-template-columns: 1fr; }
     .sidebar { width: 290px; left: -310px; padding-top: 68px; }
     .main { padding: 78px clamp(18px, 4vw, 36px) 80px; }
