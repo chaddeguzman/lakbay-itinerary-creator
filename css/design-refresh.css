@@ -307,6 +307,9 @@
     .section-nav,
     html[data-theme="dark"] .section-nav {
       display: flex;
+      position: sticky;
+      top: 8px;
+      z-index: 3;
       align-items: center;
       gap: 4px;
       overflow-x: auto;
@@ -331,6 +334,9 @@
       flex: 0 0 auto;
       width: auto;
       padding: 9px 12px;
+    }
+    .section-nav.collapsed .section-tab {
+      display: flex;
     }
   }
 
