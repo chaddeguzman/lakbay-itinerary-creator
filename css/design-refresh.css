@@ -312,7 +312,7 @@
     .theme-toggle { left: auto; right: 14px; top: 14px; }
     .mobile-menu { border-radius: 10px; background: #143d38; }
     .trip-workspace { margin-top: 20px; }
-    .itinerary-toolbar { top: calc(124px + env(safe-area-inset-top, 0px)); }
+    .itinerary-toolbar { top: calc(140px + env(safe-area-inset-top, 0px)); }
     .section-nav,
     html[data-theme="dark"] .section-nav {
       display: flex;
