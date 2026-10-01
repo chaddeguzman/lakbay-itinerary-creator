@@ -181,7 +181,6 @@ button {
 }
 .btn.small {
   padding: 6px 9px;
-  font-size: 0.85rem;
 }
 /* ==========================================================================
    Main trip header, tabs, and panel visibility
@@ -1507,11 +1506,6 @@ html[data-theme="dark"] .theme-toggle-icon--light {
 html[data-theme="dark"] .theme-toggle-icon--dark {
   opacity: 1;
   transform: scale(1) rotate(0);
-}
-.side-actions .btn.secondary {
-  font-weight: 400;
-  font-size: inherit;
-  font-style: normal;
 }
 /* ==========================================================================
    Detailed activity/tour scheduling layout
@@ -2909,9 +2903,6 @@ html[data-theme="dark"] .panel[data-panel="itinerary"] .day .meal-card {
 }
 .panel[data-panel="itinerary"] .day .meal-card .meal-actions .btn.danger {
   border-color: #9a714a;
-}
-html[data-theme="dark"] .panel[data-panel="itinerary"] .day .meal-card .meal-actions .btn.danger {
-  font-weight: 400;
 }
 
 /* Focused Travel Day dialog and completion cues. */

@@ -15,6 +15,8 @@
     --frost-rim: rgb(255 255 255 / 68%);
     --frost-shade: rgb(40 65 56 / 10%);
     --frost-drop: rgb(27 54 48 / 12%);
+    --action-font: 600 .88rem/1.3 Inter, ui-sans-serif, sans-serif;
+    --action-radius: 9px;
   }
 
   html[data-theme="dark"] {
@@ -105,7 +107,7 @@
 
   .side-actions { gap: 9px; margin-top: 20px; }
   .sidebar .btn { min-height: 42px; text-align: left; }
-  .sidebar .btn:not(.secondary) { background: #e9d5b6; border-color: #e9d5b6; color: #173d38; font-weight: 650; }
+  .sidebar .btn:not(.secondary) { background: #e9d5b6; border-color: #e9d5b6; color: #173d38; }
   .sidebar .btn.secondary {
     background: transparent;
     border-color: rgb(255 255 255 / 27%);
@@ -164,18 +166,28 @@
   .toolbar { gap: 9px; }
 
   .btn,
+  html[data-theme="dark"] .btn,
+  .section-nav-toggle,
+  .section-tab,
+  .travel-chat-send,
+  .travel-draft-actions button,
+  .toast button {
+    border-radius: var(--action-radius);
+    font: var(--action-font);
+  }
+
+  .btn,
   html[data-theme="dark"] .btn {
     min-height: 38px;
-    border-radius: 9px;
     padding: 8px 14px;
-    font: 600 .88rem/1.3 Inter, ui-sans-serif, sans-serif;
     transition: background .16s, border-color .16s, transform .16s;
   }
 
   .btn:hover { filter: none; transform: translateY(-1px); }
   .btn:active { transform: translateY(0); }
   .btn.secondary { background: var(--paper2); }
-  .btn.small { min-height: 32px; padding: 6px 10px; font-size: .8rem; }
+  .btn.small,
+  html[data-theme="dark"] .btn.small { min-height: 32px; padding: 6px 10px; }
 
   .trip-workspace { gap: 28px; margin-top: 29px; }
   .itinerary-toolbar {
@@ -191,7 +203,7 @@
     color: var(--ink);
     background: color-mix(in srgb, color-mix(in srgb, var(--paper2) 35%, var(--frost-sage)) 35%, transparent);
     border: 1px solid var(--frost-rim);
-    border-radius: 14px;
+    border-radius: var(--action-radius);
     box-shadow: inset 0 1px var(--frost-rim), inset 0 -1px var(--frost-shade), 0 12px 28px var(--frost-drop);
     -webkit-backdrop-filter: blur(10px) saturate(115%);
     backdrop-filter: blur(10px) saturate(115%);
@@ -212,16 +224,12 @@
     color: var(--muted);
     background: transparent;
     border-bottom: 1px solid var(--line);
-    border-radius: 0;
     margin-bottom: 7px;
   }
 
   .section-tab {
     color: var(--muted);
-    border-radius: 8px;
     min-height: 42px;
-    font-size: .88rem;
-    font-weight: 550;
   }
 
   .section-tab:hover,
