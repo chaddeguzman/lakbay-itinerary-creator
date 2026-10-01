@@ -33,7 +33,7 @@ export function createPanelRenderers(ctx) {
           : ""
       }
       <div class="itinerary-toolbar no-print"><button type="button" class="btn secondary"
-        data-action="open-travel-day">Open Travel Day</button></div>
+        data-action="open-travel-day">Travel Day</button></div>
       ${t.days.map((d, i) => dayHtml(t, d, i, collapsedDays.has(d.id))).join("")}
     </section>`;
   }

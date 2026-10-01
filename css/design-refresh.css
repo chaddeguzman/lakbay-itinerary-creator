@@ -178,6 +178,14 @@
   .btn.small { min-height: 32px; padding: 6px 10px; font-size: .8rem; }
 
   .trip-workspace { gap: 28px; margin-top: 29px; }
+  .itinerary-toolbar {
+    position: sticky;
+    top: 20px;
+    z-index: 4;
+    justify-content: flex-start;
+    pointer-events: none;
+  }
+  .itinerary-toolbar .btn { pointer-events: auto; box-shadow: var(--shadow); }
   .section-nav,
   html[data-theme="dark"] .section-nav {
     background: color-mix(in srgb, color-mix(in srgb, var(--paper2) 35%, var(--frost-sage)) 35%, transparent);
@@ -304,6 +312,7 @@
     .theme-toggle { left: auto; right: 14px; top: 14px; }
     .mobile-menu { border-radius: 10px; background: #143d38; }
     .trip-workspace { margin-top: 20px; }
+    .itinerary-toolbar { top: calc(124px + env(safe-area-inset-top, 0px)); }
     .section-nav,
     html[data-theme="dark"] .section-nav {
       display: flex;
