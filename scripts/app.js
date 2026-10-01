@@ -8,7 +8,7 @@ import {
 import { createActions } from "./actions.js";
 import { defaultTravelDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
 import { createExportTools } from "./export.js";
-import { createPanelRenderers } from "./render-panels.js?v=day-date-20260930";
+import { createPanelRenderers } from "./render-panels.js?v=travel-day-sticky-20261001";
 import { bindTimePickers } from "./time-picker.js";
 
   // ---------------------------------------------------------------------------
