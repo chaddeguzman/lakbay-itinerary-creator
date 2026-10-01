@@ -7,7 +7,7 @@ import {
 } from "./state.js";
 import { createActions } from "./actions.js";
 import { defaultTravelDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
-import { createExportTools } from "./export.js?v=trip-pdf-20261001";
+import { createExportTools } from "./export.js?v=theme-aware-pdf-20261001";
 import { createPanelRenderers } from "./render-panels.js?v=travel-day-sticky-20261001";
 import { bindTimePickers } from "./time-picker.js";
 

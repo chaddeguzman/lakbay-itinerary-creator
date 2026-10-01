@@ -85,6 +85,16 @@ export function createExportTools({ fmt, dayDateLabel }) {
   }
 
   function exportPdf(trip) {
+    const styles = getComputedStyle(document.documentElement);
+    const themeColor = (name) => styles.getPropertyValue(name).trim();
+    const colors = {
+      background: themeColor("--paper"),
+      band: document.documentElement.dataset.theme === "dark" ? themeColor("--day-even") : "#e6eee7",
+      ink: themeColor("--ink"),
+      accent: themeColor("--teal"),
+      muted: themeColor("--muted"),
+      line: themeColor("--line"),
+    };
     const margin = 84;
     const textWidth = PAGE_WIDTH - margin * 2;
     const bottom = PAGE_HEIGHT - 105;
@@ -94,12 +104,12 @@ export function createExportTools({ fmt, dayDateLabel }) {
     let y;
 
     function finishPage() {
-      context.strokeStyle = "#d4dfd4";
+      context.strokeStyle = colors.line;
       context.beginPath();
       context.moveTo(margin, PAGE_HEIGHT - 79);
       context.lineTo(PAGE_WIDTH - margin, PAGE_HEIGHT - 79);
       context.stroke();
-      context.fillStyle = "#677873";
+      context.fillStyle = colors.muted;
       context.font = "17px Arial";
       context.fillText(`Page ${pages.length + 1}`, PAGE_WIDTH - margin - 60, PAGE_HEIGHT - 48);
       const binary = atob(canvas.toDataURL("image/jpeg", 0.92).split(",")[1]);
@@ -111,13 +121,13 @@ export function createExportTools({ fmt, dayDateLabel }) {
       canvas.width = PAGE_WIDTH;
       canvas.height = PAGE_HEIGHT;
       context = canvas.getContext("2d");
-      context.fillStyle = "#fffefa";
+      context.fillStyle = colors.background;
       context.fillRect(0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-      context.fillStyle = "#174f4b";
+      context.fillStyle = colors.accent;
       context.fillRect(0, 0, PAGE_WIDTH, 15);
       context.font = "bold 27px Georgia";
       context.fillText("LAKBAY", margin, 91);
-      context.fillStyle = "#677873";
+      context.fillStyle = colors.muted;
       context.font = "19px Arial";
       context.fillText(continued ? `${trip.name} (continued)` : "Travel itinerary", margin + 165, 89);
       y = 155;
@@ -142,12 +152,12 @@ export function createExportTools({ fmt, dayDateLabel }) {
     }
 
     newPage();
-    drawText(trip.name || "Untitled trip", "bold 47px Georgia", "#174f4b", 58);
+    drawText(trip.name || "Untitled trip", "bold 47px Georgia", colors.accent, 58);
     y += 4;
-    drawText(`${trip.destination || ""}  |  ${fmt(trip.startDate)} - ${fmt(trip.endDate)}`, "23px Arial", "#586661", 31);
+    drawText(`${trip.destination || ""}  |  ${fmt(trip.startDate)} - ${fmt(trip.endDate)}`, "23px Arial", colors.muted, 31);
     if (trip.description) {
       y += 10;
-      drawText(trip.description, "20px Arial", "#586661", 29);
+      drawText(trip.description, "20px Arial", colors.muted, 29);
     }
     y += 34;
 
@@ -155,15 +165,15 @@ export function createExportTools({ fmt, dayDateLabel }) {
       context.font = "bold 29px Georgia";
       const headingLines = wrappedLines(context, `DAY ${index}  ${day.title || "Untitled day"}`, textWidth - 20);
       ensureSpace(headingLines.length * 36 + 92);
-      context.fillStyle = "#e6eee7";
+      context.fillStyle = colors.band;
       context.fillRect(margin - 14, y - 29, textWidth + 28, headingLines.length * 36 + 46);
-      drawText(`DAY ${index}  ${day.title || "Untitled day"}`, "bold 29px Georgia", "#174f4b", 36, 6);
-      drawText(dayDateLabel(day.date), "19px Arial", "#586661", 27, 6);
+      drawText(`DAY ${index}  ${day.title || "Untitled day"}`, "bold 29px Georgia", colors.accent, 36, 6);
+      drawText(dayDateLabel(day.date), "19px Arial", colors.muted, 27, 6);
       y += 25;
 
       const entries = scheduledEntries(trip, day);
       if (!entries.length) {
-        drawText("No scheduled entries", "italic 20px Georgia", "#677873", 30, 15);
+        drawText("No scheduled entries", "italic 20px Georgia", colors.muted, 30, 15);
       }
       entries.forEach(({ kind, record }) => {
         ensureSpace(108);
@@ -173,12 +183,12 @@ export function createExportTools({ fmt, dayDateLabel }) {
         const label = kind === "meal"
           ? `${record.mealType || "Meal"}: ${record.venue || "Meal"}`
           : record.activity || "Untitled stop";
-        drawText(`${time}  ${label}`, "bold 21px Arial", "#253735", 30, 16);
+        drawText(`${time}  ${label}`, "bold 21px Arial", colors.ink, 30, 16);
         const location = record.tourLocations?.length
           ? record.tourLocations.join("  >  ")
           : record.location;
-        if (location) drawText(location, "18px Arial", "#586661", 25, 34);
-        if (record.notes) drawText(record.notes, "18px Arial", "#677873", 25, 34);
+        if (location) drawText(location, "18px Arial", colors.muted, 25, 34);
+        if (record.notes) drawText(record.notes, "18px Arial", colors.muted, 25, 34);
         y += 20;
       });
       y += 20;
