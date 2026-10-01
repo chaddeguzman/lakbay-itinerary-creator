@@ -106,7 +106,8 @@
   }
 
   .side-actions { gap: 9px; margin-top: 20px; }
-  .sidebar .btn { min-height: 42px; text-align: left; }
+  .sidebar .btn,
+  html[data-theme="dark"] .sidebar .btn { min-height: 42px; text-align: left; }
   .sidebar .btn:not(.secondary) { background: #e9d5b6; border-color: #e9d5b6; color: #173d38; }
   .sidebar .btn.secondary {
     background: transparent;
