@@ -31,7 +31,7 @@ The JSON file is the app's cross-device transfer method. Keep copies somewhere s
 
 ## Exports
 
-- **Export PNG** renders the current trip to a downloadable image using the browser Canvas API.
+- **Export PDF** downloads the current trip as a paginated PDF with its days, activities, tours, and meals. Pages are images so text is not selectable; use the JSON export for editable data.
 - **Manage Data → Export** exports editable JSON data for later restoration.
 
 ## Gemini module and API-key safety

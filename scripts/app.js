@@ -7,7 +7,7 @@ import {
 } from "./state.js";
 import { createActions } from "./actions.js";
 import { defaultTravelDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
-import { createExportTools } from "./export.js";
+import { createExportTools } from "./export.js?v=trip-pdf-20261001";
 import { createPanelRenderers } from "./render-panels.js?v=travel-day-sticky-20261001";
 import { bindTimePickers } from "./time-picker.js";
 
@@ -61,7 +61,7 @@ import { bindTimePickers } from "./time-picker.js";
     },
     money = (n) =>
       Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
-  const { download, exportPng } = createExportTools({ fmt, dayDateLabel });
+  const { download, exportPdf } = createExportTools({ fmt, dayDateLabel });
   function calendarDates(start, end) {
     const dates = [];
     for (
@@ -560,7 +560,7 @@ import { bindTimePickers } from "./time-picker.js";
       </div>
       <div class="toolbar no-print">
         <button class="btn small secondary" data-action="rename">Edit trip</button>
-        <button class="btn small secondary" data-action="png">Export PNG</button>
+        <button class="btn small secondary" data-action="pdf">Export PDF</button>
         <button class="btn small danger" data-action="delete-trip">Delete</button>
       </div>
     </header>
@@ -889,7 +889,7 @@ import { bindTimePickers } from "./time-picker.js";
           (x) => x.id !== a.closest("[data-item]").dataset.item,
         );
       });
-    } else if (act === "png") exportPng(t);
+    } else if (act === "pdf") exportPdf(t);
   });
   main.addEventListener(
     "click",
