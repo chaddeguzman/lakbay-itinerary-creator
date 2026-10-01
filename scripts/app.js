@@ -188,13 +188,20 @@ import { bindTimePickers } from "./time-picker.js";
       ' fill="currentColor"/>',
       "</svg>",
     ].join(""),
+    FOOD_ICON = [
+      '<svg viewBox="0 0 24 24" aria-hidden="true">',
+      '<path d="M4 3v7a3 3 0 0 0 6 0V3M7 3v18M20 21V3c-3.3 2-5 5-5 9v2h5"',
+      ' fill="none" stroke="currentColor" stroke-width="2"',
+      ' stroke-linecap="round" stroke-linejoin="round"/>',
+      "</svg>",
+    ].join(""),
     NAV_ITEMS = [
       ["itinerary", "🗺", "Itinerary", ITINERARY_ICON],
       ["maps", MAP_ICON, "Maps"],
       ["weather", WEATHER_ICON, "Weather"],
       ["flight", "✈", "Flight", FLIGHT_ICON],
       ["hotel", HOUSE_ICON, "Hotel"],
-      ["food", "🍽", "Food"],
+      ["food", "🍽", "Food", FOOD_ICON],
       ["expenses", CHART_ICON, "Expenses"],
       ["packing", "✓", "Packing list"],
     ];
