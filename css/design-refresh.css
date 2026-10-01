@@ -329,10 +329,10 @@
       height: 24px;
     }
     .app { grid-template-columns: 1fr; }
-    .sidebar { width: 290px; left: -310px; padding-top: 68px; }
+    .sidebar { width: 290px; left: -310px; padding-top: 68px; z-index: 60; }
     .main { padding: 78px clamp(18px, 4vw, 36px) 80px; }
     .theme-toggle { left: auto; right: 14px; top: 14px; }
-    .mobile-menu { border-radius: 10px; background: #143d38; }
+    .mobile-menu { border-radius: 10px; background: #143d38; z-index: 61; }
     .trip-workspace { margin-top: 20px; }
     .itinerary-toolbar { top: calc(140px + env(safe-area-inset-top, 0px)); }
     .section-nav,
