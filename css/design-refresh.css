@@ -308,7 +308,7 @@
     html[data-theme="dark"] .section-nav {
       display: flex;
       position: sticky;
-      top: 8px;
+      top: calc(60px + env(safe-area-inset-top, 0px));
       z-index: 3;
       align-items: center;
       gap: 4px;
