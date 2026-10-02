@@ -1282,18 +1282,26 @@ import { bindTimePickers } from "./time-picker.js";
       render();
     }
   });
+  const tripSidebar = $("#tripSidebar"),
+    mobileMenu = $(".mobile-menu");
+  function setTripSidebarOpen(open) {
+    tripSidebar.classList.toggle("open", open);
+    mobileMenu.setAttribute("aria-expanded", String(open));
+    mobileMenu.setAttribute("aria-label", `${open ? "Close" : "Open"} trip menu`);
+    mobileMenu.textContent = open ? "×" : "☰";
+  }
   list.addEventListener("click", (e) => {
     const x = e.target.closest("[data-trip]");
     if (x) {
       Storage.setActive(x.dataset.trip);
       timeDrafts.clear();
       render();
-      $(".sidebar").classList.remove("open");
+      setTripSidebarOpen(false);
     }
   });
   $("#tripSearch").addEventListener("input", renderTrips);
   $("#newTrip").onclick = () => openTripModal();
-  $(".mobile-menu").onclick = () => $(".sidebar").classList.toggle("open");
+  mobileMenu.onclick = () => setTripSidebarOpen(!tripSidebar.classList.contains("open"));
   $("#manageData").onclick = (e) => {
     const actions = $("#dataActions"),
       expanded = e.currentTarget.getAttribute("aria-expanded") === "true";
