@@ -559,6 +559,7 @@ import { bindTimePickers } from "./time-picker.js";
       if (travelDayModal.open) travelDayModal.close();
       return;
     }
+    const previousNavScrollLeft = main.querySelector(".section-nav")?.scrollLeft;
     const collapsed = Storage.read().ui.navCollapsed;
     const navigation = NAV_ITEMS.map(
       ([id, icon, label, mobileIcon]) => `<button
@@ -610,6 +611,19 @@ import { bindTimePickers } from "./time-picker.js";
         ${packingPanel(t)}
       </div>
     </div>`;
+    if (window.innerWidth <= 900 && previousNavScrollLeft !== undefined) {
+      const nav = main.querySelector(".section-nav");
+      nav.scrollLeft = previousNavScrollLeft;
+      const activeTab = nav.querySelector(".section-tab.active");
+      if (activeTab) {
+        const navBounds = nav.getBoundingClientRect();
+        const tabBounds = activeTab.getBoundingClientRect();
+        if (tabBounds.left < navBounds.left)
+          nav.scrollLeft -= navBounds.left - tabBounds.left;
+        else if (tabBounds.right > navBounds.right)
+          nav.scrollLeft += tabBounds.right - navBounds.right;
+      }
+    }
     renderTravelDay();
   }
   function renderTrips() {
