@@ -8,7 +8,7 @@ import {
 import { createActions } from "./actions.js";
 import { defaultTravelDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
 import { createExportTools } from "./export.js?v=theme-aware-pdf-20261001";
-import { createPanelRenderers } from "./render-panels.js?v=travel-day-sticky-20261001";
+import { createPanelRenderers } from "./render-panels.js?v=trip-description-placement-20261002";
 import { bindTimePickers } from "./time-picker.js";
 
   // ---------------------------------------------------------------------------
@@ -587,6 +587,7 @@ import { bindTimePickers } from "./time-picker.js";
         <button class="btn small danger" data-action="delete-trip">Delete</button>
       </div>
     </header>
+    ${t.description ? `<p class="trip-description">${esc(t.description)}</p>` : ""}
     <div class="trip-workspace">
       <nav
         class="section-nav no-print ${collapsed ? "collapsed" : ""}"
