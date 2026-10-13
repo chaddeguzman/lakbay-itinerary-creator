@@ -8,7 +8,7 @@ import { createPanelRenderers } from "../scripts/render-panels.js";
 
 const day = (date = "2026-10-28") => ({ id: date, date, title: "Explore", stops: [], expenses: [] });
 const trip = () => ({ id: "trip", days: [day()], foodPlaces: [], foodLibrary: [] });
-const esc = (value) => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll('"', "&quot;");
+const esc = (value) => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 globalThis.window = {};
 const panels = (current = trip(), editingActivities = new Set()) => createPanelRenderers({
   CATEGORIES: [], PACK_CATEGORIES: [], Storage: { read: () => ({ ui: { collapsedDaysByTrip: {} } }), active: () => current },
@@ -173,10 +173,13 @@ test("editing one visit persists across both views and keeps one linked expense"
     dataset: { recordField: field }, value, closest: () => card,
   } }, false);
   edit("venue", "Morning Cafe");
+  edit("durationMinutes", "45");
   edit("amount", "9");
   edit("visitDate", "");
   let result = Storage.active();
   assert.equal(result.foodPlaces[0].venue, "Morning Cafe");
+  assert.equal(result.foodPlaces[0].durationMinutes, 45);
+  assert.equal(JSON.parse(JSON.stringify(result)).foodPlaces[0].durationMinutes, 45);
   assert.equal(result.foodPlaces[1].venue, "Cafe");
   assert.equal(result.foodLibrary[0].venue, "Cafe");
   assert.equal(result.days[0].expenses.length, 0);
@@ -191,6 +194,53 @@ test("editing one visit persists across both views and keeps one linked expense"
   assert.equal(Storage.active().foodPlaces[0].time, "13:30");
   assert.equal((panels(result).itineraryPanel(result).match(/data-record="first"/g) || []).length, 1);
   assert.equal((panels(result).foodPanel(result).match(/data-record="first"/g) || []).length, 1);
+});
+
+test("meal durations default to 30 and normalize only the four supported choices", () => {
+  const t = trip();
+  const inputs = [undefined, null, "", 0, 20, -15, "bad", 15, "30", 45, 60];
+  t.foodPlaces = inputs.map((durationMinutes, id) => ({ id, durationMinutes }));
+  normalizeTrip(t);
+  assert.deepEqual(t.foodPlaces.map((meal) => meal.durationMinutes),
+    [30, 30, 30, 30, 30, 30, 30, 15, 30, 45, 60]);
+});
+
+test("both meal views put escaped notes in the summary and offer duration with a read-only estimate", () => {
+  const t = trip();
+  t.foodPlaces.push({ id: "meal", visitDate: t.days[0].date, mealType: "Lunch",
+    venue: "Cafe", time: "12:00", durationMinutes: 45, notes: "Window <seat>\nCall ahead" });
+  for (const html of [panels(t).itineraryPanel(t), panels(t).foodPanel(t)]) {
+    const card = html.match(/<details class="meal-card[\s\S]*?<\/details>/)[0];
+    const summary = card.match(/<summary>[\s\S]*?<\/summary>/)[0];
+    assert.match(summary, /class="meal-notes-preview">Window &lt;seat&gt;\nCall ahead<\/span>/);
+    assert.match(summary, /45 mins/);
+    const select = card.match(/<select data-record-field="durationMinutes">([\s\S]*?)<\/select>/)[1];
+    assert.deepEqual([...select.matchAll(/value="(\d+)"/g)].map((match) => Number(match[1])), [15, 30, 45, 60]);
+    assert.match(select, /value="45" selected/);
+    assert.match(card, /Estimated end: 12:45 PM/);
+    assert.doesNotMatch(card, /data-(?:record|time)-field="endTime"/);
+  }
+});
+
+test("meal estimates handle midnight and missing start times without empty notes previews", () => {
+  const t = trip();
+  t.foodPlaces.push({ id: "meal", visitDate: t.days[0].date, time: "23:45", durationMinutes: 30, notes: "  " });
+  let html = panels(t).itineraryPanel(t);
+  assert.match(html, /Estimated end: 12:15 AM \(next day\)/);
+  assert.doesNotMatch(html, /class="meal-notes-preview"/);
+  t.foodPlaces[0].time = "";
+  html = panels(t).itineraryPanel(t);
+  assert.doesNotMatch(html, /Estimated end:/);
+  assert.match(html, /30 mins/);
+});
+
+test("informational meal duration does not make a past start active or change schedule order", () => {
+  const t = trip(), d = t.days[0];
+  t.foodPlaces.push({ id: "meal", visitDate: d.date, time: "12:00", durationMinutes: 60 });
+  d.stops.push({ id: "next", time: "12:45" });
+  assert.deepEqual(scheduledEntries(t, d).map(({ record }) => record.id), ["meal", "next"]);
+  assert.equal(nextScheduledEntry(t, d, { todayIso: d.date, nowMinutes: 12 * 60 + 15 }).record.id, "next");
+  assert.equal(t.foodPlaces[0].endTime, undefined);
 });
 
 test("day meal editor uses the clicked day and shows only informative fields", () => {

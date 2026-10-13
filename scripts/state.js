@@ -1,6 +1,6 @@
 // The app is intentionally client-only. All trip data lives in localStorage.
 export const KEY = "itineraryApp:v1";
-import { mealGroup, unscheduleMissingDays } from "./meals.js";
+import { mealDuration, mealGroup, unscheduleMissingDays } from "./meals.js";
 export const CORRUPT_BACKUP_KEY = `${KEY}:corrupt-backup`;
 export const CATEGORIES = ["food", "transport", "activities", "lodging"];
 export const PACK_CATEGORIES = [
@@ -59,6 +59,7 @@ export function normalizeTrip(t) {
     if (meal.time === undefined) meal.time = meal.reservationTime || "";
     meal.timeMode = meal.timeMode === "range" ? "range" : "single";
     meal.endTime = meal.endTime || "";
+    meal.durationMinutes = mealDuration(meal.durationMinutes);
   });
   unscheduleMissingDays(t);
   t.weatherForecast =
