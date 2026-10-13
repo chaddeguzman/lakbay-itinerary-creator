@@ -2177,18 +2177,21 @@ html[data-theme="dark"] .packing-group {
 .place-picker { display: grid; gap: 4px; font-size: .78rem; }
 .place-picker select { min-width: 160px; max-width: 260px; }
 .food-shortlist { margin-top: 24px; }
-.meal-card { margin: 8px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper2); container: meal-card / inline-size; }
+.meal-card { --meal-control-background: #fffdf8; margin: 8px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper2); container: meal-card / inline-size; }
+html[data-theme="dark"] .meal-card { --meal-control-background: #14201f; }
 .meal-card summary > span { font-weight: 700; }
 .meal-card summary { display: grid; grid-template-columns: minmax(150px, max-content) minmax(130px, 1fr); gap: 10px; align-items: center; cursor: pointer; list-style-position: inside; }
 .meal-timing { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.meal-card .meal-duration { font-weight: 400; }
 .meal-card summary span { overflow-wrap: anywhere; }
 .meal-card summary strong { color: var(--teal); }
 .meal-card summary .meal-notes-preview { grid-column: 1 / -1; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; white-space: pre-wrap; font-weight: 400; color: inherit; }
 .meal-card[open] .meal-notes-preview { display: none; }
-.meal-end-estimate { grid-column: 1 / -1; color: inherit; }
 .meal-fields { margin-top: 14px; }
 .meal-fields > label.field { display: grid; gap: 4px; color: var(--muted); font: 700 .68rem Arial, sans-serif; text-transform: uppercase; letter-spacing: .07em; }
 .meal-fields > label.field input, .meal-fields > label.field select, .meal-fields > label.field textarea { color: var(--ink); font: normal .88rem Arial, sans-serif; letter-spacing: normal; text-transform: none; }
+.meal-card .meal-fields :is(input, select, textarea, .time-trigger, .time-clear, .time-menu) { background: var(--meal-control-background); color: var(--ink); }
+.meal-card .meal-actions .btn.danger { background: #a43e2b; border-color: #8c3022; color: #fff; }
 .meal-card .field select { width: 100%; }
 @media (max-width: 700px) {
   .meal-card summary { grid-template-columns: minmax(0, 1fr); }
@@ -2907,12 +2910,8 @@ html[data-theme="dark"] .panel[data-panel="itinerary"] .day .meal-card {
 }
 .panel[data-panel="itinerary"] .day .meal-card .meal-venue > label,
 .panel[data-panel="itinerary"] .day .meal-card .meal-time-field .time-picker-label,
-.panel[data-panel="itinerary"] .day .meal-card .meal-fields > label.field,
-.panel[data-panel="itinerary"] .day .meal-card .meal-actions .btn.danger {
+.panel[data-panel="itinerary"] .day .meal-card .meal-fields > label.field {
   color: #4a2e16;
-}
-.panel[data-panel="itinerary"] .day .meal-card .meal-actions .btn.danger {
-  border-color: #9a714a;
 }
 
 /* Focused Travel Day dialog and completion cues. */

@@ -116,7 +116,7 @@ test("multiple breakfasts appear in time order with activities; untimed meals fo
   assert.ok(html.indexOf("Early cafe") < html.indexOf("Tour"));
   assert.ok(html.indexOf("Tour") < html.indexOf("Late cafe"));
   assert.ok(!html.includes("Time overlap"));
-  assert.equal((food.match(/Breakfast: /g) || []).length, 3);
+  assert.equal((food.match(/\[Breakfast\] /g) || []).length, 3);
 });
 
 test("day titles are limited to 40 characters", () => {
@@ -205,7 +205,7 @@ test("meal durations default to 30 and normalize only the four supported choices
     [30, 30, 30, 30, 30, 30, 30, 15, 30, 45, 60]);
 });
 
-test("both meal views put escaped notes in the summary and offer duration with a read-only estimate", () => {
+test("both meal views show bracketed types, parenthesized duration, notes and no estimated end", () => {
   const t = trip();
   t.foodPlaces.push({ id: "meal", visitDate: t.days[0].date, mealType: "Lunch",
     venue: "Cafe", time: "12:00", durationMinutes: 45, notes: "Window <seat>\nCall ahead" });
@@ -213,25 +213,26 @@ test("both meal views put escaped notes in the summary and offer duration with a
     const card = html.match(/<details class="meal-card[\s\S]*?<\/details>/)[0];
     const summary = card.match(/<summary>[\s\S]*?<\/summary>/)[0];
     assert.match(summary, /class="meal-notes-preview">Window &lt;seat&gt;\nCall ahead<\/span>/);
-    assert.match(summary, /45 mins/);
+    assert.match(summary, /class="meal-duration">\(45 min\)<\/span>/);
+    assert.match(summary, /<strong>\[Lunch\] /);
     const select = card.match(/<select data-record-field="durationMinutes">([\s\S]*?)<\/select>/)[1];
     assert.deepEqual([...select.matchAll(/value="(\d+)"/g)].map((match) => Number(match[1])), [15, 30, 45, 60]);
     assert.match(select, /value="45" selected/);
-    assert.match(card, /Estimated end: 12:45 PM/);
+    assert.doesNotMatch(card, /Estimated end:|meal-end-estimate/);
     assert.doesNotMatch(card, /data-(?:record|time)-field="endTime"/);
   }
 });
 
-test("meal estimates handle midnight and missing start times without empty notes previews", () => {
+test("meals hide blank notes and estimates while retaining duration with or without a start time", () => {
   const t = trip();
   t.foodPlaces.push({ id: "meal", visitDate: t.days[0].date, time: "23:45", durationMinutes: 30, notes: "  " });
   let html = panels(t).itineraryPanel(t);
-  assert.match(html, /Estimated end: 12:15 AM \(next day\)/);
+  assert.doesNotMatch(html, /Estimated end:|meal-end-estimate/);
   assert.doesNotMatch(html, /class="meal-notes-preview"/);
   t.foodPlaces[0].time = "";
   html = panels(t).itineraryPanel(t);
   assert.doesNotMatch(html, /Estimated end:/);
-  assert.match(html, /30 mins/);
+  assert.match(html, /class="meal-duration">\(30 min\)<\/span>/);
 });
 
 test("informational meal duration does not make a past start active or change schedule order", () => {

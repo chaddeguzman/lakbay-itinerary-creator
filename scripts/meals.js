@@ -6,17 +6,6 @@ export function mealDuration(value) {
   return MEAL_DURATIONS.includes(minutes) ? minutes : 30;
 }
 
-// Display-only estimate: never write this into the scheduling endTime field.
-export function estimatedMealEnd(meal) {
-  const start = timeMinutes(meal.time);
-  if (start === null) return null;
-  const end = start + mealDuration(meal.durationMinutes);
-  return {
-    time: `${String(Math.floor(end / 60) % 24).padStart(2, "0")}:${String(end % 60).padStart(2, "0")}`,
-    nextDay: end >= 24 * 60,
-  };
-}
-
 export function mealGroup(value) {
   if (String(value || "").toLowerCase() === "snack") return "Snacks";
   const match = MEAL_TYPES.find((type) => type.toLowerCase() === String(value || "").toLowerCase());
