@@ -4,6 +4,8 @@ Lakbay is a private, browser-based travel planner for organizing multiple trips,
 
 The collapsible trip navigation keeps each planning area together. Food is organized by the same days as Itinerary, with Breakfast, Lunch, Snacks, Dinner, and Other sections. You can add multiple timed visits per section from either tab, and scheduled meals also appear in the Itinerary timeline. Saved places remain in the Food shortlist for reuse. Costs entered for flights, hotels, and dated food visits are automatically linked to the matching trip day's Expenses entry.
 
+Meal cards in Itinerary and Food show a two-line notes preview when collapsed. Expand a meal to edit its full notes, start time, and duration (15, 30, 45, or 60 minutes; default 30). The estimated end time is informational and does not affect schedule ordering or Travel Day's Next Stop selection. Durations are saved with the trip and included in JSON backups.
+
 ## Run locally
 
 Open `index.html` in any modern browser. No installation or local server is required.

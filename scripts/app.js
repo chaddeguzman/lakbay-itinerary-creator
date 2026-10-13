@@ -8,7 +8,7 @@ import {
 import { createActions } from "./actions.js";
 import { defaultTravelDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
 import { createExportTools } from "./export.js?v=theme-aware-pdf-20261001";
-import { createPanelRenderers } from "./render-panels.js?v=trip-description-placement-20261002";
+import { createPanelRenderers } from "./render-panels.js?v=meal-notes-duration-20261013";
 import { bindTimePickers } from "./time-picker.js";
 
   // ---------------------------------------------------------------------------
@@ -530,6 +530,7 @@ import { bindTimePickers } from "./time-picker.js";
       location: place?.location || "",
       visitDate: date,
       mealType: type,
+      durationMinutes: 30,
       time: place?.time || place?.reservationTime || "",
       timeMode: "single",
       endTime: "",

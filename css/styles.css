@@ -2177,11 +2177,14 @@ html[data-theme="dark"] .packing-group {
 .place-picker { display: grid; gap: 4px; font-size: .78rem; }
 .place-picker select { min-width: 160px; max-width: 260px; }
 .food-shortlist { margin-top: 24px; }
-.meal-card { margin: 8px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper2); }
+.meal-card { margin: 8px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper2); container: meal-card / inline-size; }
 .meal-card summary > span { font-weight: 700; }
-.meal-card summary { display: grid; grid-template-columns: 90px minmax(130px, 1.3fr) minmax(110px, 1fr) auto; gap: 10px; align-items: center; cursor: pointer; list-style-position: inside; }
+.meal-card summary { display: grid; grid-template-columns: 90px minmax(130px, 1fr) auto; gap: 10px; align-items: center; cursor: pointer; list-style-position: inside; }
 .meal-card summary span { overflow-wrap: anywhere; }
 .meal-card summary strong { color: var(--teal); }
+.meal-card summary .meal-notes-preview { grid-column: 1 / -1; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; white-space: pre-wrap; font-weight: 400; color: var(--muted); }
+.meal-card[open] .meal-notes-preview { display: none; }
+.meal-end-estimate { grid-column: 1 / -1; color: var(--muted); }
 .meal-fields { margin-top: 14px; }
 .meal-fields > label.field { display: grid; gap: 4px; color: var(--muted); font: 700 .68rem Arial, sans-serif; text-transform: uppercase; letter-spacing: .07em; }
 .meal-fields > label.field input, .meal-fields > label.field select, .meal-fields > label.field textarea { color: var(--ink); font: normal .88rem Arial, sans-serif; letter-spacing: normal; text-transform: none; }
@@ -2859,8 +2862,15 @@ html[data-theme="dark"] .time-trigger,
 html[data-theme="dark"] .time-clear { background: #293b37; }
 html[data-theme="dark"] .time-menu { background: #172522; }
 
-.meal-fields { grid-template-columns: minmax(150px, 1.35fr) minmax(105px, .85fr) minmax(225px, 1.75fr); }
+.meal-fields { grid-template-columns: minmax(140px, 1.35fr) minmax(105px, .85fr) minmax(225px, 1.75fr) minmax(90px, .7fr); }
 .meal-fields .meal-time-field { min-width: 0; }
+@container meal-card (max-width: 620px) {
+  .meal-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .meal-fields .meal-time-field { grid-column: 1 / -1; }
+}
+@container meal-card (max-width: 360px) {
+  .meal-fields { grid-template-columns: minmax(0, 1fr); }
+}
 .stop-editor, .stop.tour-editor { grid-template-columns: minmax(225px, 245px) minmax(0, 1fr) auto; }
 .stop-editor .stop-schedule, .stop.tour-editor .stop-schedule { min-width: 0; }
 @media (max-width: 900px) {

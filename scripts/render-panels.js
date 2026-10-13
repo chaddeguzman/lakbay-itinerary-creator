@@ -1,4 +1,4 @@
-import { MEAL_TYPES, mealGroup, mealsForDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
+import { MEAL_TYPES, MEAL_DURATIONS, estimatedMealEnd, mealDuration, mealGroup, mealsForDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
 import { formatTime12, timePickerHtml } from "./time-picker.js";
 
 export function createPanelRenderers(ctx) {
@@ -482,18 +482,26 @@ export function createPanelRenderers(ctx) {
       `<option value="${esc(d.date)}" ${d.date === r.visitDate ? "selected" : ""}>Day ${i} · ${esc(dayDateLabel(d.date))}</option>`).join("")}`;
     const timeLabel = (value) => /^\d{2}:\d{2}$/.test(value || "") ? formatTime12(value) : value;
     const venue = String(r.venue || "").trim(),
+      notes = String(r.notes || ""),
+      duration = mealDuration(r.durationMinutes),
+      estimate = estimatedMealEnd(r),
       timeKey = `meal:${r.id}:time`;
     return `<details class="meal-card${r.done ? " is-done" : ""}" data-record-type="food" data-record="${esc(r.id)}" ${openMealCards.has(r.id) ? "open" : ""}>
       <summary><span>${esc(timeLabel(r.time) || "No time")}${r.timeMode === "range" && r.endTime ? `–${esc(timeLabel(r.endTime))}` : ""}</span>
       <strong>${esc(r.mealType || "Other")}: ${venue ? `<a target="_blank" rel="noopener" href="${mapsUrl(venue)}">${esc(venue)}</a>` : "New meal"}</strong>
+      <span class="meal-duration">${duration} mins</span>
+      ${notes.trim() ? `<span class="meal-notes-preview">${esc(notes)}</span>` : ""}
       </summary>
       <div class="record-grid meal-fields">
       ${recordField("Venue", "venue", r.venue, "text", "meal-venue")}
       <label class="field">Meal type<select data-record-field="mealType">${MEAL_TYPES.map((type) =>
         `<option value="${type}" ${mealGroup(r.mealType) === type ? "selected" : ""}>${type}</option>`).join("")}</select></label>
       <div class="field meal-time-field">${timePickerHtml({
-        label: "Time", field: "time", value: r.time, key: timeKey, draft: timeDrafts?.get(timeKey),
+        label: "Start time", field: "time", value: r.time, key: timeKey, draft: timeDrafts?.get(timeKey),
       })}</div>
+      <label class="field">Duration<select data-record-field="durationMinutes">${MEAL_DURATIONS.map((minutes) =>
+        `<option value="${minutes}" ${duration === minutes ? "selected" : ""}>${minutes} mins</option>`).join("")}</select></label>
+      ${estimate ? `<small class="meal-end-estimate">Estimated end: ${esc(formatTime12(estimate.time))}${estimate.nextDay ? " (next day)" : ""}</small>` : ""}
       ${showDay ? `<label class="field">Day<select data-record-field="visitDate">${days}</select></label>` : ""}
       <label class="field full">Notes<textarea data-record-field="notes">${esc(r.notes)}</textarea></label>
       </div>
