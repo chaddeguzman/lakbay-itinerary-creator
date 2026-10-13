@@ -8,7 +8,7 @@ import {
 import { createActions } from "./actions.js";
 import { defaultTravelDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
 import { createExportTools } from "./export.js?v=theme-aware-pdf-20261001";
-import { createPanelRenderers } from "./render-panels.js?v=meal-card-style-20261013";
+import { createPanelRenderers } from "./render-panels.js?v=meal-card-controls-20261013";
 import { bindTimePickers } from "./time-picker.js";
 
   // ---------------------------------------------------------------------------
