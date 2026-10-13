@@ -2867,7 +2867,7 @@ html[data-theme="dark"] .time-menu { background: #172522; }
 
 .meal-fields { display: flex; flex-wrap: wrap; align-items: flex-end; }
 .meal-fields > .field { flex: 0 1 auto; min-width: 0; max-width: 100%; }
-.meal-fields > .meal-venue { flex-basis: 260px; }
+.meal-fields > .meal-venue { flex-basis: 390px; }
 .meal-fields > .full { flex: 1 0 100%; }
 .meal-card .time-picker-controls { width: max-content; max-width: 100%; }
 .meal-card .time-part { flex: 0 0 auto; }
