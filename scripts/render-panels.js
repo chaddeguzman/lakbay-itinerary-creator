@@ -487,9 +487,8 @@ export function createPanelRenderers(ctx) {
       estimate = estimatedMealEnd(r),
       timeKey = `meal:${r.id}:time`;
     return `<details class="meal-card${r.done ? " is-done" : ""}" data-record-type="food" data-record="${esc(r.id)}" ${openMealCards.has(r.id) ? "open" : ""}>
-      <summary><span>${esc(timeLabel(r.time) || "No time")}${r.timeMode === "range" && r.endTime ? `–${esc(timeLabel(r.endTime))}` : ""}</span>
+      <summary><span class="meal-timing"><span>${esc(timeLabel(r.time) || "No time")}${r.timeMode === "range" && r.endTime ? `–${esc(timeLabel(r.endTime))}` : ""}</span><span class="meal-duration">${duration} mins</span></span>
       <strong>${esc(r.mealType || "Other")}: ${venue ? `<a target="_blank" rel="noopener" href="${mapsUrl(venue)}">${esc(venue)}</a>` : "New meal"}</strong>
-      <span class="meal-duration">${duration} mins</span>
       ${notes.trim() ? `<span class="meal-notes-preview">${esc(notes)}</span>` : ""}
       </summary>
       <div class="record-grid meal-fields">
