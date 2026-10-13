@@ -2192,7 +2192,7 @@ html[data-theme="dark"] .meal-card { --meal-control-background: #14201f; }
 .meal-fields > label.field input, .meal-fields > label.field select, .meal-fields > label.field textarea { color: var(--ink); font: normal .88rem Arial, sans-serif; letter-spacing: normal; text-transform: none; }
 .meal-card .meal-fields :is(input, select, textarea, .time-trigger, .time-clear, .time-menu) { background: var(--meal-control-background); color: var(--ink); }
 .meal-card .meal-actions .btn.danger { background: #a43e2b; border-color: #8c3022; color: #fff; }
-.meal-card .field select { width: 100%; }
+.meal-card .field select { width: auto; max-width: 100%; justify-self: start; }
 @media (max-width: 700px) {
   .meal-card summary { grid-template-columns: minmax(0, 1fr); }
 }
@@ -2865,29 +2865,21 @@ html[data-theme="dark"] .time-trigger,
 html[data-theme="dark"] .time-clear { background: #293b37; }
 html[data-theme="dark"] .time-menu { background: #172522; }
 
-.meal-fields { grid-template-columns: minmax(140px, 1.35fr) minmax(105px, .85fr) minmax(225px, 1.75fr) minmax(90px, .7fr); }
-.meal-fields .meal-time-field { min-width: 0; }
-@container meal-card (max-width: 620px) {
-  .meal-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .meal-fields .meal-time-field { grid-column: 1 / -1; }
-}
-@container meal-card (max-width: 360px) {
-  .meal-fields { grid-template-columns: minmax(0, 1fr); }
-}
+.meal-fields { display: flex; flex-wrap: wrap; align-items: flex-end; }
+.meal-fields > .field { flex: 0 1 auto; min-width: 0; max-width: 100%; }
+.meal-fields > .meal-venue { flex-basis: 260px; }
+.meal-fields > .full { flex: 1 0 100%; }
+.meal-card .time-picker-controls { width: max-content; max-width: 100%; }
+.meal-card .time-part { flex: 0 0 auto; }
+.meal-card .time-trigger { width: max-content; min-width: calc(2ch + 24px); white-space: nowrap; }
+.meal-card .time-part:first-child .time-trigger { min-width: calc(5ch + 24px); }
 .stop-editor, .stop.tour-editor { grid-template-columns: minmax(225px, 245px) minmax(0, 1fr) auto; }
 .stop-editor .stop-schedule, .stop.tour-editor .stop-schedule { min-width: 0; }
 @media (max-width: 900px) {
   .stop-editor, .stop.tour-editor { grid-template-columns: minmax(225px, 245px) minmax(0, 1fr); }
 }
-@media (max-width: 740px) {
-  .meal-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .meal-fields .meal-time-field { grid-column: 1 / -1; }
-}
 @media (max-width: 620px) {
   .stop-editor, .stop.tour-editor { grid-template-columns: minmax(0, 1fr); }
-}
-@media (max-width: 520px) {
-  .meal-fields { grid-template-columns: minmax(0, 1fr); }
 }
 @media print {
   .time-menu, .time-clear { display: none !important; }
