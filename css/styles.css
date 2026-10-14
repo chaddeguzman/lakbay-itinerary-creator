@@ -2373,7 +2373,6 @@ html[data-theme="dark"] .day .stop.time-overlap {
   bottom: clamp(40px, 8vh, 80px);
   z-index: 30;
   font-family: Georgia, "Times New Roman", serif;
-  touch-action: none;
   user-select: none;
 }
 .travel-chat.is-positioned {
@@ -2389,36 +2388,23 @@ html[data-theme="dark"] .day .stop.time-overlap {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  width: 64px;
-  height: 58px;
+  width: 104px;
+  height: 104px;
   padding: 0;
-  border: 2px solid #ffffff99;
-  border-radius: 50%;
-  background: var(--teal);
-  color: #fff;
-  box-shadow: 0 10px 28px #16332d4d;
-  transition:
-    transform 0.2s,
-    filter 0.2s;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  box-shadow: none;
   cursor: grab;
   touch-action: none;
 }
-.travel-chat-toggle::after {
-  content: "";
-  position: absolute;
-  right: 3px;
-  bottom: -4px;
-  width: 15px;
-  height: 15px;
-  background: inherit;
-  transform: rotate(32deg);
-  border-radius: 2px 2px 8px 2px;
-  z-index: -1;
-}
-.travel-chat-toggle:hover {
-  filter: brightness(1.12);
-  transform: translateY(-2px);
+.travel-chat-mascot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
 }
 .travel-chat-toggle:focus-visible,
 .travel-chat-close:focus-visible,
@@ -2453,13 +2439,12 @@ html[data-theme="dark"] .day .stop.time-overlap {
   }
 }
 .travel-chat-panel {
-  position: absolute;
-  right: 0;
-  bottom: 76px;
+  position: fixed;
   display: grid;
-  grid-template-rows: auto minmax(180px, 1fr) auto auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
   width: min(370px, calc(100vw - 32px));
-  height: min(672px, calc(100vh - 150px));
+  height: min(672px, calc(100vh - 24px));
+  height: min(672px, calc(100dvh - 24px));
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 20px;
@@ -2725,7 +2710,6 @@ html[data-theme="dark"] .day .stop.time-overlap {
   opacity: 0.58;
   cursor: default;
 }
-html[data-theme="dark"] .travel-chat-toggle,
 html[data-theme="dark"] .travel-chat-header,
 html[data-theme="dark"] .travel-chat-send {
   background: #79c5bb;
@@ -2772,7 +2756,6 @@ html[data-theme="dark"] .travel-draft-apply {
   }
   .travel-chat-panel {
     width: min(370px, calc(100vw - 24px));
-    height: min(672px, calc(100vh - 120px));
   }
 }
 @media (prefers-reduced-motion: reduce) {
