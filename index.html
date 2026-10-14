@@ -7,8 +7,8 @@
     <meta name="theme-color" content="#174f4b" />
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
     <title>Lakbay Itinerary Creator</title>
-    <link rel="stylesheet" href="css/styles.css?v=meal-venue-width-20261013" />
-    <link rel="stylesheet" href="css/design-refresh.css?v=sidebar-handle-alignment-20261002" />
+    <link rel="stylesheet" href="css/styles.css?v=gif-mascot-20261014" />
+    <link rel="stylesheet" href="css/design-refresh.css?v=gif-mascot-20261014" />
   </head>
   <body>
     <!-- The theme control stays fixed while the mobile trip-menu handle travels with its sidebar. -->
@@ -249,15 +249,14 @@
         aria-label="Open Lakbay travel assistant"
         aria-controls="travelChatPanel"
         aria-expanded="false"
+        title="Click to chat · Drag to move"
       >
-        <span class="chat-dot" aria-hidden="true"></span>
-        <span class="chat-dot" aria-hidden="true"></span>
-        <span class="chat-dot" aria-hidden="true"></span>
+        <img class="travel-chat-mascot" src="assets/bulba.gif" alt="" draggable="false" />
       </button>
     </section>
 
     <!-- App logic is loaded last so every referenced DOM element already exists. -->
-    <script src="gemini_travel_api.js"></script>
+    <script src="gemini_travel_api.js?v=gif-mascot-20261014"></script>
     <script type="module" src="scripts/app.js?v=meal-card-controls-20261013"></script>
   </body>
 </html>

@@ -322,8 +322,6 @@
   .modal-actions { margin-top: 24px; }
   .travel-day-modal h2 { margin-bottom: 0; }
   .travel-chat { font-family: Inter, ui-sans-serif, sans-serif; }
-  .travel-chat-toggle { width: 54px; height: 54px; border: 1px solid rgb(255 255 255 / 50%); border-radius: 16px; box-shadow: 0 10px 26px rgb(20 61 56 / 23%); }
-  .travel-chat-toggle::after { display: none; }
   .travel-chat-panel { border-radius: 16px; }
 
   @media (max-width: 900px) {

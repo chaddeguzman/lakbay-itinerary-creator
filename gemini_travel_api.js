@@ -551,7 +551,6 @@ function initializeTravelChat() {
   function movableMetrics() {
     const containerRect = container.getBoundingClientRect(),
       rects = [containerRect, toggle.getBoundingClientRect()];
-    if (!panel.hidden) rects.push(panel.getBoundingClientRect());
 
     const left = Math.min(...rects.map(rect => rect.left)),
       top = Math.min(...rects.map(rect => rect.top)),
@@ -584,7 +583,49 @@ function initializeTravelChat() {
     container.classList.add('is-positioned');
     container.style.left = `${position.left}px`;
     container.style.top = `${position.top}px`;
+    positionPanel();
     return position;
+  }
+
+  // Place the panel independently so opening chat never relocates the mascot.
+  function positionPanel() {
+    if (panel.hidden) return;
+    panel.style.maxHeight = '';
+    panel.style.maxWidth = '';
+    const mascot = toggle.getBoundingClientRect(),
+      margin = 12,
+      roomAbove = Math.max(0, mascot.top - margin * 2),
+      roomBelow = Math.max(0, window.innerHeight - mascot.bottom - margin * 2),
+      roomBeside = Math.max(mascot.left - margin * 2,
+        window.innerWidth - mascot.right - margin * 2);
+    // Landscape phones need a narrow side panel, not a clipped message form.
+    if (Math.max(roomAbove, roomBelow) < 240 && roomBeside >= 180) {
+      panel.style.maxWidth = `${roomBeside}px`;
+    }
+    const panelRect = panel.getBoundingClientRect();
+    let left = Math.max(margin, Math.min(
+      mascot.right - panelRect.width, window.innerWidth - panelRect.width - margin
+    )), top;
+    if (roomAbove >= panelRect.height) {
+      top = mascot.top - panelRect.height - margin;
+    } else if (roomBelow >= panelRect.height) {
+      top = mascot.bottom + margin;
+    } else if (mascot.left - panelRect.width - margin >= margin
+      || mascot.right + panelRect.width + margin * 2 <= window.innerWidth) {
+      left = mascot.left - panelRect.width - margin >= margin
+        ? mascot.left - panelRect.width - margin : mascot.right + margin;
+      top = Math.max(margin, Math.min(
+        mascot.top, window.innerHeight - panelRect.height - margin
+      ));
+    } else {
+      // Narrow screens: shrink the message area rather than cover either control.
+      panel.style.maxHeight = `${Math.max(roomAbove, roomBelow)}px`;
+      top = roomAbove >= roomBelow
+        ? mascot.top - panel.getBoundingClientRect().height - margin
+        : mascot.bottom + margin;
+    }
+    panel.style.left = `${left}px`;
+    panel.style.top = `${top}px`;
   }
 
   function keepChatInViewport() {
@@ -593,6 +634,7 @@ function initializeTravelChat() {
   }
 
   function startDrag(event) {
+    if (event.isPrimary === false) return;
     if (event.button !== undefined && event.button !== 0) return;
     if (event.target.closest('button') && event.currentTarget !== toggle) return;
 
@@ -602,6 +644,7 @@ function initializeTravelChat() {
     let moved = false;
 
     function move(pointerEvent) {
+      if (pointerEvent.pointerId !== event.pointerId) return;
       const dx = pointerEvent.clientX - startX,
         dy = pointerEvent.clientY - startY;
       if (!moved && Math.hypot(dx, dy) < 4) return;
@@ -611,6 +654,7 @@ function initializeTravelChat() {
     }
 
     function end(pointerEvent) {
+      if (pointerEvent.pointerId !== event.pointerId) return;
       document.removeEventListener('pointermove', move);
       document.removeEventListener('pointerup', end);
       document.removeEventListener('pointercancel', end);
@@ -651,8 +695,9 @@ function initializeTravelChat() {
     panel.hidden = !open;
     toggle.setAttribute('aria-expanded', String(open));
     toggle.setAttribute('aria-label', `${open ? 'Close' : 'Open'} Lakbay travel assistant`);
-    if (open) keepChatInViewport();
+    if (open) positionPanel();
     if (open) requestAnimationFrame(() => input.focus());
+    else toggle.focus();
   }
 
   function scrollToLatest() {
