@@ -80,7 +80,7 @@ test('initial mascot sits below the gap between Export PDF and Delete after trip
     delete: { left: 810, top: 80, width: 64, height: 32 } });
   w.window.fire('lakbay:trip-rendered');
   assert.equal(w.container.style.left, '753px');
-  assert.equal(w.container.style.top, '124px');
+  assert.equal(w.container.style.top, '144px');
 });
 
 test('trip re-renders preserve a manually dragged chatbot position', () => {

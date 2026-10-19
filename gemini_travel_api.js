@@ -643,7 +643,7 @@ function initializeTravelChat() {
     if (Math.max(pdfRect.bottom, removeRect.bottom) < 0) return;
     const metrics = movableMetrics();
     setChatPosition((pdfRect.right + removeRect.left) / 2 - metrics.width / 2 + metrics.offsetLeft,
-      Math.max(pdfRect.bottom, removeRect.bottom) + 12 + metrics.offsetTop);
+      Math.max(pdfRect.bottom, removeRect.bottom) + 32 + metrics.offsetTop);
   }
 
   function startDrag(event) {
