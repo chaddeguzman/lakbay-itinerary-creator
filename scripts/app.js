@@ -5,11 +5,12 @@ import {
   createStorage,
   normalizeTrip,
 } from "./state.js";
-import { createActions } from "./actions.js";
+import { createActions } from "./actions.js?v=packing-move-20261019";
 import { defaultTravelDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
 import { createExportTools } from "./export.js?v=theme-aware-pdf-20261001";
-import { createPanelRenderers } from "./render-panels.js?v=meal-card-controls-20261013";
+import { createPanelRenderers } from "./render-panels.js?v=packing-move-20261019";
 import { bindTimePickers } from "./time-picker.js";
+import { bindPackingMovement } from "./packing.js";
 
   // ---------------------------------------------------------------------------
   // Shared formatting, escaping, date, and identifier helpers
@@ -305,7 +306,7 @@ import { bindTimePickers } from "./time-picker.js";
     toast,
     uid,
   });
-  const { changeTrip, mutateWithUndo, toggleScheduledEntryDone, updateField, updateRecordField, updateScheduledTime } =
+  const { changeTrip, mutateWithUndo, movePackingItem, toggleScheduledEntryDone, updateField, updateRecordField, updateScheduledTime } =
     createActions({
       Storage,
       recordCollection,
@@ -447,6 +448,7 @@ import { bindTimePickers } from "./time-picker.js";
   });
 
   bindTimePickers(main, { drafts: timeDrafts, onCommit: updateScheduledTime });
+  bindPackingMovement(main, { categories: PACK_CATEGORIES, moveItem: movePackingItem });
 
   // Activity/tour deletion uses two explicit confirmation stages.
   function showEntryDeleteStage(stage, title, message, confirmLabel) {

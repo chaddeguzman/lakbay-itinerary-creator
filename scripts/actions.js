@@ -1,3 +1,5 @@
+import { PACK_CATEGORIES } from "./state.js";
+
 export function createActions({
   Storage,
   recordCollection,
@@ -106,7 +108,18 @@ export function createActions({
     return { done, label };
   }
 
+  function movePackingItem(itemId, category) {
+    const item = Storage.active()?.packingList.find((entry) => entry.id === itemId);
+    if (!item || !PACK_CATEGORIES.includes(category) || item.category === category) return false;
+    changeTrip((trip) => {
+      const current = trip.packingList.find((entry) => entry.id === itemId);
+      if (current) current.category = category;
+    });
+    return true;
+  }
+
   return {
+    movePackingItem,
     changeTrip,
     mutateWithUndo,
     toggleScheduledEntryDone,
