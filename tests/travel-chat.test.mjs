@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
 // Run the real browser controller with only its DOM boundary substituted.
-function widget(width = 1000, height = 800) {
+function widget(width = 1000, height = 800, header = null) {
   function element(rect = {}) {
     const listeners = new Map();
     const classes = new Set();
@@ -46,6 +46,10 @@ function widget(width = 1000, height = 800) {
   const nodes = { '.travel-chat': container, '#travelChatToggle': toggle,
     '#travelChatPanel': panel, '#travelChatClose': close, '#travelChatForm': form,
     '#travelChatInput': input, '#travelChatMessages': messages };
+  if (header) {
+    nodes['.trip-head [data-action="pdf"]'] = element(header.pdf);
+    nodes['.trip-head [data-action="delete-trip"]'] = element(header.delete);
+  }
   const document = element();
   document.documentElement = { lang: 'en' };
   document.querySelector = selector => nodes[selector];
@@ -69,6 +73,26 @@ test('click toggles chat with accessible state and Escape closes it', () => {
   w.toggle.fire('click');
   w.document.fire('keydown', { key: 'Escape' });
   assert.equal(w.panel.hidden, true);
+});
+
+test('initial mascot sits below the gap between Export PDF and Delete after trip rendering', () => {
+  const w = widget(1000, 800, { pdf: { left: 700, top: 80, width: 100, height: 32 },
+    delete: { left: 810, top: 80, width: 64, height: 32 } });
+  w.window.fire('lakbay:trip-rendered');
+  assert.equal(w.container.style.left, '753px');
+  assert.equal(w.container.style.top, '124px');
+});
+
+test('trip re-renders preserve a manually dragged chatbot position', () => {
+  const w = widget(1000, 800, { pdf: { left: 700, top: 80, width: 100, height: 32 },
+    delete: { left: 810, top: 80, width: 64, height: 32 } });
+  w.window.fire('lakbay:trip-rendered');
+  w.toggle.fire('pointerdown', { button: 0, pointerId: 1, clientX: 800, clientY: 150 });
+  w.document.fire('pointermove', { pointerId: 1, clientX: 200, clientY: 250 });
+  w.document.fire('pointerup', { pointerId: 1 });
+  const position = { ...w.container.style };
+  w.window.fire('lakbay:trip-rendered');
+  assert.deepEqual(w.container.style, position);
 });
 
 test('opening near the top left keeps the mascot stationary and panel on screen', () => {

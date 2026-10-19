@@ -2448,6 +2448,7 @@ html[data-theme="dark"] .day .stop.time-overlap {
   font-family: Georgia, "Times New Roman", serif;
   user-select: none;
 }
+.trip-head .toolbar { padding-bottom: 104px; }
 .travel-chat.is-positioned {
   right: auto;
   bottom: auto;

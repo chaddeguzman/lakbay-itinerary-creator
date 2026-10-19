@@ -546,7 +546,8 @@ function initializeTravelChat() {
     pendingDraft = null,
     pendingDraftMessage = null,
     suppressNextChatClick = false,
-    suppressChatClickTimer;
+    suppressChatClickTimer,
+    userMovedChat = false;
 
   function movableMetrics() {
     const containerRect = container.getBoundingClientRect(),
@@ -633,6 +634,18 @@ function initializeTravelChat() {
     setChatPosition(rect.left, rect.top);
   }
 
+  function positionChatAtHeader() {
+    if (userMovedChat) return;
+    const pdf = document.querySelector('.trip-head [data-action="pdf"]'),
+      remove = document.querySelector('.trip-head [data-action="delete-trip"]');
+    if (!pdf || !remove) return;
+    const pdfRect = pdf.getBoundingClientRect(), removeRect = remove.getBoundingClientRect();
+    if (Math.max(pdfRect.bottom, removeRect.bottom) < 0) return;
+    const metrics = movableMetrics();
+    setChatPosition((pdfRect.right + removeRect.left) / 2 - metrics.width / 2 + metrics.offsetLeft,
+      Math.max(pdfRect.bottom, removeRect.bottom) + 12 + metrics.offsetTop);
+  }
+
   function startDrag(event) {
     if (event.isPrimary === false) return;
     if (event.button !== undefined && event.button !== 0) return;
@@ -649,6 +662,7 @@ function initializeTravelChat() {
         dy = pointerEvent.clientY - startY;
       if (!moved && Math.hypot(dx, dy) < 4) return;
       moved = true;
+      userMovedChat = true;
       container.classList.add('is-dragging');
       setChatPosition(startRect.left + dx, startRect.top + dy);
     }
@@ -677,7 +691,11 @@ function initializeTravelChat() {
 
   toggle.addEventListener('pointerdown', startDrag);
   panel.querySelector('.travel-chat-header')?.addEventListener('pointerdown', startDrag);
-  window.addEventListener('resize', keepChatInViewport);
+  window.addEventListener('resize', () => {
+    positionChatAtHeader();
+    keepChatInViewport();
+  });
+  window.addEventListener('lakbay:trip-rendered', positionChatAtHeader);
   container.addEventListener(
     'click',
     event => {
