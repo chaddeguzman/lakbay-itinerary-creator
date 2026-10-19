@@ -1005,19 +1005,21 @@ export function createPanelRenderers(ctx) {
   }
   function packingItemHtml(x) {
     return `<li class="packing-item pack-${x.category} ${x.checked ? "checked" : ""}"
-          data-item="${x.id}">
+          data-item="${esc(x.id)}">
         <input type="checkbox" data-field="checked" aria-label="Packed" ${x.checked ? "checked" : ""}>
         <textarea class="pack-label no-print" data-field="label" rows="3" aria-label="Packing item name">${esc(x.label)}</textarea>
         <span class="pack-label-print print-only">${esc(x.label)}</span>
-        <select class="pack-category-select no-print" data-field="category"
-          aria-label="Packing category">${packCategoryOptions(x.category)}</select>
-        <span class="pack-badge print-only pack-${x.category}">${x.category}</span>
+        <button type="button" class="packing-move no-print" data-packing-move
+          aria-label="Move ${esc(x.label)}" aria-describedby="packing-move-help"
+          aria-pressed="false" title="Drag to move, or click then choose a section">⠿</button>
         <button class="btn small danger no-print" data-action="remove-item" aria-label="Remove packing item">×</button>
         </li>`;
   }
   function packingPanel(t) {
     return `<section class="panel ${getTab() === "packing" ? "active" : ""}" data-panel="packing">
         <h2>Packing checklist</h2>
+        <p class="packing-help no-print" id="packing-move-help">Drag the grip to move, or select a grip then a section.<span class="visually-hidden"> Keyboard: Space to pick up, arrows to choose, Enter to move, Escape to cancel.</span></p>
+        <div class="visually-hidden" data-packing-status role="status" aria-live="polite" aria-atomic="true"></div>
         <form class="form-row no-print" id="packForm">
         <div class="form-field">
         <label>New item</label>
@@ -1031,7 +1033,7 @@ export function createPanelRenderers(ctx) {
         </form>
         <div class="packing-groups">${PACK_CATEGORIES.map((c) => {
           const items = t.packingList.filter((x) => x.category === c);
-          return `<section class="packing-group pack-${c}">
+          return `<section class="packing-group pack-${c}" data-packing-category="${c}" aria-label="${c}">
         <header>
         <span class="pack-badge pack-${c}">${c}</span>
         <small>${items.length}</small>

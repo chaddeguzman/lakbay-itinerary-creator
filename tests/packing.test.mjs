@@ -27,7 +27,7 @@ test("existing trips gain an empty Attire group between Essentials and Electroni
   const storage = storedTrip();
   const before = storage.active().packingList;
   const html = panels().packingPanel(storage.active());
-  const groups = [...html.matchAll(/<section class="packing-group pack-([a-z]+)">/g)].map((match) => match[1]);
+  const groups = [...html.matchAll(/<section class="packing-group pack-([a-z]+)"/g)].map((match) => match[1]);
   assert.deepEqual(groups, ["essentials", "attire", "electronics", "toiletries", "misc"]);
   assert.match(html, /packing-group pack-attire[\s\S]*?<small>0<\/small>/);
   assert.deepEqual(storage.active().packingList, before);
@@ -46,7 +46,23 @@ test("moving an item into Attire persists its category, label and completion", (
   assert.equal(renders, 1);
   const html = panels().packingPanel(storage.active());
   assert.match(html, /packing-group pack-attire[\s\S]*?<small>1<\/small>/);
-  assert.match(html, /value="attire"\s+selected/);
+  assert.match(html, /data-packing-move/);
+  assert.ok(!html.includes('class="pack-category-select'));
+});
+
+test("moving a packing card validates its destination and preserves all other item data", () => {
+  const storage = storedTrip();
+  let renders = 0;
+  const actions = createActions({ Storage: storage, render: () => renders++ });
+  assert.equal(typeof actions.movePackingItem, "function");
+  const before = storage.active().packingList;
+  assert.equal(actions.movePackingItem("shirt", "attire"), true);
+  assert.deepEqual(storage.active().packingList, [{ ...before[0], category: "attire" }, before[1]]);
+  assert.equal(renders, 1);
+  assert.equal(actions.movePackingItem("shirt", "attire"), false);
+  assert.equal(actions.movePackingItem("shirt", "unknown"), false);
+  assert.equal(actions.movePackingItem("missing", "essentials"), false);
+  assert.equal(renders, 1);
 });
 
 test("packing labels wrap in an escaped editable field and have a complete print label", () => {
