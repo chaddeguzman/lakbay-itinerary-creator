@@ -629,6 +629,7 @@ import { bindPackingMovement } from "./packing.js";
       }
     }
     renderTravelDay();
+    window.dispatchEvent(new Event("lakbay:trip-rendered"));
   }
   function renderTrips() {
     const q = $("#tripSearch").value.toLowerCase(),
