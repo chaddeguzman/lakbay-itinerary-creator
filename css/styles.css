@@ -1872,6 +1872,10 @@ html[data-theme="dark"] .done-toggle.is-active {
   --pack-color: #b85f45;
   --pack-bg: #f4d5ca;
 }
+.pack-attire {
+  --pack-color: #806414;
+  --pack-bg: #fff0b8;
+}
 .pack-electronics {
   --pack-color: #236c84;
   --pack-bg: #cfe8ef;
@@ -1910,6 +1914,10 @@ html[data-theme="dark"] .done-toggle.is-active {
 html[data-theme="dark"] .pack-essentials {
   --pack-color: #ff9c7e;
   --pack-bg: #4d2d25;
+}
+html[data-theme="dark"] .pack-attire {
+  --pack-color: #f4df91;
+  --pack-bg: #443d26;
 }
 html[data-theme="dark"] .pack-electronics {
   --pack-color: #8bd9ed;
@@ -2055,7 +2063,7 @@ html[data-theme="dark"] #packCategory {
 }
 .packing-groups {
   display: grid;
-  grid-template-columns: repeat(4, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
   gap: 14px;
   align-items: start;
   margin-top: 18px;
@@ -2097,15 +2105,10 @@ html[data-theme="dark"] #packCategory {
 .packing-group .packing-item {
   width: 100%;
   max-width: none;
-  aspect-ratio: 2/3;
+  aspect-ratio: 1;
 }
 html[data-theme="dark"] .packing-group {
   background: #172522;
-}
-@media (max-width: 1200px) {
-  .packing-groups {
-    grid-template-columns: repeat(2, minmax(170px, 1fr));
-  }
 }
 @media (max-width: 620px) {
   .packing-groups {
@@ -2135,15 +2138,41 @@ html[data-theme="dark"] .packing-group {
   min-width: 140px;
 }
 .packing-group .packing-item {
-  width: min(100%, 140px);
+  width: min(100%, 160px);
   justify-self: center;
+  grid-template-rows: 28px minmax(0, 1fr) 28px;
   padding: 10px;
-  gap: 7px;
+  gap: 6px;
 }
-.packing-item > input[type="text"] {
+.packing-item > .pack-label,
+.packing-item > .pack-label-print {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  align-self: center;
+  min-width: 0;
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-bottom: 1px dashed var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: center;
   font-size: 0.88rem;
   line-height: 1.25;
-  padding: 6px 2px;
+  padding: 0 2px;
+  overflow-wrap: anywhere;
+}
+.packing-item > .pack-label {
+  height: 3.75em;
+  max-height: 100%;
+  min-height: 0;
+  resize: none;
+}
+.packing-item.checked > .pack-label,
+.packing-item.checked > .pack-label-print {
+  text-decoration: line-through;
+  color: var(--muted);
 }
 .packing-item .pack-category-select {
   font-size: 0.75rem;
@@ -2159,9 +2188,6 @@ html[data-theme="dark"] .packing-group {
   #packForm .pack-category-field {
     flex: 1 1 100%;
     min-width: 0;
-  }
-  .packing-group .packing-item {
-    width: min(100%, 135px);
   }
 }
 
