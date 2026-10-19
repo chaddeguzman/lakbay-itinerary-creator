@@ -1006,12 +1006,13 @@ export function createPanelRenderers(ctx) {
   function packingItemHtml(x) {
     return `<li class="packing-item pack-${x.category} ${x.checked ? "checked" : ""}"
           data-item="${x.id}">
-        <input type="checkbox" data-field="checked" ${x.checked ? "checked" : ""}>
-        <input type="text" data-field="label" value="${esc(x.label)}">
+        <input type="checkbox" data-field="checked" aria-label="Packed" ${x.checked ? "checked" : ""}>
+        <textarea class="pack-label no-print" data-field="label" rows="3" aria-label="Packing item name">${esc(x.label)}</textarea>
+        <span class="pack-label-print print-only">${esc(x.label)}</span>
         <select class="pack-category-select no-print" data-field="category"
           aria-label="Packing category">${packCategoryOptions(x.category)}</select>
         <span class="pack-badge print-only pack-${x.category}">${x.category}</span>
-        <button class="btn small danger no-print" data-action="remove-item">×</button>
+        <button class="btn small danger no-print" data-action="remove-item" aria-label="Remove packing item">×</button>
         </li>`;
   }
   function packingPanel(t) {

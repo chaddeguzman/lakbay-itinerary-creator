@@ -5,6 +5,7 @@ export const CORRUPT_BACKUP_KEY = `${KEY}:corrupt-backup`;
 export const CATEGORIES = ["food", "transport", "activities", "lodging"];
 export const PACK_CATEGORIES = [
   "essentials",
+  "attire",
   "electronics",
   "toiletries",
   "misc",
