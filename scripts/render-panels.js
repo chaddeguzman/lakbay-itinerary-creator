@@ -1007,18 +1007,18 @@ export function createPanelRenderers(ctx) {
     return `<li class="packing-item pack-${x.category} ${x.checked ? "checked" : ""}"
           data-item="${esc(x.id)}">
         <input type="checkbox" data-field="checked" aria-label="Packed" ${x.checked ? "checked" : ""}>
-        <textarea class="pack-label no-print" data-field="label" rows="3" aria-label="Packing item name">${esc(x.label)}</textarea>
+        <textarea class="pack-label no-print" data-field="label" rows="2" aria-label="Packing item name" title="${esc(x.label)}">${esc(x.label)}</textarea>
         <span class="pack-label-print print-only">${esc(x.label)}</span>
         <button type="button" class="packing-move no-print" data-packing-move
           aria-label="Move ${esc(x.label)}" aria-describedby="packing-move-help"
-          aria-pressed="false" title="Drag to move, or click then choose a section">⠿</button>
+          aria-pressed="false" title="Drag to move, or click then choose a section"></button>
         <button class="btn small danger no-print" data-action="remove-item" aria-label="Remove packing item">×</button>
         </li>`;
   }
   function packingPanel(t) {
     return `<section class="panel ${getTab() === "packing" ? "active" : ""}" data-panel="packing">
         <h2>Packing checklist</h2>
-        <p class="packing-help no-print" id="packing-move-help">Drag the grip to move, or select a grip then a section.<span class="visually-hidden"> Keyboard: Space to pick up, arrows to choose, Enter to move, Escape to cancel.</span></p>
+        <p class="visually-hidden no-print" id="packing-move-help">Drag the card to another section, or select the card then a section. Keyboard: Space to pick up, arrows to choose, Enter to move, Escape to cancel.</p>
         <div class="visually-hidden" data-packing-status role="status" aria-live="polite" aria-atomic="true"></div>
         <form class="form-row no-print" id="packForm">
         <div class="form-field">
