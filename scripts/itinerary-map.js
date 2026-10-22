@@ -17,3 +17,39 @@ export function placeEmbedUrl(query, key) {
   if (!query || !cleanKey || cleanKey.startsWith("__")) return "";
   return `https://www.google.com/maps/embed/v1/place?${new URLSearchParams({key:cleanKey,q:query})}`;
 }
+
+export function selectActivityMap(current, tripId, stopId) {
+  if (current?.tripId === tripId && current.stopId === stopId) return current;
+  return { tripId, stopId, locationIndex: 0 };
+}
+
+// Capture clicks before editor controls render or stop propagation. Selection
+// only updates the map panel, so inputs keep their native focus and behavior.
+export function bindItineraryCardSelection(root, { selectActivity }) {
+  let suppressReleaseClick = false;
+  root.addEventListener("pointerdown", () => { suppressReleaseClick = false; }, true);
+  root.addEventListener("keydown", () => { suppressReleaseClick = false; }, true);
+  root.addEventListener("dragstart", event => {
+    if (!event.target.closest("[data-map-card]")) return;
+    if (!event.target.closest(".activity-drag-handle")) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
+    suppressReleaseClick = true;
+  }, true);
+  root.addEventListener("click", event => {
+    if (suppressReleaseClick) {
+      suppressReleaseClick = false;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
+    const card = event.target.closest("[data-map-card]");
+    if (!card || event.target.closest(".activity-drag-handle")) return;
+    if (event.target.closest(".activity-compact") && !event.target.closest("button,a,input,select,textarea,label")) {
+      card.classList.toggle("is-expanded");
+    }
+    selectActivity(card.dataset.stop);
+  }, true);
+}

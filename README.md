@@ -27,7 +27,7 @@ Trip information is not uploaded to GitHub or included in the deployment artifac
 
 ## Itinerary location preview
 
-Select an activity or tour title in Itinerary to preview its location in one shared map. On wide screens the map stays on the right; narrower screens place it above the list. Tours provide a location selector and display one stop at a time. Existing Google Maps links and the separate Maps tab continue to work. Selection is temporary UI state and is not written into trip backups.
+Select an activity or tour card in Itinerary to preview its location in one shared map. Click its time, duration, title, location, or notes to select it. Use only the grip at the far-right edge to drag and reorder the card within its day. Editor controls keep their normal behavior. Clicking an already-selected card does not reload the map or reset its chosen tour stop. On wide screens the map stays on the right; narrower screens place it above the list. Tours provide a location selector and display one stop at a time. Existing Google Maps links and the separate Maps tab continue to work. Selection is temporary UI state and is not written into trip backups.
 
 The preview uses only Google Maps Embed API place mode, with the entered location and trip destination. It does not use Places Text Search or Place Photos. Google currently lists Embed usage as free, but requires an API key and billing setup: [Maps Embed setup](https://developers.google.com/maps/documentation/embed/get-api-key).
 

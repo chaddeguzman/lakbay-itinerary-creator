@@ -851,6 +851,12 @@ export function createPanelRenderers(ctx) {
       : "";
   }
 
+  function activityDragHandle(stop) {
+    const label = stop.kind === "tour" ? "Drag tour" : "Drag activity";
+    return `<button type="button" class="drag-handle activity-drag-handle no-print" draggable="true"
+      data-drag-kind="activity" title="${label}" aria-label="${label}">⋮⋮</button>`;
+  }
+
   function stopHtml(s, j, hasOverlap = false, isNextUp = false) {
     const map = mapsUrl(s.location),
       range = s.timeMode === "range",
@@ -862,18 +868,11 @@ export function createPanelRenderers(ctx) {
         : range && s.endTime
           ? `${start} – ${formatTime12(s.endTime)}${duration ? ` (${duration})` : ""}`
           : start,
-      actions = `<div class="icon-actions activity-actions no-print">
-        <button
-          type="button"
-          class="drag-handle activity-drag-handle"
-          draggable="true"
-          data-drag-kind="activity"
-          title="Drag activity"
-          aria-label="Drag activity">⋮⋮</button>`;
+      actions = `<div class="icon-actions activity-actions no-print">`;
     if (!editingActivities.has(s.id))
       return `<div class="stop activity-compact ${s.done ? "is-done" : ""}
           ${hasOverlap ? "time-overlap" : ""} ${isNextUp ? "is-next-up" : ""}"
-          data-stop="${s.id}">
+          data-stop="${s.id}" data-map-card>
         <div class="activity-summary">
         <div class="activity-summary-line">
         <strong class="${isUnscheduled ? "unscheduled-label" : ""}">
@@ -891,10 +890,10 @@ export function createPanelRenderers(ctx) {
           data-action="edit-activity" title="Edit activity" aria-label="Edit activity">✎</button>
         <button class="btn small danger" data-action="remove-stop" title="Remove activity"
           aria-label="Remove activity">×</button>
-        </div>
+        </div>${activityDragHandle(s)}
         </div>`;
     return `<div class="stop stop-editor ${hasOverlap ? "time-overlap" : ""} ${isNextUp ? "is-next-up" : ""}"
-          data-stop="${s.id}">
+          data-stop="${s.id}" data-map-card>
         <div class="stop-schedule">
         <label class="eyebrow">Activity ${j + 1}</label>
         ${overlapBadge(hasOverlap)}
@@ -938,7 +937,7 @@ export function createPanelRenderers(ctx) {
           data-action="save-activity" title="Save activity" aria-label="Save activity">✓</button>
         <button class="btn small danger" data-action="remove-stop" title="Remove activity"
           aria-label="Remove activity">×</button>
-        </div>
+        </div>${activityDragHandle(s)}
         </div>`;
   }
   // ---------------------------------------------------------------------------
@@ -1296,13 +1295,11 @@ export function createPanelRenderers(ctx) {
           : start,
       locations = (s.tourLocations || []).filter(Boolean),
       locationText = locations.join(" → ") || "No locations added",
-      actions = `<div class="icon-actions activity-actions no-print">
-        <button type="button" class="drag-handle activity-drag-handle" draggable="true"
-          data-drag-kind="activity" title="Drag tour" aria-label="Drag tour">⋮⋮</button>`;
+      actions = `<div class="icon-actions activity-actions no-print">`;
     if (!editingActivities.has(s.id))
       return `<div class="stop activity-compact tour-compact ${s.done ? "is-done" : ""}
           ${hasOverlap ? "time-overlap" : ""} ${isNextUp ? "is-next-up" : ""}"
-          data-stop="${s.id}">
+          data-stop="${s.id}" data-map-card>
         <div class="activity-summary">
         <div class="activity-summary-line">
         <strong class="${isUnscheduled ? "unscheduled-label" : ""}">
@@ -1320,10 +1317,10 @@ export function createPanelRenderers(ctx) {
           data-action="edit-activity" title="Edit tour" aria-label="Edit tour">✎</button>
         <button class="btn small danger" data-action="remove-stop" title="Remove tour"
           aria-label="Remove tour">×</button>
-        </div>
+        </div>${activityDragHandle(s)}
         </div>`;
     return `<div class="stop tour-editor ${hasOverlap ? "time-overlap" : ""} ${isNextUp ? "is-next-up" : ""}"
-          data-stop="${s.id}">
+          data-stop="${s.id}" data-map-card>
         <div class="stop-schedule">
         <label class="eyebrow">Tour ${j + 1}</label>
         ${overlapBadge(hasOverlap)}
@@ -1381,7 +1378,7 @@ export function createPanelRenderers(ctx) {
           data-action="save-activity" title="Save tour" aria-label="Save tour">✓</button>
         <button class="btn small danger" data-action="remove-stop" title="Remove tour"
           aria-label="Remove tour">×</button>
-        </div>
+        </div>${activityDragHandle(s)}
         </div>`;
   }
 

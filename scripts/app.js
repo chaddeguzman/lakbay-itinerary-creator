@@ -8,9 +8,10 @@ import {
 import { createActions } from "./actions.js?v=packing-move-20261019";
 import { defaultTravelDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
 import { createExportTools } from "./export.js?v=theme-aware-pdf-20261001";
-import { createPanelRenderers } from "./render-panels.js?v=itinerary-map-20261022";
+import { createPanelRenderers } from "./render-panels.js?v=card-selection-20261022";
 import { bindTimePickers } from "./time-picker.js";
 import { bindPackingMovement } from "./packing.js";
+import { bindItineraryCardSelection, selectActivityMap } from "./itinerary-map.js?v=card-selection-20261022";
 import { MAPS_EMBED_API_KEY } from "./maps-config.js";
 
   // ---------------------------------------------------------------------------
@@ -455,24 +456,36 @@ import { MAPS_EMBED_API_KEY } from "./maps-config.js";
   bindTimePickers(main, { drafts: timeDrafts, onCommit: updateScheduledTime });
   bindPackingMovement(main, { categories: PACK_CATEGORIES, moveItem: movePackingItem });
 
+  function highlightItinerarySelection() {
+    const tripId = Storage.active()?.id;
+    main.querySelectorAll("[data-map-card]").forEach(card => {
+      const selected = itineraryMapSelection?.tripId === tripId && card.dataset.stop === itineraryMapSelection?.stopId;
+      card.classList.toggle("is-map-selected", selected);
+    });
+    main.querySelectorAll('[data-action="preview-activity"]').forEach(button => {
+      const selected = itineraryMapSelection?.tripId === tripId && button.dataset.mapStop === itineraryMapSelection?.stopId;
+      button.setAttribute("aria-pressed", String(selected));
+    });
+  }
   function updateItineraryMap() {
     const trip = Storage.active(), panel = main.querySelector("#itinerary-location-preview");
     if (!trip || !panel) return;
     panel.innerHTML = itineraryMapPanel(trip);
-    main.querySelectorAll('[data-action="preview-activity"]').forEach(button => {
-      const selected = itineraryMapSelection?.tripId === trip.id && button.dataset.mapStop === itineraryMapSelection?.stopId;
-      button.setAttribute("aria-pressed", String(selected));
-      button.closest("[data-stop]")?.classList.toggle("is-map-selected", selected);
-    });
+    highlightItinerarySelection();
   }
+  bindItineraryCardSelection(main, {
+    selectActivity(stopId) {
+      const next = selectActivityMap(itineraryMapSelection, Storage.active()?.id, stopId);
+      if (next === itineraryMapSelection) return;
+      itineraryMapSelection = next;
+      updateItineraryMap();
+    },
+  });
   main.addEventListener("click", event => {
-    const button = event.target.closest('[data-action="preview-activity"], [data-action="clear-map-preview"]');
-    if (!button) return;
-    itineraryMapSelection = button.dataset.action === "clear-map-preview" ? null : {
-      tripId: Storage.active()?.id, stopId: button.dataset.mapStop, locationIndex: 0,
-    };
+    if (!event.target.closest('[data-action="clear-map-preview"]')) return;
+    itineraryMapSelection = null;
     updateItineraryMap();
-    if (!itineraryMapSelection) main.querySelector('[data-action="preview-activity"]')?.focus();
+    main.querySelector('[data-action="preview-activity"]')?.focus();
   });
   main.addEventListener("change", event => {
     if (!event.target.matches("[data-itinerary-map-location]") || !itineraryMapSelection) return;
@@ -660,8 +673,7 @@ import { MAPS_EMBED_API_KEY } from "./maps-config.js";
       }
     }
     renderTravelDay();
-    main.querySelectorAll('[data-action="preview-activity"][aria-pressed="true"]').forEach(button =>
-      button.closest("[data-stop]")?.classList.add("is-map-selected"));
+    highlightItinerarySelection();
     window.dispatchEvent(new Event("lakbay:trip-rendered"));
   }
   function renderTrips() {
@@ -1023,31 +1035,10 @@ import { MAPS_EMBED_API_KEY } from "./maps-config.js";
   // Drag-and-drop ordering for itinerary entries
   // ---------------------------------------------------------------------------
   let dragState = null;
-  main.addEventListener("pointerdown", (e) => {
-    const compact = e.target.closest(".activity-compact");
-    if (!compact) return;
-    if (e.target.closest("button,a")) {
-      compact.removeAttribute("draggable");
-      return;
-    }
-    compact.setAttribute("draggable", "true");
-    compact.dataset.dragKind = "activity";
-  });
-  main.addEventListener("click", (e) => {
-    const compact = e.target.closest(".activity-compact");
-    if (!compact || e.target.closest("button,a")) return;
-    compact.classList.toggle("is-expanded");
-  });
   main.addEventListener("dragstart", (e) => {
-    const source = e.target.closest(
-      '.drag-handle,.activity-compact[draggable="true"]',
-    );
-    if (
-      !source ||
-      source.classList.contains("activity-drag-handle") ||
-      e.target.closest("button,a")
-    ) {
-      e.preventDefault();
+    const source = e.target.closest(".activity-drag-handle");
+    if (!source) {
+      if (e.target.closest("[data-map-card]")) e.preventDefault();
       return;
     }
     const day = source.closest("[data-day]"),
