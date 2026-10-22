@@ -1770,19 +1770,28 @@ html[data-theme="dark"] .day .stop {
     justify-self: start;
   }
 }
+[data-map-card] { position: relative; padding-right: 52px !important; }
 .activity-drag-handle {
-  display: none !important;
+  display: flex !important;
+  position: absolute;
+  right: 10px;
+  top: 12px;
+  bottom: 12px;
+  width: 26px;
+  height: auto;
+  align-items: center;
+  justify-content: center;
+  opacity: .65;
 }
+.activity-drag-handle:hover,
+.activity-drag-handle:focus-visible { opacity: 1; }
+.activity-compact .activity-drag-handle { cursor: grab; }
+.activity-compact .activity-drag-handle:active { cursor: grabbing; }
 .activity-actions,
 .activity-compact > .activity-actions {
   grid-template-columns: repeat(3, 34px);
 }
-.activity-compact {
-  cursor: grab;
-}
-.activity-compact:active {
-  cursor: grabbing;
-}
+.activity-compact { cursor: pointer; }
 .activity-compact.is-done {
   background: color-mix(in srgb, var(--paper2) 70%, #8b948c);
   border-color: color-mix(in srgb, var(--line) 62%, #8b948c);
@@ -2464,6 +2473,8 @@ html[data-theme="dark"] .day .stop.time-overlap {
 @media print {
   .panel[data-panel="itinerary"] { container-type: normal; }
   .itinerary-layout { display: block; }
+  .activity-drag-handle { display: none !important; }
+  [data-map-card] { padding-right: 14px !important; }
   .itinerary-days .is-map-selected { outline: none; }
   .activity-map-select { color: inherit; }
 }
