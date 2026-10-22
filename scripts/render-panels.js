@@ -52,7 +52,7 @@ export function createPanelRenderers(ctx) {
         <select data-itinerary-map-location>${preview.locations.map((location,index) =>
           `<option value="${index}" ${index === preview.index ? "selected" : ""}>${esc(location)}</option>`).join("")}</select></label>` : ""}
       ${preview.location ? `<p class="itinerary-map-place">${esc(preview.location)}</p>` : ""}
-      ${src ? `<iframe class="itinerary-map-frame" title="Map of ${esc(preview.location)}" width="300" height="300"
+      ${src ? `<iframe class="itinerary-map-frame" title="Map of ${esc(preview.location)}" width="400" height="400"
         src="${esc(src)}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>` :
         `<p class="itinerary-map-empty">${preview.location ? "Map preview is not available yet." : preview.entryType === "meal" ? "Add a venue to this meal to preview it." : "Add a location to this activity to preview it."}</p>`}
       ${preview.location ? `<a class="map-link itinerary-map-open" href="${mapsUrl(preview.query)}" target="_blank" rel="noopener">Open in Google Maps ↗</a>` : ""}`;

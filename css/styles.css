@@ -2455,7 +2455,7 @@ html[data-theme="dark"] .day .stop.time-overlap {
 .itinerary-map-heading { display: flex; justify-content: space-between; align-items: start; gap: 8px; }
 .itinerary-map-empty { color: var(--muted); line-height: 1.5; margin: 12px 0 0; }
 .itinerary-map-place { margin: 10px 0; font-size: .85rem; }
-.itinerary-map-frame { display: block; width: min(300px, 100%); height: auto; aspect-ratio: 1; margin-inline: auto; border: 0; border-radius: 10px; background: var(--paper); }
+.itinerary-map-frame { display: block; width: min(400px, 100%); height: auto; aspect-ratio: 1; margin-inline: auto; border: 0; border-radius: 10px; background: var(--paper); }
 .itinerary-map-location { display: grid; gap: 5px; margin-top: 12px; font-size: .78rem; color: var(--muted); }
 .itinerary-map-location select { min-width: 0; width: 100%; padding: 8px; background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; }
 .itinerary-map-open { display: inline-block; margin-top: 12px; font-size: .85rem; }
