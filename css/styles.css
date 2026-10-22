@@ -2435,26 +2435,42 @@ html[data-theme="dark"] .day .stop.time-overlap {
 }
 
 /* Shared location preview for the selected itinerary activity or tour stop. */
-.panel[data-panel="itinerary"] { container: itinerary / inline-size; }
+.panel[data-panel="itinerary"] { container: itinerary / inline-size; --itinerary-sticky-top: 20px; }
 .itinerary-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
+.itinerary-toolbar {
+  --itinerary-map-size: 260px;
+  display: grid;
+  grid-template-columns: minmax(54px, 1fr) minmax(0, calc(var(--itinerary-map-size) + 18px));
+  align-items: start;
+  gap: 12px;
+  margin: 0;
+  position: sticky;
+  top: var(--itinerary-sticky-top);
+  z-index: 4;
+}
+.itinerary-toolbar > [data-action="open-travel-day"] { justify-self: start; max-width: 100%; white-space: normal; }
 .itinerary-days { min-width: 0; }
 .itinerary-map-preview {
-  order: -1;
-  width: min(450px, 100%);
-  aspect-ratio: 1;
+  width: 100%;
   min-width: 0;
-  padding: 14px;
+  max-height: calc(100dvh - var(--itinerary-sticky-top) - 16px);
+  overflow: auto;
+  padding: 8px;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: var(--paper2);
   box-shadow: var(--shadow);
   overflow-wrap: anywhere;
+  pointer-events: auto;
 }
-.itinerary-map-preview h3 { margin: 0; font-size: 1.1rem; color: var(--teal); }
+.itinerary-map-preview h3 { margin: 0; min-width: 0; font-size: .85rem; color: var(--teal); }
+.itinerary-map-preview .itinerary-map-place { margin: 6px 0; font-size: .75rem; }
+.itinerary-map-preview .itinerary-map-open { margin-top: 6px; font-size: .75rem; }
+.itinerary-map-preview .itinerary-map-heading > button { flex: 0 0 auto; }
 .itinerary-map-heading { display: flex; justify-content: space-between; align-items: start; gap: 8px; }
 .itinerary-map-empty { color: var(--muted); line-height: 1.5; margin: 12px 0 0; }
 .itinerary-map-place { margin: 10px 0; font-size: .85rem; }
-.itinerary-map-frame { display: block; width: min(400px, 100%); height: auto; aspect-ratio: 1; margin-inline: auto; border: 0; border-radius: 10px; background: var(--paper); }
+.itinerary-map-frame { display: block; width: min(var(--itinerary-map-size, 400px), 100%); height: auto; aspect-ratio: 1; margin-inline: auto; border: 0; border-radius: 10px; background: var(--paper); }
 .itinerary-map-location { display: grid; gap: 5px; margin-top: 12px; font-size: .78rem; color: var(--muted); }
 .itinerary-map-location select { min-width: 0; width: 100%; padding: 8px; background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; }
 .itinerary-map-open { display: inline-block; margin-top: 12px; font-size: .85rem; }
@@ -2467,9 +2483,33 @@ html[data-theme="dark"] .day .stop.time-overlap {
 .activity-map-select[aria-pressed="true"] { color: var(--teal); font-weight: 700; }
 .itinerary-days .is-map-selected { outline: 2px solid var(--teal); outline-offset: 3px; border-radius: 8px; }
 .itinerary-days .stop-editor .fields { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+@container itinerary (max-width: 520px) {
+  .itinerary-toolbar { --itinerary-map-size: 200px; }
+  .itinerary-toolbar > [data-action="open-travel-day"] { padding: 8px 5px; }
+}
 @container itinerary (min-width: 850px) {
   .itinerary-layout { grid-template-columns: minmax(0, 1fr) 450px; }
-  .itinerary-map-preview { order: 0; position: sticky; top: 24px; }
+  .itinerary-toolbar { display: contents; --itinerary-map-size: 400px; }
+  .itinerary-toolbar > [data-action="open-travel-day"] {
+    grid-column: 1;
+    grid-row: 1;
+    position: sticky;
+    top: var(--itinerary-sticky-top);
+    z-index: 4;
+  }
+  .itinerary-days { grid-column: 1; grid-row: 2; }
+  .itinerary-map-preview {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    position: sticky;
+    top: var(--itinerary-sticky-top);
+    padding: 14px;
+    min-height: min(450px, calc(100dvh - var(--itinerary-sticky-top) - 16px));
+    z-index: 4;
+  }
+  .itinerary-map-preview h3 { font-size: 1.1rem; }
+  .itinerary-map-preview .itinerary-map-place { margin: 10px 0; font-size: .85rem; }
+  .itinerary-map-preview .itinerary-map-open { margin-top: 12px; font-size: .85rem; }
 }
 @media print {
   .panel[data-panel="itinerary"] { container-type: normal; }
@@ -3020,7 +3060,6 @@ html[data-theme="dark"] .panel[data-panel="itinerary"] .day .meal-card {
 }
 
 /* Focused Travel Day dialog and completion cues. */
-.itinerary-toolbar { display: flex; justify-content: flex-end; margin: 0 0 16px; }
 .meal-card.is-done { border-color: color-mix(in srgb, var(--line) 62%, #8b948c); }
 .meal-card.is-done summary { opacity: .7; text-decoration: line-through; text-decoration-thickness: 1px; }
 .travel-day-modal {

@@ -8,7 +8,7 @@ import {
 import { createActions } from "./actions.js?v=packing-move-20261019";
 import { defaultTravelDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
 import { createExportTools } from "./export.js?v=theme-aware-pdf-20261001";
-import { createPanelRenderers } from "./render-panels.js?v=meal-map-corner-20261022";
+import { createPanelRenderers } from "./render-panels.js?v=sticky-map-20261022";
 import { bindTimePickers } from "./time-picker.js";
 import { bindPackingMovement } from "./packing.js";
 import { bindItineraryCardSelection, selectActivityMap } from "./itinerary-map.js?v=meal-map-corner-20261022";
