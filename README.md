@@ -35,6 +35,8 @@ To enable live previews, enable Maps Embed API in a Google Cloud project and cre
 
 Local checkout previews retain the placeholder by default. For an isolated local test copy, inject a key restricted to an approved localhost URL into that copy; do not commit a key or relax the production key's restrictions.
 
+The map and Travel Day stay aligned at the top while scrolling the itinerary. With enough room, the map retains its 400px square view in the right column. Narrower layouts place a compact map at the far right of the Travel Day row: up to 260px on tablets and 200px on phones, shrinking further when necessary. The row stays below mobile navigation. On short screens, the map panel scrolls internally so its selector and links remain reachable.
+
 ## TravelBot placement
 
 TravelBot starts at the bottom-right of the viewport with 24px margins on wide screens and 16px on screens up to 900px wide, plus device safe-area insets. It follows viewport resizing until manually moved. Mouse and touch dragging remain available; manual placement survives trip re-renders and is clamped inside the viewport after resizing. Opening chat keeps the mascot stationary.

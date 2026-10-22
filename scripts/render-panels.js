@@ -30,13 +30,14 @@ export function createPanelRenderers(ctx) {
     return `<section
       class="panel ${getTab() === "itinerary" ? "active" : ""}"
       data-panel="itinerary">
-      <div class="itinerary-toolbar no-print"><button type="button" class="btn secondary"
-        data-action="open-travel-day">Travel Day</button></div>
       <div class="itinerary-layout">
-      <div class="itinerary-days">${t.days.map((d, i) => dayHtml(t, d, i, collapsedDays.has(d.id))).join("")}</div>
+      <div class="itinerary-toolbar no-print"><button type="button" class="btn secondary"
+        data-action="open-travel-day">Travel Day</button>
       <aside class="itinerary-map-preview no-print" id="itinerary-location-preview" aria-label="Selected itinerary map">
         ${itineraryMapPanel(t)}
       </aside>
+      </div>
+      <div class="itinerary-days">${t.days.map((d, i) => dayHtml(t, d, i, collapsedDays.has(d.id))).join("")}</div>
       </div>
     </section>`;
   }
