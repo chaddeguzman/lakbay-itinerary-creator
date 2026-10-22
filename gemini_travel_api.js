@@ -566,13 +566,19 @@ function initializeTravelChat() {
     };
   }
 
+  function safeAreaInsets() {
+    const style = window.getComputedStyle(container);
+    return Object.fromEntries(['top', 'right', 'bottom', 'left'].map(edge =>
+      [edge, parseFloat(style.getPropertyValue(`--travel-safe-${edge}`)) || 0]));
+  }
+
   function clampPosition(left, top) {
     const metrics = movableMetrics(),
-      margin = 12,
-      minLeft = margin + metrics.offsetLeft,
-      minTop = margin + metrics.offsetTop,
-      maxLeft = Math.max(minLeft, window.innerWidth - metrics.width - margin + metrics.offsetLeft),
-      maxTop = Math.max(minTop, window.innerHeight - metrics.height - margin + metrics.offsetTop);
+      margin = 12, safe = safeAreaInsets(),
+      minLeft = margin + safe.left + metrics.offsetLeft,
+      minTop = margin + safe.top + metrics.offsetTop,
+      maxLeft = Math.max(minLeft, window.innerWidth - metrics.width - margin - safe.right + metrics.offsetLeft),
+      maxTop = Math.max(minTop, window.innerHeight - metrics.height - margin - safe.bottom + metrics.offsetTop);
     return {
       left: Math.min(Math.max(left, minLeft), maxLeft),
       top: Math.min(Math.max(top, minTop), maxTop)
@@ -634,16 +640,12 @@ function initializeTravelChat() {
     setChatPosition(rect.left, rect.top);
   }
 
-  function positionChatAtHeader() {
+  function positionChatAtCorner() {
     if (userMovedChat) return;
-    const pdf = document.querySelector('.trip-head [data-action="pdf"]'),
-      remove = document.querySelector('.trip-head [data-action="delete-trip"]');
-    if (!pdf || !remove) return;
-    const pdfRect = pdf.getBoundingClientRect(), removeRect = remove.getBoundingClientRect();
-    if (Math.max(pdfRect.bottom, removeRect.bottom) < 0) return;
-    const metrics = movableMetrics();
-    setChatPosition((pdfRect.right + removeRect.left) / 2 - metrics.width / 2 + metrics.offsetLeft,
-      Math.max(pdfRect.bottom, removeRect.bottom) + 32 + metrics.offsetTop);
+    const metrics = movableMetrics(), safe = safeAreaInsets(),
+      margin = window.innerWidth <= 900 ? 16 : 24;
+    setChatPosition(window.innerWidth - metrics.width - margin - safe.right + metrics.offsetLeft,
+      window.innerHeight - metrics.height - margin - safe.bottom + metrics.offsetTop);
   }
 
   function startDrag(event) {
@@ -692,10 +694,11 @@ function initializeTravelChat() {
   toggle.addEventListener('pointerdown', startDrag);
   panel.querySelector('.travel-chat-header')?.addEventListener('pointerdown', startDrag);
   window.addEventListener('resize', () => {
-    positionChatAtHeader();
+    positionChatAtCorner();
     keepChatInViewport();
   });
-  window.addEventListener('lakbay:trip-rendered', positionChatAtHeader);
+  window.addEventListener('lakbay:trip-rendered', positionChatAtCorner);
+  positionChatAtCorner();
   container.addEventListener(
     'click',
     event => {

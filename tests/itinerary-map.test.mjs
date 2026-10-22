@@ -19,7 +19,7 @@ function panels(t, selection = null, key = "test-maps-key") {
 }
 test("Itinerary starts with one shared map panel and no external iframe request", () => {
   const t = trip(), html = panels(t).itineraryPanel(t);
-  assert.match(html, /Select an activity to preview its location/);
+  assert.match(html, /Select an activity or meal to preview its location/);
   assert.equal((html.match(/id="itinerary-location-preview"/g) || []).length, 1);
   assert.ok(!html.includes("<iframe"));
   assert.match(html, /data-action="preview-activity"[^>]*data-map-stop="restaurant"/);
@@ -51,4 +51,22 @@ test("unconfigured maps, empty locations and stale selections never load an ifra
     [{tripId:"trip",stopId:"deleted"},"test-key"],
   ]) assert.ok(!panels(t,selection,key).itineraryPanel(t).includes("<iframe"));
   assert.match(panels(t,{tripId:"trip",stopId:"restaurant"},"").itineraryPanel(t), /Open in Google Maps/);
+});
+
+
+test("itinerary meals preview their venue without an external-link click or trip mutation", () => {
+  const t=trip();
+  t.foodPlaces=[{id:"restaurant",venue:"Jollibee Brickfields",mealType:"Lunch",visitDate:"2026-10-24",time:"12:30",durationMinutes:45,notes:"Window seat"}];
+  const before=structuredClone(t);
+  const html=panels(t,{tripId:"trip",stopId:"restaurant",entryType:"meal"}).itineraryPanel(t);
+  assert.equal((html.match(/<iframe/g)||[]).length,1);
+  assert.ok(html.includes("Jollibee+Brickfields%2C+Kuala+Lumpur%2C+Malaysia"));
+  assert.match(html,/data-map-meal="restaurant"/);
+  assert.match(html,/data-map-type="meal"[^>]*aria-controls="itinerary-location-preview" aria-pressed="true"/);
+  assert.ok(!html.includes('>Jollibee Brickfields</a>'));
+  assert.deepEqual(t,before);
+  t.foodPlaces[0].venue="";
+  assert.ok(!panels(t,{tripId:"trip",stopId:"restaurant",entryType:"meal"}).itineraryPanel(t).includes("<iframe"));
+  t.foodPlaces=[];
+  assert.ok(!panels(t,{tripId:"trip",stopId:"restaurant",entryType:"meal"}).itineraryPanel(t).includes("<iframe"));
 });

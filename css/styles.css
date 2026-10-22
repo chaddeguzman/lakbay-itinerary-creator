@@ -2495,13 +2495,16 @@ html[data-theme="dark"] .day .stop.time-overlap {
 }
 .travel-chat {
   position: fixed;
-  right: clamp(32px, 5vw, 72px);
-  bottom: clamp(40px, 8vh, 80px);
+  --travel-safe-top: env(safe-area-inset-top, 0px);
+  --travel-safe-right: env(safe-area-inset-right, 0px);
+  --travel-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --travel-safe-left: env(safe-area-inset-left, 0px);
+  right: calc(24px + var(--travel-safe-right));
+  bottom: calc(24px + var(--travel-safe-bottom));
   z-index: 30;
   font-family: Georgia, "Times New Roman", serif;
   user-select: none;
 }
-.trip-head .toolbar { padding-bottom: 104px; }
 .travel-chat.is-positioned {
   right: auto;
   bottom: auto;
@@ -2872,11 +2875,10 @@ html[data-theme="dark"] .travel-draft-apply {
   background: #79c5bb;
   color: #102421;
 }
+@media (max-width: 900px) {
+  .travel-chat { right: calc(16px + var(--travel-safe-right)); bottom: calc(16px + var(--travel-safe-bottom)); }
+}
 @media (max-width: 520px) {
-  .travel-chat {
-    right: 20px;
-    bottom: 24px;
-  }
   .travel-chat.is-positioned {
     right: auto;
     bottom: auto;

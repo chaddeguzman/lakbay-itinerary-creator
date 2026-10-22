@@ -1,6 +1,6 @@
 import { MEAL_TYPES, MEAL_DURATIONS, mealDuration, mealGroup, mealsForDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
 import { formatTime12, timePickerHtml } from "./time-picker.js";
-import { activityMapSelection, placeEmbedUrl } from "./itinerary-map.js";
+import { activityMapSelection, placeEmbedUrl } from "./itinerary-map.js?v=meal-map-corner-20261022";
 
 export function createPanelRenderers(ctx) {
   const {
@@ -34,7 +34,7 @@ export function createPanelRenderers(ctx) {
         data-action="open-travel-day">Travel Day</button></div>
       <div class="itinerary-layout">
       <div class="itinerary-days">${t.days.map((d, i) => dayHtml(t, d, i, collapsedDays.has(d.id))).join("")}</div>
-      <aside class="itinerary-map-preview no-print" id="itinerary-location-preview" aria-label="Selected activity map">
+      <aside class="itinerary-map-preview no-print" id="itinerary-location-preview" aria-label="Selected itinerary map">
         ${itineraryMapPanel(t)}
       </aside>
       </div>
@@ -43,8 +43,8 @@ export function createPanelRenderers(ctx) {
 
   function itineraryMapPanel(t) {
     const preview = activityMapSelection(t, getMapSelection?.());
-    if (!preview) return `<h3>Location preview</h3><p class="itinerary-map-empty">Select an activity to preview its location.</p>`;
-    const title = preview.stop.activity || (preview.stop.kind === "tour" ? "Tour" : "Activity"),
+    if (!preview) return `<h3>Location preview</h3><p class="itinerary-map-empty">Select an activity or meal to preview its location.</p>`;
+    const title = preview.entryType === "meal" ? preview.stop.venue || "Meal" : preview.stop.activity || (preview.stop.kind === "tour" ? "Tour" : "Activity"),
       src = placeEmbedUrl(preview.query, mapsEmbedKey);
     return `<div class="itinerary-map-heading"><h3>${esc(title)}</h3>
       <button type="button" class="btn small secondary" data-action="clear-map-preview" aria-label="Clear map selection">×</button></div>
@@ -54,13 +54,14 @@ export function createPanelRenderers(ctx) {
       ${preview.location ? `<p class="itinerary-map-place">${esc(preview.location)}</p>` : ""}
       ${src ? `<iframe class="itinerary-map-frame" title="Map of ${esc(preview.location)}" width="300" height="260"
         src="${esc(src)}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>` :
-        `<p class="itinerary-map-empty">${preview.location ? "Map preview is not available yet." : "Add a location to this activity to preview it."}</p>`}
+        `<p class="itinerary-map-empty">${preview.location ? "Map preview is not available yet." : preview.entryType === "meal" ? "Add a venue to this meal to preview it." : "Add a location to this activity to preview it."}</p>`}
       ${preview.location ? `<a class="map-link itinerary-map-open" href="${mapsUrl(preview.query)}" target="_blank" rel="noopener">Open in Google Maps ↗</a>` : ""}`;
   }
 
-  function mapActivityTitle(stop, fallback) {
-    const selected = getMapSelection?.(), active = selected?.tripId === Storage.active?.()?.id && selected?.stopId === stop.id;
+  function mapActivityTitle(stop, fallback, entryType = "activity") {
+    const selected = getMapSelection?.(), active = selected?.tripId === Storage.active?.()?.id && selected?.stopId === stop.id && (selected.entryType || "activity") === entryType;
     return `<button type="button" class="activity-map-select" data-action="preview-activity" data-map-stop="${esc(stop.id)}"
+      data-map-type="${entryType}"
       aria-controls="itinerary-location-preview" aria-pressed="${!!active}">${esc(stop.activity || fallback)}</button>`;
   }
   // ---------------------------------------------------------------------------
@@ -508,7 +509,7 @@ export function createPanelRenderers(ctx) {
         `<option value="${esc(p.id)}">${esc(p.venue || "Unnamed place")}</option>`).join("")}</select></label>
       <button class="btn small secondary" data-action="schedule-place" data-meal-type="${type}">＋ Use saved</button>`;
   }
-  function mealCard(r, t, { showDay = false } = {}) {
+  function mealCard(r, t, { showDay = false, mapPreview = false } = {}) {
     const days = `<option value="">Unscheduled</option>${t.days.map((d, i) =>
       `<option value="${esc(d.date)}" ${d.date === r.visitDate ? "selected" : ""}>Day ${i} · ${esc(dayDateLabel(d.date))}</option>`).join("")}`;
     const timeLabel = (value) => /^\d{2}:\d{2}$/.test(value || "") ? formatTime12(value) : value;
@@ -516,9 +517,9 @@ export function createPanelRenderers(ctx) {
       notes = String(r.notes || ""),
       duration = mealDuration(r.durationMinutes),
       timeKey = `meal:${r.id}:time`;
-    return `<details class="meal-card${r.done ? " is-done" : ""}" data-record-type="food" data-record="${esc(r.id)}" ${openMealCards.has(r.id) ? "open" : ""}>
+    return `<details class="meal-card${r.done ? " is-done" : ""}" data-record-type="food" data-record="${esc(r.id)}" ${mapPreview ? `data-map-meal="${esc(r.id)}"` : ""} ${openMealCards.has(r.id) ? "open" : ""}>
       <summary><span class="meal-timing"><span>${esc(timeLabel(r.time) || "No time")}${r.timeMode === "range" && r.endTime ? `–${esc(timeLabel(r.endTime))}` : ""}</span><span class="meal-duration">(${duration === 60 ? "1 hr" : `${duration} min`})</span></span>
-      <strong>[${esc(r.mealType || "Other")}] ${venue ? `<a target="_blank" rel="noopener" href="${mapsUrl(venue)}">${esc(venue)}</a>` : "New meal"}</strong>
+      <strong>[${esc(r.mealType || "Other")}] ${mapPreview ? mapActivityTitle({id:r.id,activity:venue}, "New meal", "meal") : venue ? `<a target="_blank" rel="noopener" href="${mapsUrl(venue)}">${esc(venue)}</a>` : "New meal"}</strong>
       ${notes.trim() ? `<span class="meal-notes-preview">${esc(notes)}</span>` : ""}
       </summary>
       <div class="record-grid meal-fields">
@@ -762,7 +763,7 @@ export function createPanelRenderers(ctx) {
         </header>
         <div class="day-content">${entries
           .map(({ kind, record, index }) => kind === "meal"
-            ? mealCard(record, t)
+            ? mealCard(record, t, { mapPreview: true })
             : entryHtml(record, index, overlapping.has(record.id), record.id === nextEntryId))
           .join("")}${emptyDayNotice}<footer
           class="day-foot">
