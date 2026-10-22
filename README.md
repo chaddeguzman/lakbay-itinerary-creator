@@ -25,6 +25,16 @@ For the first deployment:
 
 Trip information is not uploaded to GitHub or included in the deployment artifact. The published app saves data under `itineraryApp:v1` in the visitor's browser `localStorage`. Data is therefore specific to that browser, device, and GitHub Pages address; clearing site data removes it, and a different browser starts with an empty planner.
 
+## Itinerary location preview
+
+Select an activity or tour title in Itinerary to preview its location in one shared map. On wide screens the map stays on the right; narrower screens place it above the list. Tours provide a location selector and display one stop at a time. Existing Google Maps links and the separate Maps tab continue to work. Selection is temporary UI state and is not written into trip backups.
+
+The preview uses only Google Maps Embed API place mode, with the entered location and trip destination. It does not use Places Text Search or Place Photos. Google currently lists Embed usage as free, but requires an API key and billing setup: [Maps Embed setup](https://developers.google.com/maps/documentation/embed/get-api-key).
+
+To enable live previews, enable Maps Embed API in a Google Cloud project and create a key restricted to **Websites** (`https://chaddeguzman.github.io/*`) and **Maps Embed API** only. Store it as the repository Actions secret `MAPS_EMBED_API_KEY`, then run the Pages deployment. The workflow injects it into the staged `scripts/maps-config.js`; committed source retains a placeholder. Browser keys are visible to visitors, so apply those restrictions. Without a configured key, the preview still identifies the selected place and offers its Google Maps link. Google may display its own errors inside the cross-origin iframe; the external link remains available.
+
+Local checkout previews retain the placeholder by default. For an isolated local test copy, inject a key restricted to an approved localhost URL into that copy; do not commit a key or relax the production key's restrictions.
+
 ## Back up and move your data
 
 Trip data is tied to the browser and device where it was created. Open **Manage Data** and use **Export** to save all trips as a JSON file. On another device, open Lakbay and choose **Import**, then select that JSON file; importing replaces the data currently stored in that browser.

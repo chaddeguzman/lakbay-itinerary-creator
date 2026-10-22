@@ -1,5 +1,6 @@
 import { MEAL_TYPES, MEAL_DURATIONS, mealDuration, mealGroup, mealsForDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
 import { formatTime12, timePickerHtml } from "./time-picker.js";
+import { activityMapSelection, placeEmbedUrl } from "./itinerary-map.js";
 
 export function createPanelRenderers(ctx) {
   const {
@@ -11,6 +12,8 @@ export function createPanelRenderers(ctx) {
     esc,
     fmt,
     getTab,
+    getMapSelection,
+    mapsEmbedKey,
     money,
     openMealCards,
     timeDrafts,
@@ -29,8 +32,36 @@ export function createPanelRenderers(ctx) {
       data-panel="itinerary">
       <div class="itinerary-toolbar no-print"><button type="button" class="btn secondary"
         data-action="open-travel-day">Travel Day</button></div>
-      ${t.days.map((d, i) => dayHtml(t, d, i, collapsedDays.has(d.id))).join("")}
+      <div class="itinerary-layout">
+      <div class="itinerary-days">${t.days.map((d, i) => dayHtml(t, d, i, collapsedDays.has(d.id))).join("")}</div>
+      <aside class="itinerary-map-preview no-print" id="itinerary-location-preview" aria-label="Selected activity map">
+        ${itineraryMapPanel(t)}
+      </aside>
+      </div>
     </section>`;
+  }
+
+  function itineraryMapPanel(t) {
+    const preview = activityMapSelection(t, getMapSelection?.());
+    if (!preview) return `<h3>Location preview</h3><p class="itinerary-map-empty">Select an activity to preview its location.</p>`;
+    const title = preview.stop.activity || (preview.stop.kind === "tour" ? "Tour" : "Activity"),
+      src = placeEmbedUrl(preview.query, mapsEmbedKey);
+    return `<div class="itinerary-map-heading"><h3>${esc(title)}</h3>
+      <button type="button" class="btn small secondary" data-action="clear-map-preview" aria-label="Clear map selection">×</button></div>
+      ${preview.locations.length > 1 ? `<label class="itinerary-map-location">Tour location
+        <select data-itinerary-map-location>${preview.locations.map((location,index) =>
+          `<option value="${index}" ${index === preview.index ? "selected" : ""}>${esc(location)}</option>`).join("")}</select></label>` : ""}
+      ${preview.location ? `<p class="itinerary-map-place">${esc(preview.location)}</p>` : ""}
+      ${src ? `<iframe class="itinerary-map-frame" title="Map of ${esc(preview.location)}" width="300" height="260"
+        src="${esc(src)}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>` :
+        `<p class="itinerary-map-empty">${preview.location ? "Map preview is not available yet." : "Add a location to this activity to preview it."}</p>`}
+      ${preview.location ? `<a class="map-link itinerary-map-open" href="${mapsUrl(preview.query)}" target="_blank" rel="noopener">Open in Google Maps ↗</a>` : ""}`;
+  }
+
+  function mapActivityTitle(stop, fallback) {
+    const selected = getMapSelection?.(), active = selected?.tripId === Storage.active?.()?.id && selected?.stopId === stop.id;
+    return `<button type="button" class="activity-map-select" data-action="preview-activity" data-map-stop="${esc(stop.id)}"
+      aria-controls="itinerary-location-preview" aria-pressed="${!!active}">${esc(stop.activity || fallback)}</button>`;
   }
   // ---------------------------------------------------------------------------
   // Travel-record panels and expense synchronization
@@ -849,7 +880,7 @@ export function createPanelRenderers(ctx) {
           ${esc(time)}
         </strong>
         <span>—</span>
-        <span>${esc(s.activity || "Untitled activity")}</span>
+        ${mapActivityTitle(s, "Untitled activity")}
         <span>·</span>
         <span>${esc(s.location)}</span>
         </div>
@@ -1278,7 +1309,7 @@ export function createPanelRenderers(ctx) {
           ${esc(time)}
         </strong>
         <span>—</span>
-        <span>${esc(s.activity || "Untitled tour")}</span>
+        ${mapActivityTitle(s, "Untitled tour")}
         <span>·</span>
         <span>${esc(locationText)}</span>
         </div>
@@ -1355,6 +1386,7 @@ export function createPanelRenderers(ctx) {
   }
 
   return {
+    itineraryMapPanel,
     itineraryPanel,
     travelDayContent,
     mapsPanel,

@@ -8,9 +8,10 @@ import {
 import { createActions } from "./actions.js?v=packing-move-20261019";
 import { defaultTravelDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
 import { createExportTools } from "./export.js?v=theme-aware-pdf-20261001";
-import { createPanelRenderers } from "./render-panels.js?v=packing-minimal-20261019";
+import { createPanelRenderers } from "./render-panels.js?v=itinerary-map-20261022";
 import { bindTimePickers } from "./time-picker.js";
 import { bindPackingMovement } from "./packing.js";
+import { MAPS_EMBED_API_KEY } from "./maps-config.js";
 
   // ---------------------------------------------------------------------------
   // Shared formatting, escaping, date, and identifier helpers
@@ -127,6 +128,7 @@ import { bindPackingMovement } from "./packing.js";
   // Runtime UI state and reusable interface feedback
   // ---------------------------------------------------------------------------
   let tab = "itinerary",
+    itineraryMapSelection = null,
     toastTimer,
     saveStatusTimer,
     undoSnapshot = null,
@@ -277,6 +279,7 @@ import { bindPackingMovement } from "./packing.js";
     openMealCards = new Set();
   const {
     itineraryPanel,
+    itineraryMapPanel,
     travelDayContent,
     mapsPanel,
     weatherPanel,
@@ -298,6 +301,8 @@ import { bindPackingMovement } from "./packing.js";
     esc,
     fmt,
     getTab: () => tab,
+    getMapSelection: () => itineraryMapSelection,
+    mapsEmbedKey: MAPS_EMBED_API_KEY,
     money,
     openMealCards,
     timeDrafts,
@@ -449,6 +454,32 @@ import { bindPackingMovement } from "./packing.js";
 
   bindTimePickers(main, { drafts: timeDrafts, onCommit: updateScheduledTime });
   bindPackingMovement(main, { categories: PACK_CATEGORIES, moveItem: movePackingItem });
+
+  function updateItineraryMap() {
+    const trip = Storage.active(), panel = main.querySelector("#itinerary-location-preview");
+    if (!trip || !panel) return;
+    panel.innerHTML = itineraryMapPanel(trip);
+    main.querySelectorAll('[data-action="preview-activity"]').forEach(button => {
+      const selected = itineraryMapSelection?.tripId === trip.id && button.dataset.mapStop === itineraryMapSelection?.stopId;
+      button.setAttribute("aria-pressed", String(selected));
+      button.closest("[data-stop]")?.classList.toggle("is-map-selected", selected);
+    });
+  }
+  main.addEventListener("click", event => {
+    const button = event.target.closest('[data-action="preview-activity"], [data-action="clear-map-preview"]');
+    if (!button) return;
+    itineraryMapSelection = button.dataset.action === "clear-map-preview" ? null : {
+      tripId: Storage.active()?.id, stopId: button.dataset.mapStop, locationIndex: 0,
+    };
+    updateItineraryMap();
+    if (!itineraryMapSelection) main.querySelector('[data-action="preview-activity"]')?.focus();
+  });
+  main.addEventListener("change", event => {
+    if (!event.target.matches("[data-itinerary-map-location]") || !itineraryMapSelection) return;
+    itineraryMapSelection.locationIndex = Number(event.target.value);
+    updateItineraryMap();
+    main.querySelector("[data-itinerary-map-location]")?.focus();
+  });
 
   // Activity/tour deletion uses two explicit confirmation stages.
   function showEntryDeleteStage(stage, title, message, confirmLabel) {
@@ -629,6 +660,8 @@ import { bindPackingMovement } from "./packing.js";
       }
     }
     renderTravelDay();
+    main.querySelectorAll('[data-action="preview-activity"][aria-pressed="true"]').forEach(button =>
+      button.closest("[data-stop]")?.classList.add("is-map-selected"));
     window.dispatchEvent(new Event("lakbay:trip-rendered"));
   }
   function renderTrips() {
