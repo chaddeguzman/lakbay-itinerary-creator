@@ -1776,9 +1776,8 @@ html[data-theme="dark"] .day .stop {
   position: absolute;
   right: 10px;
   top: 12px;
-  bottom: 12px;
-  width: 26px;
-  height: auto;
+  width: 34px;
+  height: 34px;
   align-items: center;
   justify-content: center;
   opacity: .65;
