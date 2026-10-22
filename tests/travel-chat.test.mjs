@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
 // Run the real browser controller with only its DOM boundary substituted.
-function widget(width = 1000, height = 800, header = null) {
+function widget(width = 1000, height = 800, header = null, safeInsets = {}) {
   function element(rect = {}) {
     const listeners = new Map();
     const classes = new Set();
@@ -54,7 +54,8 @@ function widget(width = 1000, height = 800, header = null) {
   document.documentElement = { lang: 'en' };
   document.querySelector = selector => nodes[selector];
   const window = element();
-  Object.assign(window, { innerWidth: width, innerHeight: height });
+  Object.assign(window, { innerWidth: width, innerHeight: height,
+    getComputedStyle: () => ({getPropertyValue: name => `${safeInsets[name.replace('--travel-safe-', '')] || 0}px`}) });
   vm.runInNewContext(readFileSync(new URL('../gemini_travel_api.js', import.meta.url), 'utf8'), {
     document, window, console, setTimeout, clearTimeout,
     requestAnimationFrame: callback => callback()
@@ -75,12 +76,12 @@ test('click toggles chat with accessible state and Escape closes it', () => {
   assert.equal(w.panel.hidden, true);
 });
 
-test('initial mascot sits below the gap between Export PDF and Delete after trip rendering', () => {
+test('initial mascot sits at the bottom right with desktop margins regardless of header buttons', () => {
   const w = widget(1000, 800, { pdf: { left: 700, top: 80, width: 100, height: 32 },
     delete: { left: 810, top: 80, width: 64, height: 32 } });
   w.window.fire('lakbay:trip-rendered');
-  assert.equal(w.container.style.left, '753px');
-  assert.equal(w.container.style.top, '144px');
+  assert.equal(w.container.style.left, '872px');
+  assert.equal(w.container.style.top, '672px');
 });
 
 test('trip re-renders preserve a manually dragged chatbot position', () => {
@@ -145,12 +146,13 @@ test('touch drag ignores other fingers and keeps the open panel beside the masco
   const w = widget();
   w.toggle.fire('click');
   w.toggle.fire('pointerdown', { button: 0, pointerId: 1, pointerType: 'touch', clientX: 900, clientY: 700 });
+  const before = {...w.container.style};
   w.document.fire('pointermove', { pointerId: 2, clientX: 50, clientY: 50 });
-  assert.equal(w.container.style.left, undefined);
+  assert.deepEqual(w.container.style, before);
   w.document.fire('pointermove', { pointerId: 1, clientX: 50, clientY: 50 });
   w.document.fire('pointercancel', { pointerId: 1 });
   assert.equal(w.panel.hidden, false);
-  assert.equal(w.container.style.left, '26px');
+  assert.equal(w.container.style.left, '22px');
   const p = w.panel.getBoundingClientRect(), m = w.toggle.getBoundingClientRect();
   assert.ok(p.top >= m.bottom || p.left >= m.right);
 });
@@ -163,4 +165,24 @@ test('short landscape uses a narrower side panel with room for the chat controls
   const p = w.panel.getBoundingClientRect(), m = w.toggle.getBoundingClientRect();
   assert.ok(p.height >= 240);
   assert.ok(p.right <= m.left || p.left >= m.right);
+});
+
+
+test('tablet and phone defaults use 16px margins and follow viewport resizing', () => {
+  for(const [width,height] of [[820,1180],[390,844]]) {
+    const w=widget(width,height);
+    w.window.fire('lakbay:trip-rendered');
+    let r=w.container.getBoundingClientRect();
+    assert.equal(width-r.right,16); assert.equal(height-r.bottom,16);
+    w.window.innerWidth=320; w.window.innerHeight=568; w.window.fire('resize');
+    r=w.container.getBoundingClientRect();
+    assert.equal(320-r.right,16); assert.equal(568-r.bottom,16);
+  }
+});
+
+test('bottom right placement respects device safe-area insets', () => {
+  const w=widget(390,844,null,{right:8,bottom:34});
+  w.window.fire('lakbay:trip-rendered');
+  const r=w.container.getBoundingClientRect();
+  assert.equal(390-r.right,24); assert.equal(844-r.bottom,50);
 });

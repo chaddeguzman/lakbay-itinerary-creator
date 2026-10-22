@@ -6,10 +6,12 @@ function fixture() {
   assert.equal(typeof map.bindItineraryCardSelection, "function");
   const listeners = new Map(), selected = [], expanded = new Set();
   const root = { addEventListener(type, fn) { listeners.set(type, [...(listeners.get(type) || []),fn]); } };
+  const meal = { dataset:{mapMeal:"lunch"} };
   const card = { dataset:{stop:"tour"}, classList:{toggle:name=>expanded.has(name)?expanded.delete(name):expanded.add(name)} };
   function target(kind) {
     return { closest(selector) {
       if (selector === "[data-map-card]") return kind === "meal" ? null : card;
+      if (selector === "[data-map-meal]") return kind === "meal" ? meal : null;
       if (selector === ".activity-drag-handle") return kind === "handle" ? this : null;
       if (selector === ".activity-compact") return kind === "meal" ? null : card;
       if (selector === "button,a,input,select,textarea,label") return ["control","handle"].includes(kind) ? this : null;
@@ -32,7 +34,7 @@ test("card text and editor controls select a map without blocking their normal a
     assert.notEqual(e.prevented,true);
   }
   assert.deepEqual(f.selected,Array(6).fill("tour"));
-  f.fire("click","meal"); f.fire("click","handle");
+  f.fire("click","handle");
   assert.equal(f.selected.length,6);
 });
 
@@ -65,4 +67,14 @@ test("reselecting a card preserves the same map state and chosen tour stop", () 
   assert.equal(map.selectActivityMap(selected,"trip","tour"),selected);
   assert.deepEqual(map.selectActivityMap(selected,"trip","activity"),{tripId:"trip",stopId:"activity",locationIndex:0});
   assert.deepEqual(map.selectActivityMap(selected,"other","tour"),{tripId:"other",stopId:"tour",locationIndex:0});
+});
+
+
+test("meal clicks select the shared map without blocking native details controls", () => {
+  const f=fixture(), event=f.fire("click","meal");
+  assert.deepEqual(f.selected,["lunch"]);
+  assert.notEqual(event.prevented,true);
+  const current={tripId:"trip",stopId:"same",locationIndex:0};
+  assert.notEqual(map.selectActivityMap(current,"trip","same","meal"),current);
+  assert.equal(map.selectActivityMap({...current,entryType:"meal"},"trip","same","meal").entryType,"meal");
 });

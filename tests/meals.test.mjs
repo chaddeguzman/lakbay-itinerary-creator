@@ -279,8 +279,10 @@ test("meal time uses compact period, hour, and five-minute menus", () => {
     time: "12:30",
   });
   const html = panels(t).itineraryPanel(t);
-  assert.match(html, /href="https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=Old%20City%20Cafe"/);
-  assert.match(html, /target="_blank"/);
+  assert.match(html, /data-map-stop="meal"[\s\S]*?data-map-type="meal"/);
+  const foodHtml = panels(t).foodPanel(t);
+  assert.match(foodHtml, /href="https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=Old%20City%20Cafe"/);
+  assert.match(foodHtml, /target="_blank"/);
   const period = html.indexOf('data-time-trigger="period"');
   const hour = html.indexOf('data-time-trigger="hour"');
   const minute = html.indexOf('data-time-trigger="minute"');

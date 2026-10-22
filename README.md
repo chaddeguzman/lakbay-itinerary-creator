@@ -27,13 +27,17 @@ Trip information is not uploaded to GitHub or included in the deployment artifac
 
 ## Itinerary location preview
 
-Select an activity or tour card in Itinerary to preview its location in one shared map. Click its time, duration, title, location, or notes to select it. Use only the grip at the far-right edge to drag and reorder the card within its day. Editor controls keep their normal behavior. Clicking an already-selected card does not reload the map or reset its chosen tour stop. On wide screens the map stays on the right; narrower screens place it above the list. Tours provide a location selector and display one stop at a time. Existing Google Maps links and the separate Maps tab continue to work. Selection is temporary UI state and is not written into trip backups.
+Select an activity, tour, or meal card in Itinerary to preview its location in one shared map. Click its time, duration, title, location, or notes to select it. Use only the grip at the far-right edge to drag and reorder the card within its day. Editor controls keep their normal behavior. Clicking an already-selected card does not reload the map or reset its chosen tour stop. On wide screens the map stays on the right; narrower screens place it above the list. Tours provide a location selector and display one stop at a time. Meal names select the preview using the venue and trip destination; use Open in Google Maps in the preview for an external map. Meals without a venue show a prompt. The separate Food tab retains its external venue links, and the Maps tab continues to work. Selection is temporary UI state and is not written into trip backups.
 
 The preview uses only Google Maps Embed API place mode, with the entered location and trip destination. It does not use Places Text Search or Place Photos. Google currently lists Embed usage as free, but requires an API key and billing setup: [Maps Embed setup](https://developers.google.com/maps/documentation/embed/get-api-key).
 
 To enable live previews, enable Maps Embed API in a Google Cloud project and create a key restricted to **Websites** (`https://chaddeguzman.github.io/*`) and **Maps Embed API** only. Store it as the repository Actions secret `MAPS_EMBED_API_KEY`, then run the Pages deployment. The workflow injects it into the staged `scripts/maps-config.js`; committed source retains a placeholder. Browser keys are visible to visitors, so apply those restrictions. Without a configured key, the preview still identifies the selected place and offers its Google Maps link. Google may display its own errors inside the cross-origin iframe; the external link remains available.
 
 Local checkout previews retain the placeholder by default. For an isolated local test copy, inject a key restricted to an approved localhost URL into that copy; do not commit a key or relax the production key's restrictions.
+
+## TravelBot placement
+
+TravelBot starts at the bottom-right of the viewport with 24px margins on wide screens and 16px on screens up to 900px wide, plus device safe-area insets. It follows viewport resizing until manually moved. Mouse and touch dragging remain available; manual placement survives trip re-renders and is clamped inside the viewport after resizing. Opening chat keeps the mascot stationary.
 
 ## Back up and move your data
 

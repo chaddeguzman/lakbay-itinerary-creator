@@ -8,10 +8,10 @@ import {
 import { createActions } from "./actions.js?v=packing-move-20261019";
 import { defaultTravelDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
 import { createExportTools } from "./export.js?v=theme-aware-pdf-20261001";
-import { createPanelRenderers } from "./render-panels.js?v=card-selection-20261022";
+import { createPanelRenderers } from "./render-panels.js?v=meal-map-corner-20261022";
 import { bindTimePickers } from "./time-picker.js";
 import { bindPackingMovement } from "./packing.js";
-import { bindItineraryCardSelection, selectActivityMap } from "./itinerary-map.js?v=card-selection-20261022";
+import { bindItineraryCardSelection, selectActivityMap } from "./itinerary-map.js?v=meal-map-corner-20261022";
 import { MAPS_EMBED_API_KEY } from "./maps-config.js";
 
   // ---------------------------------------------------------------------------
@@ -458,12 +458,13 @@ import { MAPS_EMBED_API_KEY } from "./maps-config.js";
 
   function highlightItinerarySelection() {
     const tripId = Storage.active()?.id;
-    main.querySelectorAll("[data-map-card]").forEach(card => {
-      const selected = itineraryMapSelection?.tripId === tripId && card.dataset.stop === itineraryMapSelection?.stopId;
+    main.querySelectorAll("[data-map-card], [data-map-meal]").forEach(card => {
+      const entryType = card.hasAttribute("data-map-meal") ? "meal" : "activity";
+      const selected = itineraryMapSelection?.tripId === tripId && (card.dataset.mapMeal || card.dataset.stop) === itineraryMapSelection?.stopId && (itineraryMapSelection.entryType || "activity") === entryType;
       card.classList.toggle("is-map-selected", selected);
     });
     main.querySelectorAll('[data-action="preview-activity"]').forEach(button => {
-      const selected = itineraryMapSelection?.tripId === tripId && button.dataset.mapStop === itineraryMapSelection?.stopId;
+      const selected = itineraryMapSelection?.tripId === tripId && button.dataset.mapStop === itineraryMapSelection?.stopId && (itineraryMapSelection.entryType || "activity") === (button.dataset.mapType || "activity");
       button.setAttribute("aria-pressed", String(selected));
     });
   }
@@ -474,8 +475,8 @@ import { MAPS_EMBED_API_KEY } from "./maps-config.js";
     highlightItinerarySelection();
   }
   bindItineraryCardSelection(main, {
-    selectActivity(stopId) {
-      const next = selectActivityMap(itineraryMapSelection, Storage.active()?.id, stopId);
+    selectActivity(stopId, entryType) {
+      const next = selectActivityMap(itineraryMapSelection, Storage.active()?.id, stopId, entryType);
       if (next === itineraryMapSelection) return;
       itineraryMapSelection = next;
       updateItineraryMap();
