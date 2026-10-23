@@ -17,6 +17,15 @@ function panels(t, selection = null, key = "test-maps-key") {
     getTab:()=>"itinerary", today:()=>"2026-10-24", getMapSelection:()=>selection, mapsEmbedKey:key,
   });
 }
+
+function previewQueries(html) {
+  const embed = html.match(/<iframe[^>]*src="([^"]+)"/)[1],
+    external = html.match(/class="map-link itinerary-map-open" href="([^"]+)"/)[1];
+  return {
+    embed: new URL(embed.replaceAll("&amp;", "&")).searchParams.get("q"),
+    external: new URL(external.replaceAll("&amp;", "&")).searchParams.get("query"),
+  };
+}
 test("Itinerary starts with one shared map panel and no external iframe request", () => {
   const t = trip(), html = panels(t).itineraryPanel(t);
   assert.match(html, /Select an activity or meal to preview its location/);
@@ -24,11 +33,11 @@ test("Itinerary starts with one shared map panel and no external iframe request"
   assert.ok(!html.includes("<iframe"));
   assert.match(html, /data-action="preview-activity"[^>]*data-map-stop="restaurant"/);
 });
-test("selected activity uses only the free place embed and includes trip destination", () => {
+test("selected activity uses only the free place embed with its entered location", () => {
   const t = trip(), html = panels(t, {tripId:"trip", stopId:"restaurant", locationIndex:0}).itineraryPanel(t);
   assert.equal((html.match(/<iframe/g) || []).length, 1);
   assert.match(html, /google\.com\/maps\/embed\/v1\/place\?/);
-  assert.ok(html.includes("Punjabi+Rasoi+-+Brickfields%2C+Kuala+Lumpur%2C+Malaysia"));
+  assert.equal(previewQueries(html).embed, "Punjabi Rasoi - Brickfields");
   assert.match(html, /referrerpolicy="strict-origin-when-cross-origin"/);
   assert.match(html, /aria-pressed="true"/);
   assert.ok(!html.includes("places.googleapis.com"));
@@ -60,7 +69,7 @@ test("itinerary meals preview their venue without an external-link click or trip
   const before=structuredClone(t);
   const html=panels(t,{tripId:"trip",stopId:"restaurant",entryType:"meal"}).itineraryPanel(t);
   assert.equal((html.match(/<iframe/g)||[]).length,1);
-  assert.ok(html.includes("Jollibee+Brickfields%2C+Kuala+Lumpur%2C+Malaysia"));
+  assert.equal(previewQueries(html).embed, "Jollibee Brickfields");
   assert.match(html,/data-map-meal="restaurant"/);
   assert.match(html,/data-map-type="meal"[^>]*aria-controls="itinerary-location-preview" aria-pressed="true"/);
   assert.ok(!html.includes('>Jollibee Brickfields</a>'));
@@ -69,4 +78,27 @@ test("itinerary meals preview their venue without an external-link click or trip
   assert.ok(!panels(t,{tripId:"trip",stopId:"restaurant",entryType:"meal"}).itineraryPanel(t).includes("<iframe"));
   t.foodPlaces=[];
   assert.ok(!panels(t,{tripId:"trip",stopId:"restaurant",entryType:"meal"}).itineraryPanel(t).includes("<iframe"));
+});
+
+for (const entryType of ["meal", "activity", "tour"]) {
+  test(`${entryType} in a stopover city never inherits the overall trip destination`, () => {
+    const t = trip();
+    t.destination = "Chiang Mai, Thailand";
+    t.foodPlaces = [{id:"breakfast", venue:"Punjabi Rasoi - Brickfields", mealType:"Breakfast", visitDate:"2026-10-24", time:"10:30", durationMinutes:60}];
+    const selection = {tripId:t.id, stopId:entryType === "meal" ? "breakfast" : entryType === "tour" ? "tour" : "restaurant",
+      ...(entryType === "meal" ? {entryType:"meal"} : {})};
+    const expected = entryType === "tour" ? "Petronas Twin Towers" : "Punjabi Rasoi - Brickfields",
+      before = structuredClone(t), html = panels(t, selection).itineraryPanel(t);
+    assert.deepEqual(previewQueries(html), {embed:expected, external:expected});
+    assert.deepEqual(t, before);
+  });
+}
+
+test("explicit addresses and punctuation are preserved identically in both map links", () => {
+  const t = trip();
+  t.destination = "Chiang Mai, Thailand";
+  t.days[0].stops[0].location = "  Cafe & Bakery, 45 Jalan Thambipillay, Brickfields, Kuala Lumpur, Malaysia  ";
+  const html = panels(t, {tripId:t.id, stopId:"restaurant"}).itineraryPanel(t),
+    expected = t.days[0].stops[0].location.trim();
+  assert.deepEqual(previewQueries(html), {embed:expected, external:expected});
 });

@@ -8,10 +8,10 @@ import {
 import { createActions } from "./actions.js?v=packing-move-20261019";
 import { defaultTravelDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
 import { createExportTools } from "./export.js?v=theme-aware-pdf-20261001";
-import { createPanelRenderers } from "./render-panels.js?v=sticky-map-20261022";
+import { createPanelRenderers } from "./render-panels.js?v=map-query-20261023";
 import { bindTimePickers } from "./time-picker.js";
 import { bindPackingMovement } from "./packing.js";
-import { bindItineraryCardSelection, selectActivityMap } from "./itinerary-map.js?v=meal-map-corner-20261022";
+import { bindItineraryCardSelection, selectActivityMap } from "./itinerary-map.js?v=map-query-20261023";
 import { MAPS_EMBED_API_KEY } from "./maps-config.js";
 
   // ---------------------------------------------------------------------------

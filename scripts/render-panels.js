@@ -1,6 +1,6 @@
 import { MEAL_TYPES, MEAL_DURATIONS, mealDuration, mealGroup, mealsForDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
 import { formatTime12, timePickerHtml } from "./time-picker.js";
-import { activityMapSelection, placeEmbedUrl } from "./itinerary-map.js?v=meal-map-corner-20261022";
+import { activityMapSelection, placeEmbedUrl } from "./itinerary-map.js?v=map-query-20261023";
 
 export function createPanelRenderers(ctx) {
   const {
