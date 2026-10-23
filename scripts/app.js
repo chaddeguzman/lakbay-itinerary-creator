@@ -4,14 +4,14 @@ import {
   PACK_CATEGORIES,
   createStorage,
   normalizeTrip,
-} from "./state.js?v=day-map-context-20261023";
+} from "./state.js?v=root-map-locations-20261023";
 import { createActions } from "./actions.js?v=packing-move-20261019";
 import { defaultTravelDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
 import { createExportTools } from "./export.js?v=theme-aware-pdf-20261001";
-import { createPanelRenderers } from "./render-panels.js?v=day-map-context-20261023";
+import { createPanelRenderers } from "./render-panels.js?v=root-map-locations-20261023";
 import { bindTimePickers } from "./time-picker.js";
 import { bindPackingMovement } from "./packing.js";
-import { bindItineraryCardSelection, selectActivityMap } from "./itinerary-map.js?v=day-map-context-20261023";
+import { bindItineraryCardSelection, selectActivityMap } from "./itinerary-map.js?v=root-map-locations-20261023";
 import { MAPS_EMBED_API_KEY } from "./maps-config.js";
 
   // ---------------------------------------------------------------------------
@@ -483,15 +483,6 @@ import { MAPS_EMBED_API_KEY } from "./maps-config.js";
     },
   });
   main.addEventListener("click", event => {
-    const setLocation = event.target.closest('[data-action="set-day-map-location"]');
-    if (setLocation) {
-      const day = [...main.querySelectorAll('.panel.active [data-day]')]
-        .find(node => node.dataset.day === setLocation.dataset.mapDay),
-        field = day?.querySelector('[data-field="mapCity"]');
-      field?.scrollIntoView({block:"center"});
-      field?.focus({preventScroll:true});
-      return;
-    }
     if (!event.target.closest('[data-action="clear-map-preview"]')) return;
     itineraryMapSelection = null;
     updateItineraryMap();
@@ -584,8 +575,7 @@ import { MAPS_EMBED_API_KEY } from "./maps-config.js";
       venue: place?.venue || "",
       cuisine: place?.cuisine || "",
       location: place?.location || "",
-      mapCity: place?.mapCity || "",
-      mapCountry: place?.mapCountry || "",
+      savedPlaceId: place?.id || "",
       visitDate: date,
       mealType: type,
       durationMinutes: 30,

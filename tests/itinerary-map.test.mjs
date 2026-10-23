@@ -5,7 +5,7 @@ import { createPanelRenderers } from "../scripts/render-panels.js";
 globalThis.window = {};
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[c]);
 const trip = () => ({ id:"trip", destination:"Kuala Lumpur, Malaysia", days:[{
-  id:"day", date:"2026-10-24", title:"Explore", mapCity:"Kuala Lumpur", mapCountry:"Malaysia", expenses:[], stops:[
+  id:"day", date:"2026-10-24", title:"Explore", expenses:[], stops:[
     { id:"restaurant", kind:"activity", activity:"Lunch", location:"Punjabi Rasoi - Brickfields", time:"12:00", notes:"", done:false },
     { id:"tour", kind:"tour", activity:"City tour", tourLocations:["", "Petronas Twin Towers", "KLCC Park"], time:"14:00", endTime:"17:00", notes:"", done:false },
     { id:"empty", kind:"activity", activity:"Free time", location:"", notes:"" },
@@ -37,7 +37,7 @@ test("selected activity uses only the free place embed with its entered location
   const t = trip(), html = panels(t, {tripId:"trip", stopId:"restaurant", locationIndex:0}).itineraryPanel(t);
   assert.equal((html.match(/<iframe/g) || []).length, 1);
   assert.match(html, /google\.com\/maps\/embed\/v1\/place\?/);
-  assert.equal(previewQueries(html).embed, "Punjabi Rasoi - Brickfields, Kuala Lumpur, Malaysia");
+  assert.equal(previewQueries(html).embed, "Punjabi Rasoi - Brickfields");
   assert.match(html, /referrerpolicy="strict-origin-when-cross-origin"/);
   assert.match(html, /aria-pressed="true"/);
   assert.ok(!html.includes("places.googleapis.com"));
@@ -69,7 +69,7 @@ test("itinerary meals preview their venue without an external-link click or trip
   const before=structuredClone(t);
   const html=panels(t,{tripId:"trip",stopId:"restaurant",entryType:"meal"}).itineraryPanel(t);
   assert.equal((html.match(/<iframe/g)||[]).length,1);
-  assert.equal(previewQueries(html).embed, "Jollibee Brickfields, Kuala Lumpur, Malaysia");
+  assert.equal(previewQueries(html).embed, "Jollibee Brickfields near Punjabi Rasoi - Brickfields");
   assert.match(html,/data-map-meal="restaurant"/);
   assert.match(html,/data-map-type="meal"[^>]*aria-controls="itinerary-location-preview" aria-pressed="true"/);
   assert.ok(!html.includes('>Jollibee Brickfields</a>'));
@@ -89,7 +89,7 @@ for (const entryType of ["meal", "activity", "tour"]) {
       ...(entryType === "meal" ? {entryType:"meal"} : {})};
     const expected = entryType === "tour" ? "Petronas Twin Towers" : "Punjabi Rasoi - Brickfields",
       before = structuredClone(t), html = panels(t, selection).itineraryPanel(t);
-    const contextual = `${expected}, Kuala Lumpur, Malaysia`;
+    const contextual = expected;
     assert.deepEqual(previewQueries(html), {embed:contextual, external:contextual});
     assert.deepEqual(t, before);
   });

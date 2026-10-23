@@ -1,6 +1,6 @@
 import { MEAL_TYPES, MEAL_DURATIONS, mealDuration, mealGroup, mealsForDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
 import { formatTime12, timePickerHtml } from "./time-picker.js";
-import { activityMapSelection, placeEmbedUrl, mapEntryDay, mapLocationQuery } from "./itinerary-map.js?v=day-map-context-20261023";
+import { activityMapSelection, placeEmbedUrl, mealMapQuery, mapLocationQuery } from "./itinerary-map.js?v=root-map-locations-20261023";
 
 export function createPanelRenderers(ctx) {
   const {
@@ -53,11 +53,9 @@ export function createPanelRenderers(ctx) {
         <select data-itinerary-map-location>${preview.locations.map((location,index) =>
           `<option value="${index}" ${index === preview.index ? "selected" : ""}>${esc(location)}</option>`).join("")}</select></label>` : ""}
       ${preview.location ? `<p class="itinerary-map-place">${esc(preview.location)}</p>` : ""}
-      ${preview.query ? `<p class="itinerary-map-context">${esc(preview.context.city)}, ${esc(preview.context.country)}</p>` : ""}
       ${src ? `<iframe class="itinerary-map-frame" title="Map of ${esc(preview.location)}" width="400" height="400"
         src="${esc(src)}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>` :
-        `<p class="itinerary-map-empty" role="status">${!preview.location ? preview.entryType === "meal" ? "Add a venue to this meal to preview it." : "Add a location to this activity to preview it." : !preview.query ? preview.context.override ? "Complete both city and country in this entry's map override, or clear both to use the day's location." : "Set the city and country for this day to locate this place." : "Map preview is not available yet."}</p>`}
-      ${preview.location && !preview.query && !preview.context.override && preview.day ? `<button type="button" class="btn small secondary" data-action="set-day-map-location" data-map-day="${esc(preview.day.id)}">Set day location</button>` : ""}
+        `<p class="itinerary-map-empty" role="status">${!preview.location ? preview.entryType === "meal" ? "Add a venue or location to this meal to preview it." : "Add a location to this activity to preview it." : !preview.query ? "Add a location to this meal or schedule an activity with a location nearby." : "Map preview is not available yet."}</p>`}
       ${preview.query ? `<a class="map-link itinerary-map-open" href="${mapsUrl(preview.query)}" target="_blank" rel="noopener">Open in Google Maps ↗</a>` : ""}`;
   }
 
@@ -77,17 +75,7 @@ export function createPanelRenderers(ctx) {
       : "";
   }
   function entryMapsUrl(entry, location, trip = Storage.active?.(), entryType = "activity") {
-    return mapsUrl(mapLocationQuery(location, mapEntryDay(trip, entry, entryType), entry));
-  }
-  function mapLocationFields(record, { day = false, meal = false } = {}) {
-    const attribute = meal ? "data-record-field" : "data-field",
-      prefix = day ? "Day map" : "Override map";
-    return `<fieldset class="map-location-fields ${day ? "day-map-location" : "entry-map-location"} no-print">
-      <legend>${day ? "Map location for this day" : "Map location override (optional)"}</legend>
-      <div class="map-location-inputs"><label>City<input ${attribute}="mapCity" aria-label="${prefix} city" maxlength="120" value="${esc(record.mapCity || "")}" placeholder="${day ? "e.g. Kuala Lumpur" : "Use day's city"}"></label>
-      <label>Country<input ${attribute}="mapCountry" aria-label="${prefix} country" maxlength="120" value="${esc(record.mapCountry || "")}" placeholder="${day ? "e.g. Malaysia" : "Use day's country"}"></label></div>
-      <small>${day ? "Used for this day's maps. Set both fields; the trip destination and your current location are not used." : "For a stop in another city or country, set both fields. Leave both blank to use this day's location."}</small>
-      </fieldset>`;
+    return mapsUrl(entryType === "meal" ? mealMapQuery(trip, entry) : mapLocationQuery(location));
   }
   function mapsRouteUrl(locations) {
     const clean = locations.map((x) => String(x || "").trim()).filter(Boolean);
@@ -113,7 +101,7 @@ export function createPanelRenderers(ctx) {
           .filter(Boolean)
           .map((location, index) => ({
             location,
-            query: mapLocationQuery(location, day, stop),
+            query: mapLocationQuery(location),
             label: index
               ? `${routeStopLabel(stop)} stop ${index + 1}`
               : routeStopLabel(stop),
@@ -126,7 +114,7 @@ export function createPanelRenderers(ctx) {
         ? [
             {
               location,
-              query: mapLocationQuery(location, day, stop),
+              query: mapLocationQuery(location),
               label: routeStopLabel(stop),
               time: stop.time,
               kind: "Activity",
@@ -179,7 +167,7 @@ export function createPanelRenderers(ctx) {
         ${action}
         </div>
         </header>
-        ${blocked ? '<p class="expense-empty" role="status">Complete the map city and country for every stop in Itinerary before opening the day route. All stops are listed below.</p>' : ""}
+        ${blocked ? '<p class="expense-empty" role="status">Add a location for every stop before opening the day route. All stops are listed below.</p>' : ""}
         ${
           stops.length
             ? `<ol class="map-stop-list">${stops.map(mapStopHtml).join("")}</ol>
@@ -544,6 +532,7 @@ export function createPanelRenderers(ctx) {
       </summary>
       <div class="record-grid meal-fields">
       ${recordField("Venue", "venue", r.venue, "text", "meal-venue")}
+      ${recordField("Location", "location", r.location || "")}
       <label class="field">Meal type<select data-record-field="mealType">${MEAL_TYPES.map((type) =>
         `<option value="${type}" ${mealGroup(r.mealType) === type ? "selected" : ""}>${type}</option>`).join("")}</select></label>
       <div class="field meal-time-field">${timePickerHtml({
@@ -552,7 +541,6 @@ export function createPanelRenderers(ctx) {
       <label class="field">Duration<select data-record-field="durationMinutes">${MEAL_DURATIONS.map((minutes) =>
         `<option value="${minutes}" ${duration === minutes ? "selected" : ""}>${minutes} mins</option>`).join("")}</select></label>
       ${showDay ? `<label class="field">Day<select data-record-field="visitDate">${days}</select></label>` : ""}
-      ${mapLocationFields(r, {meal:true})}
       <label class="field full">Notes<textarea data-record-field="notes">${esc(r.notes)}</textarea></label>
       </div>
       <div class="meal-actions no-print"><button class="btn small danger" data-action="remove-record">Discard</button></div>
@@ -577,7 +565,6 @@ export function createPanelRenderers(ctx) {
         <div><h3>${esc(day.title)}</h3><small>${dayDateLabel(day.date)}</small></div>
         <div class="icon-actions no-print"><button type="button" class="day-collapse-button" data-action="toggle-day"
           aria-expanded="${!collapsedDays.has(day.id)}" aria-label="${collapsedDays.has(day.id) ? "Expand day" : "Collapse day"}">${collapsedDays.has(day.id) ? "⌄" : "⌃"}</button></div></header>
-        ${mapLocationFields(day, {day:true})}
         <div class="day-content food-groups">${MEAL_TYPES.map((type) => `<section class="food-group">
           <h4>${type}</h4>
           ${mealsForDay(t, day).filter((meal) => mealGroup(meal.mealType) === type)
@@ -783,7 +770,6 @@ export function createPanelRenderers(ctx) {
         </div>
         ${completed ? '<span class="day-completed-watermark" aria-label="Completed">✓ Completed</span>' : ""}
         </header>
-        ${mapLocationFields(d, {day:true})}
         <div class="day-content">${entries
           .map(({ kind, record, index }) => kind === "meal"
             ? mealCard(record, t, { mapPreview: true })
@@ -833,7 +819,7 @@ export function createPanelRenderers(ctx) {
             ? `${start} – ${formatTime12(record.endTime)}` : start,
           locations = kind === "meal" ? [record.location || record.venue]
             : record.kind === "tour" ? record.tourLocations || [] : [record.location],
-          cleanLocations = locations.map((value) => mapLocationQuery(String(value || "").trim(), day, record)).filter(Boolean),
+          cleanLocations = (kind === "meal" ? [mealMapQuery(trip, record)] : locations.map((value) => mapLocationQuery(value))).filter(Boolean),
           map = cleanLocations.length > 1 ? mapsRouteUrl(cleanLocations) : mapsUrl(cleanLocations[0] || "");
         return `<article data-entry-id="${esc(record.id)}" class="travel-day-entry${record.done ? " is-done" : ""}${isNext ? " is-next-stop" : ""}">
           <button type="button" class="travel-day-done-toggle" data-action="toggle-travel-day-done"
@@ -948,7 +934,6 @@ export function createPanelRenderers(ctx) {
         ↗</a>`
             : ""
         }</div>
-        ${mapLocationFields(s)}
         <div class="field notes">
         <label>Notes</label>
         <textarea
@@ -1390,7 +1375,6 @@ export function createPanelRenderers(ctx) {
           data-action="add-tour-location">＋
         Location</button>
         </div>
-        ${mapLocationFields(s)}
         <div class="field notes">
         <label>Notes</label>
         <textarea

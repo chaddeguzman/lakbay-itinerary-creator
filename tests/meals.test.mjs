@@ -264,7 +264,7 @@ test("day meal editor uses the clicked day and shows only informative fields", (
   assert.doesNotMatch(html, /data-record-field="visitDate"/);
   assert.doesNotMatch(html, /data-record-field="amount"/);
   assert.doesNotMatch(html, /data-record-field="currency"/);
-  assert.doesNotMatch(html, /data-record-field="location"/);
+  assert.match(html, /data-record-field="location"/);
   assert.doesNotMatch(html, /data-record-field="cuisine"/);
   assert.doesNotMatch(html, /data-record-field="reservation"/);
 });
@@ -276,6 +276,7 @@ test("meal time uses compact period, hour, and five-minute menus", () => {
     visitDate: t.days[0].date,
     mealType: "Lunch",
     venue: "Old City Cafe",
+    location: "Old City Cafe, Chiang Mai, Thailand",
     time: "12:30",
   });
   const html = panels(t).itineraryPanel(t);
