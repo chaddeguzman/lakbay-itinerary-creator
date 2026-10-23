@@ -24,7 +24,7 @@ function renderTrip() {
   return {
     id: "trip",
     days: [
-      { id: "day-1", date: "2026-10-28", stops: [
+      { id: "day-1", date: "2026-10-28", mapCity:"Chiang Mai", mapCountry:"Thailand", stops: [
         { id: "later", kind: "activity", time: "10:00", activity: "Temple", location: "Old City", done: false },
         { id: "tour", kind: "tour", time: "09:00", endTime: "09:45", timeMode: "range", activity: "Market", tourLocations: ["Gate", "Market"], done: false },
         { id: "untimed", kind: "activity", time: "", activity: "Wander", location: "", done: false },

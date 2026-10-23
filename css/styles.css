@@ -2464,6 +2464,14 @@ html[data-theme="dark"] .day .stop.time-overlap {
   pointer-events: auto;
 }
 .itinerary-map-preview h3 { margin: 0; min-width: 0; font-size: .85rem; color: var(--teal); }
+.itinerary-map-context { margin: 6px 0; font-size: .75rem; color: var(--muted); }
+.map-location-fields { min-width: 0; margin: 12px 0; padding: 10px; border: 1px solid var(--line); border-radius: 8px; }
+.map-location-fields legend { padding: 0 4px; font-size: .8rem; font-weight: 600; }
+.map-location-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr)); gap: 10px; }
+.map-location-inputs label { min-width: 0; display: grid; gap: 4px; font-size: .8rem; }
+.map-location-inputs input { width: 100%; min-width: 0; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--ink); font: inherit; }
+.map-location-fields small { display: block; margin-top: 6px; font-size: .72rem; color: var(--muted); }
+.entry-map-location { grid-column: 1 / -1; flex-basis: 100%; }
 .itinerary-map-preview .itinerary-map-place { margin: 6px 0; font-size: .75rem; }
 .itinerary-map-preview .itinerary-map-open { margin-top: 6px; font-size: .75rem; }
 .itinerary-map-preview .itinerary-map-heading > button { flex: 0 0 auto; }

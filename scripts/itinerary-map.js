@@ -1,3 +1,24 @@
+const mapText = value => typeof value === "string" ? value.trim() : "";
+
+export function mapEntryDay(trip, entry, entryType = "activity") {
+  return (trip?.days || []).find(day => entryType === "meal"
+    ? !!entry.visitDate && day.date === entry.visitDate
+    : (day.stops || []).some(stop => stop.id === entry.id));
+}
+
+export function mapLocationContext(day, entry = {}) {
+  const override = !!(mapText(entry.mapCity) || mapText(entry.mapCountry)),
+    source = override ? entry : day;
+  return {city:mapText(source?.mapCity), country:mapText(source?.mapCountry), override};
+}
+
+export function mapLocationQuery(location, day, entry = {}) {
+  const clean = mapText(location), {city, country} = mapLocationContext(day, entry);
+  if (!clean || !city || !country) return "";
+  const addressParts = clean.split(",").map(part => part.trim().toLowerCase());
+  return [clean, ...[city, country].filter(part => !addressParts.includes(part.toLowerCase()))].join(", ");
+}
+
 export function activityMapSelection(trip, selection) {
   if (!trip || selection?.tripId !== trip.id) return null;
   const entryType = selection.entryType === "meal" ? "meal" : "activity";
@@ -8,9 +29,9 @@ export function activityMapSelection(trip, selection) {
     .map(value => String(value || "").trim()).filter(Boolean);
   const index = Number.isInteger(selection.locationIndex) && selection.locationIndex >= 0 &&
     selection.locationIndex < locations.length ? selection.locationIndex : 0;
-  // Stopovers may be in another city or country than the overall trip.
-  const location = locations[index] || "", query = location;
-  return { stop, entryType, locations, index, location, query };
+  const location = locations[index] || "", day = mapEntryDay(trip, stop, entryType),
+    context = mapLocationContext(day, stop), query = mapLocationQuery(location, day, stop);
+  return { stop, entryType, locations, index, location, query, day, context };
 }
 
 export function placeEmbedUrl(query, key) {

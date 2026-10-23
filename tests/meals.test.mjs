@@ -6,7 +6,7 @@ import { createActions } from "../scripts/actions.js";
 import { defaultTravelDay, mealGroup, nextScheduledEntry, scheduledEntries, unscheduleMissingDays } from "../scripts/meals.js";
 import { createPanelRenderers } from "../scripts/render-panels.js";
 
-const day = (date = "2026-10-28") => ({ id: date, date, title: "Explore", stops: [], expenses: [] });
+const day = (date = "2026-10-28") => ({ id: date, date, title: "Explore", mapCity:"Chiang Mai", mapCountry:"Thailand", stops: [], expenses: [] });
 const trip = () => ({ id: "trip", days: [day()], foodPlaces: [], foodLibrary: [] });
 const esc = (value) => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 globalThis.window = {};
@@ -281,7 +281,7 @@ test("meal time uses compact period, hour, and five-minute menus", () => {
   const html = panels(t).itineraryPanel(t);
   assert.match(html, /data-map-stop="meal"[\s\S]*?data-map-type="meal"/);
   const foodHtml = panels(t).foodPanel(t);
-  assert.match(foodHtml, /href="https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=Old%20City%20Cafe"/);
+  assert.match(foodHtml, /href="https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=Old%20City%20Cafe%2C%20Chiang%20Mai%2C%20Thailand"/);
   assert.match(foodHtml, /target="_blank"/);
   const period = html.indexOf('data-time-trigger="period"');
   const hour = html.indexOf('data-time-trigger="hour"');
