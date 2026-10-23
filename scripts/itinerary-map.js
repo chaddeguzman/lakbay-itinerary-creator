@@ -6,17 +6,42 @@ export function mapEntryDay(trip, entry, entryType = "activity") {
     : (day.stops || []).some(stop => stop.id === entry.id));
 }
 
-export function mapLocationContext(day, entry = {}) {
-  const override = !!(mapText(entry.mapCity) || mapText(entry.mapCountry)),
-    source = override ? entry : day;
-  return {city:mapText(source?.mapCity), country:mapText(source?.mapCountry), override};
+// Existing entry locations are authoritative. A venue-only meal can borrow a
+// nearby scheduled root, never the trip-wide destination or the viewer's locale.
+export function mapLocationQuery(location) {
+  return mapText(location);
 }
 
-export function mapLocationQuery(location, day, entry = {}) {
-  const clean = mapText(location), {city, country} = mapLocationContext(day, entry);
-  if (!clean || !city || !country) return "";
-  const addressParts = clean.split(",").map(part => part.trim().toLowerCase());
-  return [clean, ...[city, country].filter(part => !addressParts.includes(part.toLowerCase()))].join(", ");
+const normalizedVenue = value => mapText(value).toLowerCase().replace(/\s+/g, " ");
+const minutes = value => /^\d{2}:\d{2}$/.test(value || "")
+  ? Number(value.slice(0, 2)) * 60 + Number(value.slice(3)) : null;
+
+export function mealMapQuery(trip, meal) {
+  const venue = mapText(meal.venue), ownLocation = mapText(meal.location),
+    matches = (trip?.foodLibrary || []).filter(place => normalizedVenue(place.venue) === normalizedVenue(venue)),
+    saved = (meal.savedPlaceId && (trip?.foodLibrary || []).find(place => place.id === meal.savedPlaceId)) ||
+      (venue && matches.length === 1 ? matches[0] : null),
+    location = ownLocation || mapText(saved?.location);
+  if (location) return !venue || normalizedVenue(location).includes(normalizedVenue(venue))
+    ? location : `${venue}, ${location}`;
+  if (!venue) return "";
+  const day = mapEntryDay(trip, meal, "meal"), targetTime = minutes(meal.time),
+    roots = (day?.stops || []).flatMap(stop => {
+      const locations = (stop.kind === "tour" ? stop.tourLocations || [] : [stop.location]).map(mapText).filter(Boolean);
+      if (!locations.length) return [];
+      const roots = [{location:locations[0], time:minutes(stop.time)}], end = minutes(stop.endTime), start = minutes(stop.time);
+      // Once a tour finishes, its last destination is the useful nearby root.
+      if (stop.kind === "tour" && locations.length > 1 && end !== null && start !== null && end >= start)
+        roots.push({location:locations.at(-1), time:end});
+      return roots;
+    }),
+    timed = roots.filter(root => root.time !== null).sort((a,b) => a.time - b.time),
+    preceding = targetTime === null ? [] : timed.filter(root => root.time <= targetTime),
+    unique = [...new Set(roots.map(root => root.location))],
+    anchor = targetTime !== null && timed.length
+      ? (preceding.at(-1) || timed[0]).location : unique.length === 1 ? unique[0] : "";
+  return anchor && normalizedVenue(anchor) !== normalizedVenue(venue) ? `${venue} near ${anchor}`
+    : anchor || "";
 }
 
 export function activityMapSelection(trip, selection) {
@@ -25,13 +50,14 @@ export function activityMapSelection(trip, selection) {
   const stop = (entryType === "meal" ? trip.foodPlaces || [] : trip.days.flatMap(day => day.stops || []))
     .find(item => item.id === selection.stopId);
   if (!stop) return null;
-  const locations = (entryType === "meal" ? [stop.venue] : stop.kind === "tour" ? stop.tourLocations || [] : [stop.location])
+  const mealQuery = entryType === "meal" ? mealMapQuery(trip, stop) : "";
+  const locations = (entryType === "meal" ? [stop.venue || stop.location || mealQuery] : stop.kind === "tour" ? stop.tourLocations || [] : [stop.location])
     .map(value => String(value || "").trim()).filter(Boolean);
   const index = Number.isInteger(selection.locationIndex) && selection.locationIndex >= 0 &&
     selection.locationIndex < locations.length ? selection.locationIndex : 0;
   const location = locations[index] || "", day = mapEntryDay(trip, stop, entryType),
-    context = mapLocationContext(day, stop), query = mapLocationQuery(location, day, stop);
-  return { stop, entryType, locations, index, location, query, day, context };
+    query = entryType === "meal" ? mealQuery : mapLocationQuery(location);
+  return { stop, entryType, locations, index, location, query, day };
 }
 
 export function placeEmbedUrl(query, key) {

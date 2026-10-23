@@ -17,19 +17,12 @@ export const DEFAULT_PACK = [
   "Travel documents",
 ];
 
-function normalizeMapLocation(record) {
-  for (const field of ["mapCity", "mapCountry"])
-    record[field] = typeof record[field] === "string" ? record[field].trim().slice(0, 120) : "";
-}
-
 export function normalizeTrip(t) {
   t.days = Array.isArray(t.days) ? t.days : [];
   t.days.forEach((d) => {
-    normalizeMapLocation(d);
     d.title = String(d.title || "").slice(0, 40);
     d.stops = Array.isArray(d.stops) ? d.stops : [];
     d.stops.forEach((s) => {
-      normalizeMapLocation(s);
       s.kind = s.kind === "tour" ? "tour" : "activity";
       s.done = !!s.done;
       s.timeMode =
@@ -59,7 +52,6 @@ export function normalizeTrip(t) {
     t.foodPlaces = t.foodPlaces.filter((item) => !!item.visitDate);
   }
   t.foodPlaces.forEach((meal) => {
-    normalizeMapLocation(meal);
     meal.done = !!meal.done;
     const group = mealGroup(meal.mealType);
     if (group === "Other" && meal.mealType && String(meal.mealType).toLowerCase() !== "other")
