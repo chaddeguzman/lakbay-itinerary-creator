@@ -8,9 +8,8 @@ export function activityMapSelection(trip, selection) {
     .map(value => String(value || "").trim()).filter(Boolean);
   const index = Number.isInteger(selection.locationIndex) && selection.locationIndex >= 0 &&
     selection.locationIndex < locations.length ? selection.locationIndex : 0;
-  const location = locations[index] || "", destination = String(trip.destination || "").trim();
-  const query = location && destination && !location.toLowerCase().includes(destination.toLowerCase())
-    ? `${location}, ${destination}` : location;
+  // Stopovers may be in another city or country than the overall trip.
+  const location = locations[index] || "", query = location;
   return { stop, entryType, locations, index, location, query };
 }
 
