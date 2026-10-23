@@ -1,6 +1,6 @@
 import { MEAL_TYPES, MEAL_DURATIONS, mealDuration, mealGroup, mealsForDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
 import { formatTime12, timePickerHtml } from "./time-picker.js";
-import { activityMapSelection, placeEmbedUrl } from "./itinerary-map.js?v=map-query-20261023";
+import { activityMapSelection, placeEmbedUrl, mapEntryDay, mapLocationQuery } from "./itinerary-map.js?v=day-map-context-20261023";
 
 export function createPanelRenderers(ctx) {
   const {
@@ -53,10 +53,12 @@ export function createPanelRenderers(ctx) {
         <select data-itinerary-map-location>${preview.locations.map((location,index) =>
           `<option value="${index}" ${index === preview.index ? "selected" : ""}>${esc(location)}</option>`).join("")}</select></label>` : ""}
       ${preview.location ? `<p class="itinerary-map-place">${esc(preview.location)}</p>` : ""}
+      ${preview.query ? `<p class="itinerary-map-context">${esc(preview.context.city)}, ${esc(preview.context.country)}</p>` : ""}
       ${src ? `<iframe class="itinerary-map-frame" title="Map of ${esc(preview.location)}" width="400" height="400"
         src="${esc(src)}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>` :
-        `<p class="itinerary-map-empty">${preview.location ? "Map preview is not available yet." : preview.entryType === "meal" ? "Add a venue to this meal to preview it." : "Add a location to this activity to preview it."}</p>`}
-      ${preview.location ? `<a class="map-link itinerary-map-open" href="${mapsUrl(preview.query)}" target="_blank" rel="noopener">Open in Google Maps ↗</a>` : ""}`;
+        `<p class="itinerary-map-empty" role="status">${!preview.location ? preview.entryType === "meal" ? "Add a venue to this meal to preview it." : "Add a location to this activity to preview it." : !preview.query ? preview.context.override ? "Complete both city and country in this entry's map override, or clear both to use the day's location." : "Set the city and country for this day to locate this place." : "Map preview is not available yet."}</p>`}
+      ${preview.location && !preview.query && !preview.context.override && preview.day ? `<button type="button" class="btn small secondary" data-action="set-day-map-location" data-map-day="${esc(preview.day.id)}">Set day location</button>` : ""}
+      ${preview.query ? `<a class="map-link itinerary-map-open" href="${mapsUrl(preview.query)}" target="_blank" rel="noopener">Open in Google Maps ↗</a>` : ""}`;
   }
 
   function mapActivityTitle(stop, fallback, entryType = "activity") {
@@ -73,6 +75,19 @@ export function createPanelRenderers(ctx) {
       ? "https://www.google.com/maps/search/?api=1&query=" +
           encodeURIComponent(location)
       : "";
+  }
+  function entryMapsUrl(entry, location, trip = Storage.active?.(), entryType = "activity") {
+    return mapsUrl(mapLocationQuery(location, mapEntryDay(trip, entry, entryType), entry));
+  }
+  function mapLocationFields(record, { day = false, meal = false } = {}) {
+    const attribute = meal ? "data-record-field" : "data-field",
+      prefix = day ? "Day map" : "Override map";
+    return `<fieldset class="map-location-fields ${day ? "day-map-location" : "entry-map-location"} no-print">
+      <legend>${day ? "Map location for this day" : "Map location override (optional)"}</legend>
+      <div class="map-location-inputs"><label>City<input ${attribute}="mapCity" aria-label="${prefix} city" maxlength="120" value="${esc(record.mapCity || "")}" placeholder="${day ? "e.g. Kuala Lumpur" : "Use day's city"}"></label>
+      <label>Country<input ${attribute}="mapCountry" aria-label="${prefix} country" maxlength="120" value="${esc(record.mapCountry || "")}" placeholder="${day ? "e.g. Malaysia" : "Use day's country"}"></label></div>
+      <small>${day ? "Used for this day's maps. Set both fields; the trip destination and your current location are not used." : "For a stop in another city or country, set both fields. Leave both blank to use this day's location."}</small>
+      </fieldset>`;
   }
   function mapsRouteUrl(locations) {
     const clean = locations.map((x) => String(x || "").trim()).filter(Boolean);
@@ -98,6 +113,7 @@ export function createPanelRenderers(ctx) {
           .filter(Boolean)
           .map((location, index) => ({
             location,
+            query: mapLocationQuery(location, day, stop),
             label: index
               ? `${routeStopLabel(stop)} stop ${index + 1}`
               : routeStopLabel(stop),
@@ -110,6 +126,7 @@ export function createPanelRenderers(ctx) {
         ? [
             {
               location,
+              query: mapLocationQuery(location, day, stop),
               label: routeStopLabel(stop),
               time: stop.time,
               kind: "Activity",
@@ -124,7 +141,7 @@ export function createPanelRenderers(ctx) {
         index,
         stops: dayRouteStops(day),
       })),
-      totalStops = days.reduce((sum, item) => sum + item.stops.length, 0);
+      totalStops = days.reduce((sum, item) => sum + item.stops.filter(stop => stop.query).length, 0);
     return `<section class="panel ${getTab() === "maps" ? "active" : ""}" data-panel="maps">
         <h2>Map view</h2>
         <p>Open each day as a Google Maps route, with stops arranged in your itinerary order.</p>
@@ -135,18 +152,19 @@ export function createPanelRenderers(ctx) {
         </div>
         <div class="budget-card">
         <small>Days with routes</small>
-        <strong>${days.filter((item) => item.stops.length > 1).length}</strong>
+        <strong>${days.filter((item) => item.stops.length > 1 && item.stops.every(stop => stop.query)).length}</strong>
         </div>
         </div>
         <div class="map-days">${days.map(mapDayHtml).join("")}</div>
         </section>`;
   }
   function mapDayHtml({ day, index, stops }) {
-    const locations = stops.map((stop) => stop.location),
-      routeUrl = mapsRouteUrl(locations),
+    const locations = stops.map((stop) => stop.query),
+      blocked = stops.some(stop => !stop.query),
+      routeUrl = blocked ? "" : mapsRouteUrl(locations),
       hasRoute = stops.length > 1,
       actionLabel = hasRoute ? "Open day route" : "Open place",
-      action = stops.length
+      action = stops.length && !blocked
         ? `<a class="btn small secondary no-print" target="_blank" rel="noopener"
           href="${routeUrl}">${actionLabel}</a>`
         : "";
@@ -161,6 +179,7 @@ export function createPanelRenderers(ctx) {
         ${action}
         </div>
         </header>
+        ${blocked ? '<p class="expense-empty" role="status">Complete the map city and country for every stop in Itinerary before opening the day route. All stops are listed below.</p>' : ""}
         ${
           stops.length
             ? `<ol class="map-stop-list">${stops.map(mapStopHtml).join("")}</ol>
@@ -178,8 +197,8 @@ export function createPanelRenderers(ctx) {
         <strong>${esc(stop.label)}</strong>
         <small>${esc(time)} &middot; ${esc(stop.kind)}</small>
         </div>
-        <a class="map-link" target="_blank" rel="noopener"
-          href="${mapsUrl(stop.location)}">${esc(stop.location)}</a>
+        ${stop.query ? `<a class="map-link" target="_blank" rel="noopener"
+          href="${mapsUrl(stop.query)}">${esc(stop.location)}</a>` : `<span>${esc(stop.location)} · Set map city and country</span>`}
         </li>`;
   }
   const WEATHER_CODES = {
@@ -514,13 +533,13 @@ export function createPanelRenderers(ctx) {
     const days = `<option value="">Unscheduled</option>${t.days.map((d, i) =>
       `<option value="${esc(d.date)}" ${d.date === r.visitDate ? "selected" : ""}>Day ${i} · ${esc(dayDateLabel(d.date))}</option>`).join("")}`;
     const timeLabel = (value) => /^\d{2}:\d{2}$/.test(value || "") ? formatTime12(value) : value;
-    const venue = String(r.venue || "").trim(),
+    const venue = String(r.venue || "").trim(), venueMap = entryMapsUrl(r, venue, t, "meal"),
       notes = String(r.notes || ""),
       duration = mealDuration(r.durationMinutes),
       timeKey = `meal:${r.id}:time`;
     return `<details class="meal-card${r.done ? " is-done" : ""}" data-record-type="food" data-record="${esc(r.id)}" ${mapPreview ? `data-map-meal="${esc(r.id)}"` : ""} ${openMealCards.has(r.id) ? "open" : ""}>
       <summary><span class="meal-timing"><span>${esc(timeLabel(r.time) || "No time")}${r.timeMode === "range" && r.endTime ? `–${esc(timeLabel(r.endTime))}` : ""}</span><span class="meal-duration">(${duration === 60 ? "1 hr" : `${duration} min`})</span></span>
-      <strong>[${esc(r.mealType || "Other")}] ${mapPreview ? mapActivityTitle({id:r.id,activity:venue}, "New meal", "meal") : venue ? `<a target="_blank" rel="noopener" href="${mapsUrl(venue)}">${esc(venue)}</a>` : "New meal"}</strong>
+      <strong>[${esc(r.mealType || "Other")}] ${mapPreview ? mapActivityTitle({id:r.id,activity:venue}, "New meal", "meal") : venueMap ? `<a target="_blank" rel="noopener" href="${venueMap}">${esc(venue)}</a>` : esc(venue) || "New meal"}</strong>
       ${notes.trim() ? `<span class="meal-notes-preview">${esc(notes)}</span>` : ""}
       </summary>
       <div class="record-grid meal-fields">
@@ -533,6 +552,7 @@ export function createPanelRenderers(ctx) {
       <label class="field">Duration<select data-record-field="durationMinutes">${MEAL_DURATIONS.map((minutes) =>
         `<option value="${minutes}" ${duration === minutes ? "selected" : ""}>${minutes} mins</option>`).join("")}</select></label>
       ${showDay ? `<label class="field">Day<select data-record-field="visitDate">${days}</select></label>` : ""}
+      ${mapLocationFields(r, {meal:true})}
       <label class="field full">Notes<textarea data-record-field="notes">${esc(r.notes)}</textarea></label>
       </div>
       <div class="meal-actions no-print"><button class="btn small danger" data-action="remove-record">Discard</button></div>
@@ -557,6 +577,7 @@ export function createPanelRenderers(ctx) {
         <div><h3>${esc(day.title)}</h3><small>${dayDateLabel(day.date)}</small></div>
         <div class="icon-actions no-print"><button type="button" class="day-collapse-button" data-action="toggle-day"
           aria-expanded="${!collapsedDays.has(day.id)}" aria-label="${collapsedDays.has(day.id) ? "Expand day" : "Collapse day"}">${collapsedDays.has(day.id) ? "⌄" : "⌃"}</button></div></header>
+        ${mapLocationFields(day, {day:true})}
         <div class="day-content food-groups">${MEAL_TYPES.map((type) => `<section class="food-group">
           <h4>${type}</h4>
           ${mealsForDay(t, day).filter((meal) => mealGroup(meal.mealType) === type)
@@ -762,6 +783,7 @@ export function createPanelRenderers(ctx) {
         </div>
         ${completed ? '<span class="day-completed-watermark" aria-label="Completed">✓ Completed</span>' : ""}
         </header>
+        ${mapLocationFields(d, {day:true})}
         <div class="day-content">${entries
           .map(({ kind, record, index }) => kind === "meal"
             ? mealCard(record, t, { mapPreview: true })
@@ -811,7 +833,7 @@ export function createPanelRenderers(ctx) {
             ? `${start} – ${formatTime12(record.endTime)}` : start,
           locations = kind === "meal" ? [record.location || record.venue]
             : record.kind === "tour" ? record.tourLocations || [] : [record.location],
-          cleanLocations = locations.map((value) => String(value || "").trim()).filter(Boolean),
+          cleanLocations = locations.map((value) => mapLocationQuery(String(value || "").trim(), day, record)).filter(Boolean),
           map = cleanLocations.length > 1 ? mapsRouteUrl(cleanLocations) : mapsUrl(cleanLocations[0] || "");
         return `<article data-entry-id="${esc(record.id)}" class="travel-day-entry${record.done ? " is-done" : ""}${isNext ? " is-next-stop" : ""}">
           <button type="button" class="travel-day-done-toggle" data-action="toggle-travel-day-done"
@@ -860,7 +882,7 @@ export function createPanelRenderers(ctx) {
   }
 
   function stopHtml(s, j, hasOverlap = false, isNextUp = false) {
-    const map = mapsUrl(s.location),
+    const map = entryMapsUrl(s, s.location),
       range = s.timeMode === "range",
       duration = range ? durationLabel(s.time, s.endTime) : "",
       isUnscheduled = !s.time,
@@ -926,6 +948,7 @@ export function createPanelRenderers(ctx) {
         ↗</a>`
             : ""
         }</div>
+        ${mapLocationFields(s)}
         <div class="field notes">
         <label>Notes</label>
         <textarea
@@ -1254,17 +1277,17 @@ export function createPanelRenderers(ctx) {
       const plain = `<span>${esc(locations.join(" → "))}</span>`,
         linked = `<span>${locations
           .map(
-            (location) => `<a class="map-link compact-location-link"
-          target="_blank" rel="noopener" href="${mapsUrl(location)}">${esc(location)}</a>`,
+            (location) => entryMapsUrl(s, location) ? `<a class="map-link compact-location-link"
+          target="_blank" rel="noopener" href="${entryMapsUrl(s, location)}">${esc(location)}</a>` : esc(location),
           )
           .join(" → ")}</span>`;
       return html.replace(plain, linked);
     }
-    if (!s.location) return html;
+    if (!s.location || !entryMapsUrl(s, s.location)) return html;
     return html.replace(
       `<span>${esc(s.location)}</span>`,
       `<a class="map-link compact-location-link" target="_blank" rel="noopener"
-          href="${mapsUrl(s.location)}">${esc(s.location)}</a>`,
+          href="${entryMapsUrl(s, s.location)}">${esc(s.location)}</a>`,
     );
   }
   function entryHtml(s, j, hasOverlap = false, isNextUp = false) {
@@ -1347,9 +1370,9 @@ export function createPanelRenderers(ctx) {
           data-tour-location-index="${i}"
           value="${esc(location)}"
           placeholder="Enter a tour location">${
-            location
+            entryMapsUrl(s, location)
               ? `<a
-          class="map-link" target="_blank" rel="noopener" href="${mapsUrl(location)}"
+          class="map-link" target="_blank" rel="noopener" href="${entryMapsUrl(s, location)}"
           title="Open in Google Maps">↗</a>`
               : ""
           }<button
@@ -1367,6 +1390,7 @@ export function createPanelRenderers(ctx) {
           data-action="add-tour-location">＋
         Location</button>
         </div>
+        ${mapLocationFields(s)}
         <div class="field notes">
         <label>Notes</label>
         <textarea
