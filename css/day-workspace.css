@@ -2,7 +2,7 @@
 .day-workspace {
   --workspace-sticky-top: 140px;
   display: grid;
-  grid-template-columns: 168px minmax(0, 1fr);
+  grid-template-columns: 224px minmax(0, 1fr);
   height: var(--workspace-height, 65dvh);
   min-width: 0;
   border: 1px solid var(--line);
@@ -116,7 +116,7 @@
   .workspace-entry-body .fields { grid-template-columns: minmax(0, 1fr); }
 }
 @media screen and (min-width: 901px) and (max-width: 1200px) {
-  .day-workspace { grid-template-columns: 136px minmax(0, 1fr); }
+  .day-workspace { grid-template-columns: 184px minmax(0, 1fr); }
   .day-workspace-details { padding: 12px; }
 }
 
@@ -135,7 +135,7 @@
     border-radius: 16px 16px 0 0;
     overscroll-behavior-inline: contain;
   }
-  .workspace-day { width: 116px; min-height: 70px; padding: 8px 10px; }
+  .workspace-day { width: 160px; min-height: 70px; padding: 8px 10px; }
   .workspace-day.is-selected { box-shadow: inset 0 -3px var(--teal); }
   .workspace-entry-summary, .day-workspace .meal-card > summary { scroll-margin-top: calc(var(--workspace-sticky-top) + var(--workspace-daybar-height, 120px) + 8px); }
   .day-workspace-details { overflow: visible; padding: 12px; border-radius: 0 0 16px 16px; }
