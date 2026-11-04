@@ -78,3 +78,27 @@ test("meal clicks select the shared map without blocking native details controls
   assert.notEqual(map.selectActivityMap(current,"trip","same","meal"),current);
   assert.equal(map.selectActivityMap({...current,entryType:"meal"},"trip","same","meal").entryType,"meal");
 });
+
+test("workspace disclosures toggle one entry while links and editor controls keep their actions", () => {
+  const listeners = new Map(), toggled = [], selected = [];
+  const root = {addEventListener(type, fn) { listeners.set(type, [...(listeners.get(type) || []), fn]); }};
+  map.bindItineraryCardSelection(root, {toggleEntry: (id, kind) => toggled.push({id, kind}), selectActivity: id => selected.push(id)});
+  const button = {dataset: {entryId: "tour", entryKind: "activity"}};
+  const mealCard = {dataset: {record: "lunch"}, matches: selector => selector === ".meal-card"};
+  const mealSummary = {parentElement: mealCard};
+  function fire(kind) {
+    const event = {target: {closest(selector) {
+      if (selector === '[data-action="toggle-workspace-entry"]') return kind === "summary" ? button : null;
+      if (selector === "summary") return kind.startsWith("meal") ? mealSummary : null;
+      if (selector === "button,a,input,select,textarea,label") return ["meal-link", "control", "handle"].includes(kind) ? this : null;
+      return null;
+    }}, preventDefault() {this.prevented = true;}, stopImmediatePropagation() {this.stopped = true;}};
+    for (const fn of listeners.get("click")) {fn(event); if (event.stopped) break;}
+    return event;
+  }
+  assert.equal(fire("summary").prevented, true);
+  assert.equal(fire("meal-summary").prevented, true);
+  for (const kind of ["meal-link", "control", "handle"]) assert.notEqual(fire(kind).prevented, true);
+  assert.deepEqual(toggled, [{id: "tour", kind: "activity"}, {id: "lunch", kind: "meal"}]);
+  assert.deepEqual(selected, []);
+});

@@ -73,7 +73,7 @@ export function selectActivityMap(current, tripId, stopId, entryType = "activity
 
 // Capture clicks before editor controls render or stop propagation. Selection
 // only updates the map panel, so inputs keep their native focus and behavior.
-export function bindItineraryCardSelection(root, { selectActivity }) {
+export function bindItineraryCardSelection(root, { selectActivity, toggleEntry }) {
   let suppressReleaseClick = false;
   root.addEventListener("pointerdown", () => { suppressReleaseClick = false; }, true);
   root.addEventListener("keydown", () => { suppressReleaseClick = false; }, true);
@@ -91,6 +91,18 @@ export function bindItineraryCardSelection(root, { selectActivity }) {
       suppressReleaseClick = false;
       event.preventDefault();
       event.stopImmediatePropagation();
+      return;
+    }
+    if (toggleEntry) {
+      const button = event.target.closest('[data-action="toggle-workspace-entry"]'),
+        summary = event.target.closest("summary"),
+        meal = summary?.parentElement?.matches(".meal-card") ? summary.parentElement : null;
+      if (button || (meal && !event.target.closest("button,a,input,select,textarea,label"))) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        toggleEntry(button ? button.dataset.entryId : meal.dataset.record, button ? button.dataset.entryKind : "meal");
+      }
+      // Editor controls and links must never implicitly change expansion/map state.
       return;
     }
     const meal = event.target.closest("[data-map-meal]"),

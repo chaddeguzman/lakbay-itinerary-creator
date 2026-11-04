@@ -1,6 +1,6 @@
 import { MEAL_TYPES, MEAL_DURATIONS, mealDuration, mealGroup, mealsForDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
 import { formatTime12, timePickerHtml } from "./time-picker.js";
-import { activityMapSelection, placeEmbedUrl, mealMapQuery, mapLocationQuery } from "./itinerary-map.js?v=root-map-locations-20261023";
+import { activityMapSelection, placeEmbedUrl, mealMapQuery, mapLocationQuery } from "./itinerary-map.js?v=compact-days-20261104";
 
 export function createPanelRenderers(ctx) {
   const {
@@ -13,6 +13,7 @@ export function createPanelRenderers(ctx) {
     fmt,
     getTab,
     getMapSelection,
+    getDayWorkspace,
     mapsEmbedKey,
     money,
     openMealCards,
@@ -24,22 +25,51 @@ export function createPanelRenderers(ctx) {
   } = ctx;
 
   function itineraryPanel(t) {
-    const collapsedDays = new Set(
-      Storage.read().ui.collapsedDaysByTrip[t.id] || [],
-    );
-    return `<section
-      class="panel ${getTab() === "itinerary" ? "active" : ""}"
-      data-panel="itinerary">
-      <div class="itinerary-layout">
-      <div class="itinerary-toolbar no-print"><button type="button" class="btn secondary"
-        data-action="open-travel-day">Travel Day</button>
-      <aside class="itinerary-map-preview no-print" id="itinerary-location-preview" aria-label="Selected itinerary map">
-        ${itineraryMapPanel(t)}
-      </aside>
-      </div>
-      <div class="itinerary-days">${t.days.map((d, i) => dayHtml(t, d, i, collapsedDays.has(d.id))).join("")}</div>
-      </div>
-    </section>`;
+    const selection = workspaceSelection(t, "itinerary"), day = t.days.find(d => d.id === selection.dayId);
+    return `<section class="panel ${getTab() === "itinerary" ? "active" : ""}" data-panel="itinerary">
+      ${dayWorkspaceHtml(t, "itinerary", selection, day ? dayHtml(t, day, t.days.indexOf(day)) : '<p class="empty-day-notice">No days in this trip.</p>')}
+      ${printItinerary(t)}</section>`;
+  }
+
+  function workspaceSelection(t, tab) {
+    if (getDayWorkspace) return getDayWorkspace(t, tab);
+    // Renderer callers without the live controller (exports/tests) default to day zero.
+    const map = getMapSelection?.();
+    return { dayId: t.days[0]?.id || null, openEntry: map?.tripId === t.id
+      ? { kind: map.entryType || "activity", id: map.stopId } : null };
+  }
+
+  function isWorkspaceEntryOpen(t, kind, id, panelTab = "itinerary") {
+    if (panelTab !== getTab()) return false;
+    const selection = workspaceSelection(t, panelTab);
+    return selection.openEntry?.kind === kind && selection.openEntry.id === id;
+  }
+
+  function dayWorkspaceHtml(t, tab, selection, content) {
+    return `<div class="day-workspace">
+      <nav class="day-workspace-nav no-print" aria-label="${tab === "food" ? "Food" : "Itinerary"} days">
+        ${t.days.map((d, i) => `<button type="button" class="workspace-day${d.id === selection.dayId ? " is-selected" : ""}"
+          data-action="select-workspace-day" data-day-id="${esc(d.id)}" aria-pressed="${d.id === selection.dayId}"
+          title="Day ${i} · ${esc(d.title || dayDateLabel(d.date))}">
+          <strong>Day ${i}</strong><small>${esc(dayDateLabel(d.date))}</small>
+          ${d.title ? `<span>${esc(d.title)}</span>` : ""}</button>`).join("")}
+      </nav><div class="day-workspace-details" tabindex="0" aria-label="Selected day details">
+        ${tab === "itinerary" ? '<div class="workspace-tools no-print"><button type="button" class="btn small secondary" data-action="open-travel-day">Travel Day</button></div>' : ""}
+        ${content}</div></div>`;
+  }
+
+  function expandedEntryMapHtml(t, kind, id, panelTab = "itinerary") {
+    if (!isWorkspaceEntryOpen(t, kind, id, panelTab)) return "";
+    return `<aside class="workspace-entry-map no-print" id="itinerary-location-preview" aria-label="Entry location map">${itineraryMapPanel(t)}</aside>`;
+  }
+
+  function printItinerary(t) {
+    return `<section class="workspace-print print-only" aria-label="Complete itinerary">${t.days.map((day, i) =>
+      `<article><h2>Day ${i} · ${esc(day.title)}</h2><p>${esc(dayDateLabel(day.date))}</p>${scheduledEntries(t, day).map(({kind, record: r}) =>
+        `<div class="workspace-print-entry"><h3>${esc(r.time ? formatTime12(r.time) : "Unscheduled")}${r.endTime ? ` – ${esc(formatTime12(r.endTime))}` : ""} · ${esc(kind === "meal" ? `[${r.mealType || "Other"}] ${r.venue || "Meal"}` : r.activity || (r.kind === "tour" ? "Tour" : "Activity"))}${r.done ? " · Completed" : ""}</h3>
+        ${kind === "meal" ? `<p>(${mealDuration(r.durationMinutes)} min)</p>` : r.endTime ? `<p>${esc(durationLabel(r.time, r.endTime))}</p>` : ""}
+        <p>${esc(kind === "meal" ? r.location || "" : r.kind === "tour" ? (r.tourLocations || []).filter(Boolean).join(" → ") : r.location || "")}</p>
+        <p class="workspace-print-notes">${esc(r.notes || "")}</p></div>`).join("") || '<p>Day is empty.</p>'}</article>`).join("")}</section>`;
   }
 
   function itineraryMapPanel(t) {
@@ -47,8 +77,7 @@ export function createPanelRenderers(ctx) {
     if (!preview) return `<h3>Location preview</h3><p class="itinerary-map-empty">Select an activity or meal to preview its location.</p>`;
     const title = preview.entryType === "meal" ? preview.stop.venue || "Meal" : preview.stop.activity || (preview.stop.kind === "tour" ? "Tour" : "Activity"),
       src = placeEmbedUrl(preview.query, mapsEmbedKey);
-    return `<div class="itinerary-map-heading"><h3>${esc(title)}</h3>
-      <button type="button" class="btn small secondary" data-action="clear-map-preview" aria-label="Clear map selection">×</button></div>
+    return `<div class="itinerary-map-heading"><h3>${esc(title)}</h3></div>
       ${preview.locations.length > 1 ? `<label class="itinerary-map-location">Tour location
         <select data-itinerary-map-location>${preview.locations.map((location,index) =>
           `<option value="${index}" ${index === preview.index ? "selected" : ""}>${esc(location)}</option>`).join("")}</select></label>` : ""}
@@ -59,11 +88,8 @@ export function createPanelRenderers(ctx) {
       ${preview.query ? `<a class="map-link itinerary-map-open" href="${mapsUrl(preview.query)}" target="_blank" rel="noopener">Open in Google Maps ↗</a>` : ""}`;
   }
 
-  function mapActivityTitle(stop, fallback, entryType = "activity") {
-    const selected = getMapSelection?.(), active = selected?.tripId === Storage.active?.()?.id && selected?.stopId === stop.id && (selected.entryType || "activity") === entryType;
-    return `<button type="button" class="activity-map-select" data-action="preview-activity" data-map-stop="${esc(stop.id)}"
-      data-map-type="${entryType}"
-      aria-controls="itinerary-location-preview" aria-pressed="${!!active}">${esc(stop.activity || fallback)}</button>`;
+  function activityTitleHtml(stop, fallback) {
+    return `<span class="activity-detail-title">${esc(stop.activity || fallback)}</span>`;
   }
   // ---------------------------------------------------------------------------
   // Travel-record panels and expense synchronization
@@ -524,10 +550,11 @@ export function createPanelRenderers(ctx) {
     const venue = String(r.venue || "").trim(), venueMap = entryMapsUrl(r, venue, t, "meal"),
       notes = String(r.notes || ""),
       duration = mealDuration(r.durationMinutes),
-      timeKey = `meal:${r.id}:time`;
-    return `<details class="meal-card${r.done ? " is-done" : ""}" data-record-type="food" data-record="${esc(r.id)}" ${mapPreview ? `data-map-meal="${esc(r.id)}"` : ""} ${openMealCards.has(r.id) ? "open" : ""}>
+      timeKey = `meal:${r.id}:time`,
+      expanded = isWorkspaceEntryOpen(t, "meal", r.id, mapPreview ? "itinerary" : "food");
+    return `<details class="meal-card${r.done ? " is-done" : ""}" data-record-type="food" data-record="${esc(r.id)}" data-workspace-kind="meal" ${mapPreview ? `data-map-meal="${esc(r.id)}"` : ""} ${expanded ? "open" : ""}>
       <summary><span class="meal-timing"><span>${esc(timeLabel(r.time) || "No time")}${r.timeMode === "range" && r.endTime ? `–${esc(timeLabel(r.endTime))}` : ""}</span><span class="meal-duration">(${duration === 60 ? "1 hr" : `${duration} min`})</span></span>
-      <strong>[${esc(r.mealType || "Other")}] ${mapPreview ? mapActivityTitle({id:r.id,activity:venue}, "New meal", "meal") : venueMap ? `<a target="_blank" rel="noopener" href="${venueMap}">${esc(venue)}</a>` : esc(venue) || "New meal"}</strong>
+      <strong>[${esc(r.mealType || "Other")}] ${mapPreview ? esc(venue) || "New meal" : venueMap ? `<a target="_blank" rel="noopener" href="${venueMap}">${esc(venue)}</a>` : esc(venue) || "New meal"}</strong>
       ${notes.trim() ? `<span class="meal-notes-preview">${esc(notes)}</span>` : ""}
       </summary>
       <div class="record-grid meal-fields">
@@ -544,6 +571,7 @@ export function createPanelRenderers(ctx) {
       <label class="field full">Notes<textarea data-record-field="notes">${esc(r.notes)}</textarea></label>
       </div>
       <div class="meal-actions no-print"><button class="btn small danger" data-action="remove-record">Discard</button></div>
+      ${expandedEntryMapHtml(t, "meal", r.id, mapPreview ? "itinerary" : "food")}
     </details>`;
   }
   function placeCard(r) {
@@ -557,25 +585,24 @@ export function createPanelRenderers(ctx) {
       <button class="btn small danger no-print" data-action="remove-place">Remove place</button></article>`;
   }
   function foodPanel(t) {
-    const collapsedDays = new Set(Storage.read().ui.collapsedDaysByTrip[t.id] || []);
-    return `<section class="panel ${getTab() === "food" ? "active" : ""}" data-panel="food">
-      <h2>Food</h2><p>Plan meals by day. Saved places can be used for as many visits as you like.</p>
-      ${t.days.map((day, index) => `<article class="day food-day ${collapsedDays.has(day.id) ? "collapsed" : ""}" data-day="${day.id}">
-        <header class="day-head"><div class="stamp">Day<span class="day-number">${index}</span></div>
-        <div><h3>${esc(day.title)}</h3><small>${dayDateLabel(day.date)}</small></div>
-        <div class="icon-actions no-print"><button type="button" class="day-collapse-button" data-action="toggle-day"
-          aria-expanded="${!collapsedDays.has(day.id)}" aria-label="${collapsedDays.has(day.id) ? "Expand day" : "Collapse day"}">${collapsedDays.has(day.id) ? "⌄" : "⌃"}</button></div></header>
+    const selection = workspaceSelection(t, "food"), day = t.days.find(d => d.id === selection.dayId);
+    const content = `${day ? `<article class="day food-day" data-day="${esc(day.id)}">
+        <header class="day-head"><div class="day-heading"><small>${esc(dayDateLabel(day.date))}</small>
+        <input class="day-title" data-field="title" maxlength="40" value="${esc(day.title)}" aria-label="Day title"></div></header>
         <div class="day-content food-groups">${MEAL_TYPES.map((type) => `<section class="food-group">
           <h4>${type}</h4>
           ${mealsForDay(t, day).filter((meal) => mealGroup(meal.mealType) === type)
-            .map((meal) => mealCard(meal, t)).join("") || '<p class="expense-empty">No meals yet.</p>'}
+            .map((meal) => mealCard(meal, t, {showDay: true})).join("") || '<p class="expense-empty">No meals yet.</p>'}
           <div class="food-add no-print"><button class="btn small" data-action="add-meal" data-meal-type="${type}">＋ Add ${type.toLowerCase()} row</button>
-          ${placePicker(t, type)}</div></section>`).join("")}</div></article>`).join("")}
-      <section class="food-shortlist"><h3>Unscheduled shortlist</h3><p>Saved places remain here after scheduling a visit.</p>
+          ${placePicker(t, type)}</div></section>`).join("")}</div></article>` : '<p class="empty-day-notice">No days in this trip.</p>'}
+      ${t.foodPlaces.some((meal) => !meal.visitDate) ? `<section class="food-unscheduled"><h3>Unscheduled visits</h3>${t.foodPlaces.filter((meal) => !meal.visitDate).map((meal) => mealCard(meal, t, { showDay: true })).join("")}</section>` : ""}
+      <details class="food-shortlist" data-workspace-library><summary>Saved places (${(t.foodLibrary || []).length})</summary>
+        <p>Reuse a saved place for any day.</p>
         ${(t.foodLibrary || []).map(placeCard).join("") || '<p class="expense-empty">No saved places yet.</p>'}
-        <button class="btn no-print" data-action="add-place">＋ Save a place</button>
-        ${t.foodPlaces.some((meal) => !meal.visitDate) ? `<h4>Unscheduled visits</h4>${t.foodPlaces.filter((meal) => !meal.visitDate).map((meal) => mealCard(meal, t, { showDay: true })).join("")}` : ""}
-      </section></section>`;
+        <button class="btn small no-print" data-action="add-place">＋ Save a place</button>
+      </details>`;
+    return `<section class="panel ${getTab() === "food" ? "active" : ""}" data-panel="food">
+      ${dayWorkspaceHtml(t, "food", selection, content)}</section>`;
   }
   function recordCollection(t, type) {
     return type === "flight"
@@ -741,11 +768,9 @@ export function createPanelRenderers(ctx) {
     return entries.length > 0 && entries.every(({ record }) => record.done === true);
   }
 
-  function dayHtml(t, d, i, isCollapsed = false) {
+  function dayHtml(t, d, i) {
     const entries = scheduledEntries(t, d),
       completed = isDayCompleted(entries),
-      canCollapse = entries.length > 0,
-      collapsed = canCollapse && isCollapsed,
       overlapping = overlappingEntryIds(d),
       isToday = d.date === today(),
       nextEntryId = isToday ? nextUpcomingEntryId(d) : null,
@@ -756,10 +781,10 @@ export function createPanelRenderers(ctx) {
         <span>No activities or tours have been added yet. Add details below.</span>
         </div>`
           : "";
-    return `<article class="day ${collapsed ? "collapsed" : ""}${completed ? " is-completed" : ""}"
+    return `<article class="day${completed ? " is-completed" : ""}"
           data-day="${d.id}">
         <header class="day-head">
-        <div class="stamp${canCollapse ? " day-stamp-toggle" : ""}"${canCollapse ? ` data-action="toggle-day" role="button" tabindex="0" aria-expanded="${!collapsed}" aria-label="${collapsed ? "Expand day" : "Collapse day"}"` : ""}>Day<span class="day-number">${i}</span></div>
+        <div class="workspace-day-label">Day ${i}</div>
         <div class="day-heading">
         <div class="day-date-row">
           <small class="day-date-label">${dayDateLabel(d.date)}</small>
@@ -889,7 +914,7 @@ export function createPanelRenderers(ctx) {
           ${esc(time)}
         </strong>
         <span>—</span>
-        ${mapActivityTitle(s, "Untitled activity")}
+        ${activityTitleHtml(s, "Untitled activity")}
         <span>·</span>
         <span>${esc(s.location)}</span>
         </div>
@@ -1276,6 +1301,27 @@ export function createPanelRenderers(ctx) {
     );
   }
   function entryHtml(s, j, hasOverlap = false, isNextUp = false) {
+    const t = Storage.active(), expanded = isWorkspaceEntryOpen(t, "activity", s.id),
+      range = s.kind === "tour" || s.timeMode === "range",
+      time = s.time ? formatTime12(s.time) : "Unscheduled",
+      duration = range ? durationLabel(s.time, s.endTime) : "",
+      label = s.activity || (s.kind === "tour" ? "Untitled tour" : "Untitled activity"),
+      bodyId = `workspace-entry-${esc(s.id)}`;
+    const body = entryDetailsHtml(s, j, hasOverlap, isNextUp)
+      .replace(/\sdata-stop="[^"]*"/g, "").replaceAll(" data-map-card", "")
+      .replace(/<button type="button" class="drag-handle[\s\S]*?<\/button>/g, "");
+    return `<article class="workspace-entry${s.done ? " is-done" : ""}" data-stop="${esc(s.id)}" data-map-card>
+      <button type="button" class="workspace-entry-summary" data-action="toggle-workspace-entry"
+        data-entry-kind="activity" data-entry-id="${esc(s.id)}" aria-expanded="${expanded}" aria-controls="${bodyId}">
+        <span class="workspace-entry-time">${esc(time)}${range && s.endTime ? ` – ${esc(formatTime12(s.endTime))}` : ""}${duration ? `<small>(${esc(duration)})</small>` : ""}</span>
+        <span class="workspace-entry-title"><strong>${esc(label)}</strong><small>${s.kind === "tour" ? "Tour" : "Activity"}${s.done ? " · Completed" : ""}</small></span>
+        ${isNextUp ? '<span class="next-up-badge">Next up</span>' : ""}${overlapBadge(hasOverlap)}
+        <span class="workspace-entry-chevron" aria-hidden="true">${expanded ? "⌃" : "⌄"}</span>
+      </button>${activityDragHandle(s)}
+      <div class="workspace-entry-body" id="${bodyId}" ${expanded ? "" : "hidden"}>${body}${expandedEntryMapHtml(t, "activity", s.id)}</div>
+    </article>`;
+  }
+  function entryDetailsHtml(s, j, hasOverlap = false, isNextUp = false) {
     let html =
       s.kind === "tour"
         ? tourHtml(s, tourOrdinal(s) - 1, hasOverlap, isNextUp)
@@ -1316,7 +1362,7 @@ export function createPanelRenderers(ctx) {
           ${esc(time)}
         </strong>
         <span>—</span>
-        ${mapActivityTitle(s, "Untitled tour")}
+        ${activityTitleHtml(s, "Untitled tour")}
         <span>·</span>
         <span>${esc(locationText)}</span>
         </div>

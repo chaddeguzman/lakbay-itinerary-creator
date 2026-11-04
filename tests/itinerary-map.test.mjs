@@ -26,12 +26,12 @@ function previewQueries(html) {
     external: new URL(external.replaceAll("&amp;", "&")).searchParams.get("query"),
   };
 }
-test("Itinerary starts with one shared map panel and no external iframe request", () => {
+test("Itinerary starts with collapsed cards and no standalone map or external iframe request", () => {
   const t = trip(), html = panels(t).itineraryPanel(t);
-  assert.match(html, /Select an activity or meal to preview its location/);
-  assert.equal((html.match(/id="itinerary-location-preview"/g) || []).length, 1);
+  assert.match(html, /class="day-workspace"/);
+  assert.equal((html.match(/id="itinerary-location-preview"/g) || []).length, 0);
   assert.ok(!html.includes("<iframe"));
-  assert.match(html, /data-action="preview-activity"[^>]*data-map-stop="restaurant"/);
+  assert.match(html, /data-entry-kind="activity" data-entry-id="restaurant" aria-expanded="false"/);
 });
 test("selected activity uses only the free place embed with its entered location", () => {
   const t = trip(), html = panels(t, {tripId:"trip", stopId:"restaurant", locationIndex:0}).itineraryPanel(t);
@@ -71,7 +71,7 @@ test("itinerary meals preview their venue without an external-link click or trip
   assert.equal((html.match(/<iframe/g)||[]).length,1);
   assert.equal(previewQueries(html).embed, "Jollibee Brickfields near Punjabi Rasoi - Brickfields");
   assert.match(html,/data-map-meal="restaurant"/);
-  assert.match(html,/data-map-type="meal"[^>]*aria-controls="itinerary-location-preview" aria-pressed="true"/);
+  assert.match(html,/<strong>\[Lunch\] Jollibee Brickfields<\/strong>/);
   assert.ok(!html.includes('>Jollibee Brickfields</a>'));
   assert.deepEqual(t,before);
   t.foodPlaces[0].venue="";

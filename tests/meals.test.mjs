@@ -126,7 +126,8 @@ test("day titles are limited to 40 characters", () => {
   assert.match(html, /maxlength="40"/);
   assert.match(html, /class="day-date-label"/);
   assert.match(html, /value="A very long itinerary day title that ex/);
-  assert.doesNotMatch(html, /exceeds forty characters/);
+  const title = html.match(/<input class="day-title"[^>]+>/)[0];
+  assert.doesNotMatch(title, /exceeds forty characters/);
 });
 
 test("removing a trip day keeps visits unscheduled and clears linked expenses", () => {
@@ -280,7 +281,7 @@ test("meal time uses compact period, hour, and five-minute menus", () => {
     time: "12:30",
   });
   const html = panels(t).itineraryPanel(t);
-  assert.match(html, /data-map-stop="meal"[\s\S]*?data-map-type="meal"/);
+  assert.match(html, /<strong>\[Lunch\] Old City Cafe<\/strong>/);
   const foodHtml = panels(t).foodPanel(t);
   assert.match(foodHtml, /href="https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=Old%20City%20Cafe%2C%20Chiang%20Mai%2C%20Thailand"/);
   assert.match(foodHtml, /target="_blank"/);
@@ -402,14 +403,13 @@ test("saving shared picker values keeps 24-hour times for sorting and durations"
   assert.deepEqual(scheduledEntries(result, result.days[0]).map((entry) => entry.record.id), ["tour", "meal"]);
 });
 
-test("only the day stamp toggles the itinerary day card", () => {
+test("day selection uses a separate button and the selected-day header remains editable", () => {
   const t = trip();
   t.days[0].stops.push({ id: "activity", kind: "activity", activity: "Temple visit" });
   const html = panels(t).itineraryPanel(t);
   const header = html.match(/<header class="day-head[\s\S]*?<\/header>/)?.[0];
   assert.ok(header);
-  const stamp = header.match(/<div class="stamp[\s\S]*?<\/div>/)?.[0];
-  assert.match(stamp, /class="stamp day-stamp-toggle" data-action="toggle-day" role="button" tabindex="0" aria-expanded="true" aria-label="Collapse day"/);
-  const headerWithoutStamp = header.replace(stamp, "");
-  assert.doesNotMatch(headerWithoutStamp, /data-action="toggle-day"|role="button"/);
+  assert.match(html, /data-action="select-workspace-day" data-day-id="2026-10-28" aria-pressed="true"/);
+  assert.match(header, /data-field="title"/);
+  assert.doesNotMatch(header, /data-action="toggle-day"|role="button"/);
 });
