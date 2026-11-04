@@ -8,11 +8,12 @@ import {
 import { createActions } from "./actions.js?v=packing-move-20261019";
 import { defaultTravelDay, nextScheduledEntry, scheduledEntries } from "./meals.js";
 import { createExportTools } from "./export.js?v=theme-aware-pdf-20261001";
-import { createPanelRenderers } from "./render-panels.js?v=root-map-locations-20261023";
+import { createPanelRenderers } from "./render-panels.js?v=compact-days-20261104";
 import { bindTimePickers } from "./time-picker.js";
 import { bindPackingMovement } from "./packing.js";
-import { bindItineraryCardSelection, selectActivityMap } from "./itinerary-map.js?v=root-map-locations-20261023";
+import { bindItineraryCardSelection, selectActivityMap } from "./itinerary-map.js?v=compact-days-20261104";
 import { MAPS_EMBED_API_KEY } from "./maps-config.js";
+import { createDayWorkspace, restoreWorkspaceFocus } from "./day-workspace.js?v=compact-days-20261104";
 
   // ---------------------------------------------------------------------------
   // Shared formatting, escaping, date, and identifier helpers
@@ -278,6 +279,8 @@ import { MAPS_EMBED_API_KEY } from "./maps-config.js";
   const activitySnapshots = new Map(),
     newActivityEntries = new Set(),
     openMealCards = new Set();
+  const dayWorkspace = createDayWorkspace();
+  let renderedWorkspaceScope = null;
   const {
     itineraryPanel,
     itineraryMapPanel,
@@ -303,6 +306,9 @@ import { MAPS_EMBED_API_KEY } from "./maps-config.js";
     fmt,
     getTab: () => tab,
     getMapSelection: () => itineraryMapSelection,
+    getDayWorkspace: (trip, panelTab) => panelTab === tab
+      ? dayWorkspace.read(trip, tab)
+      : {dayId: dayWorkspace.read(trip, tab).dayId, openEntry: null},
     mapsEmbedKey: MAPS_EMBED_API_KEY,
     money,
     openMealCards,
@@ -456,37 +462,21 @@ import { MAPS_EMBED_API_KEY } from "./maps-config.js";
   bindTimePickers(main, { drafts: timeDrafts, onCommit: updateScheduledTime });
   bindPackingMovement(main, { categories: PACK_CATEGORIES, moveItem: movePackingItem });
 
-  function highlightItinerarySelection() {
-    const tripId = Storage.active()?.id;
-    main.querySelectorAll("[data-map-card], [data-map-meal]").forEach(card => {
-      const entryType = card.hasAttribute("data-map-meal") ? "meal" : "activity";
-      const selected = itineraryMapSelection?.tripId === tripId && (card.dataset.mapMeal || card.dataset.stop) === itineraryMapSelection?.stopId && (itineraryMapSelection.entryType || "activity") === entryType;
-      card.classList.toggle("is-map-selected", selected);
-    });
-    main.querySelectorAll('[data-action="preview-activity"]').forEach(button => {
-      const selected = itineraryMapSelection?.tripId === tripId && button.dataset.mapStop === itineraryMapSelection?.stopId && (itineraryMapSelection.entryType || "activity") === (button.dataset.mapType || "activity");
-      button.setAttribute("aria-pressed", String(selected));
-    });
-  }
   function updateItineraryMap() {
     const trip = Storage.active(), panel = main.querySelector("#itinerary-location-preview");
     if (!trip || !panel) return;
     panel.innerHTML = itineraryMapPanel(trip);
-    highlightItinerarySelection();
   }
   bindItineraryCardSelection(main, {
-    selectActivity(stopId, entryType) {
-      const next = selectActivityMap(itineraryMapSelection, Storage.active()?.id, stopId, entryType);
-      if (next === itineraryMapSelection) return;
-      itineraryMapSelection = next;
-      updateItineraryMap();
+    toggleEntry(id, kind) {
+      dayWorkspace.toggleEntry(Storage.active(), tab, {id, kind});
+      render();
+      const card = kind === "meal"
+        ? main.querySelector(`.panel.active [data-record="${CSS.escape(id)}"] > summary`)
+        : main.querySelector(`.panel.active [data-entry-id="${CSS.escape(id)}"]`);
+      card?.focus({preventScroll: true});
+      card?.scrollIntoView({block: "nearest", inline: "nearest"});
     },
-  });
-  main.addEventListener("click", event => {
-    if (!event.target.closest('[data-action="clear-map-preview"]')) return;
-    itineraryMapSelection = null;
-    updateItineraryMap();
-    main.querySelector('[data-action="preview-activity"]')?.focus();
   });
   main.addEventListener("change", event => {
     if (!event.target.matches("[data-itinerary-map-location]") || !itineraryMapSelection) return;
@@ -594,6 +584,16 @@ import { MAPS_EMBED_API_KEY } from "./maps-config.js";
   // Panels are rendered as HTML strings; event delegation below keeps their
   // controls functional after every full render.
   function render() {
+    const focused = document.activeElement,
+      focusedCard = focused?.closest(".panel.active .workspace-entry, .panel.active .meal-card"),
+      focusAttribute = ["data-field", "data-record-field", "data-action", "data-time-trigger", "data-time-field"]
+        .find(name => focused?.hasAttribute(name)),
+      previousEntryFocus = focusedCard ? {
+        kind: focusedCard.dataset.record ? "meal" : "activity",
+        id: focusedCard.dataset.record || focusedCard.dataset.stop,
+        control: focusAttribute ? `[${focusAttribute}="${CSS.escape(focused.getAttribute(focusAttribute))}"]` : ":scope > summary, .workspace-entry-summary",
+        selection: typeof focused.selectionStart === "number" ? [focused.selectionStart, focused.selectionEnd] : null,
+      } : null;
     renderTrips();
     const t = Storage.active();
     if (!t) {
@@ -608,6 +608,16 @@ import { MAPS_EMBED_API_KEY } from "./maps-config.js";
       if (travelDayModal.open) travelDayModal.close();
       return;
     }
+    const selected = dayWorkspace.read(t, tab), scope = JSON.stringify([t.id, tab, selected.dayId]),
+      sameWorkspace = scope === renderedWorkspaceScope,
+      previousDetailsScroll = sameWorkspace ? main.querySelector(".panel.active .day-workspace-details")?.scrollTop : 0,
+      previousDayScroll = main.querySelector(".panel.active .day-workspace-nav"),
+      dayScroll = sameWorkspace ? {top: previousDayScroll?.scrollTop || 0, left: previousDayScroll?.scrollLeft || 0} : null,
+      libraryOpen = sameWorkspace && main.querySelector(".panel.active [data-workspace-library]")?.open;
+    renderedWorkspaceScope = scope;
+    itineraryMapSelection = selected.openEntry
+      ? selectActivityMap(itineraryMapSelection, t.id, selected.openEntry.id, selected.openEntry.kind)
+      : null;
     const previousNavScrollLeft = main.querySelector(".section-nav")?.scrollLeft;
     const collapsed = Storage.read().ui.navCollapsed;
     const navigation = NAV_ITEMS.map(
@@ -675,9 +685,38 @@ import { MAPS_EMBED_API_KEY } from "./maps-config.js";
       }
     }
     renderTravelDay();
-    highlightItinerarySelection();
+    const details = main.querySelector(".panel.active .day-workspace-details"),
+      dayNav = main.querySelector(".panel.active .day-workspace-nav"),
+      library = main.querySelector(".panel.active [data-workspace-library]");
+    if (details) details.scrollTop = previousDetailsScroll || 0;
+    if (library) library.open = !!libraryOpen;
+    if (dayNav && dayScroll) { dayNav.scrollTop = dayScroll.top; dayNav.scrollLeft = dayScroll.left; }
+    if (dayNav) {
+      const chosen = dayNav.querySelector('[aria-pressed="true"]');
+      if (chosen) {
+        if (window.innerWidth <= 900) {
+          if (chosen.offsetLeft < dayNav.scrollLeft) dayNav.scrollLeft = chosen.offsetLeft;
+          else if (chosen.offsetLeft + chosen.offsetWidth > dayNav.scrollLeft + dayNav.clientWidth)
+            dayNav.scrollLeft = chosen.offsetLeft + chosen.offsetWidth - dayNav.clientWidth;
+        } else if (!sameWorkspace) dayNav.scrollTop = Math.max(0, chosen.offsetTop - dayNav.offsetTop);
+      }
+    }
+    updateWorkspaceLayout();
+    if (sameWorkspace) restoreWorkspaceFocus(main, previousEntryFocus);
     window.dispatchEvent(new Event("lakbay:trip-rendered"));
   }
+
+  function updateWorkspaceLayout() {
+    const workspace = main.querySelector(".panel.active .day-workspace"), nav = main.querySelector(".section-nav");
+    if (!workspace) return;
+    const mobile = window.innerWidth <= 900;
+    const navStyle = nav && getComputedStyle(nav), stickyTop = nav ? (parseFloat(navStyle.top) || 0) + nav.getBoundingClientRect().height + 8 : 0;
+    workspace.style.setProperty("--workspace-sticky-top", `${mobile ? stickyTop : 20}px`);
+    workspace.style.setProperty("--workspace-daybar-height", `${workspace.querySelector(".day-workspace-nav").getBoundingClientRect().height}px`);
+    // Keep the desktop frame below trip chrome; keep a usable pane if the header is tall.
+    workspace.style.setProperty("--workspace-height", `${Math.max(240, window.innerHeight - Math.max(20, workspace.getBoundingClientRect().top) - 24)}px`);
+  }
+  window.addEventListener("resize", updateWorkspaceLayout);
   function renderTrips() {
     const q = $("#tripSearch").value.toLowerCase(),
       s = Storage.read();
@@ -765,6 +804,20 @@ import { MAPS_EMBED_API_KEY } from "./maps-config.js";
         return;
       }
       const act = a.dataset.action;
+      if (act === "select-workspace-day") {
+        e.stopImmediatePropagation();
+        const trip = Storage.active(), previous = dayWorkspace.read(trip, tab).dayId;
+        dayWorkspace.selectDay(trip, a.dataset.dayId);
+        const changed = previous !== dayWorkspace.read(trip, tab).dayId;
+        render();
+        main.querySelector(`.panel.active [data-day-id="${CSS.escape(a.dataset.dayId)}"]`)?.focus({preventScroll: true});
+        if (changed && window.innerWidth <= 900) {
+          const workspace = main.querySelector(".panel.active .day-workspace");
+          const offset = parseFloat(workspace.style.getPropertyValue("--workspace-sticky-top")) || 0;
+          window.scrollTo({top: Math.max(0, window.scrollY + workspace.getBoundingClientRect().top - offset), behavior: "instant"});
+        }
+        return;
+      }
       if (act === "open-travel-day") {
         e.stopImmediatePropagation();
         openTravelDay();
@@ -890,7 +943,9 @@ import { MAPS_EMBED_API_KEY } from "./maps-config.js";
       const day = t.days.find((item) => item.id === dayEl.dataset.day);
       const meal = blankMeal(day.date, a.dataset.mealType || "Other");
       openMealCards.add(meal.id);
-      changeTrip((trip) => { trip.foodPlaces.push(meal); syncRecordExpense(trip, "food", meal); });
+      changeTrip((trip) => { trip.foodPlaces.push(meal); syncRecordExpense(trip, "food", meal); }, false);
+      dayWorkspace.openEntry(Storage.active(), tab, {kind: "meal", id: meal.id});
+      render();
     } else if (act === "schedule-place" && dayEl) {
       const id = a.parentElement.querySelector("[data-place-choice]")?.value;
       const place = t.foodLibrary.find((item) => item.id === id);
@@ -898,7 +953,9 @@ import { MAPS_EMBED_API_KEY } from "./maps-config.js";
       const day = t.days.find((item) => item.id === dayEl.dataset.day);
       const meal = blankMeal(day.date, a.dataset.mealType || "Other", place);
       openMealCards.add(meal.id);
-      changeTrip((trip) => { trip.foodPlaces.push(meal); syncRecordExpense(trip, "food", meal); });
+      changeTrip((trip) => { trip.foodPlaces.push(meal); syncRecordExpense(trip, "food", meal); }, false);
+      dayWorkspace.openEntry(Storage.active(), tab, {kind: "meal", id: meal.id});
+      render();
     } else if (act === "refresh-weather") {
       await refreshWeather(t);
     } else if (act === "toggle-day" && dayEl) {
@@ -1055,7 +1112,7 @@ import { MAPS_EMBED_API_KEY } from "./maps-config.js";
   });
   main.addEventListener("dragover", (e) => {
     if (!dragState) return;
-    const target = e.target.closest(".stop");
+    const target = e.target.closest("[data-stop]");
     if (!target) return;
     if (target.closest("[data-day]")?.dataset.day !== dragState.dayId)
       return;
@@ -1178,7 +1235,10 @@ import { MAPS_EMBED_API_KEY } from "./maps-config.js";
         choosingAddForDays.delete(day.dataset.day);
         changeTrip((t) =>
           t.days.find((x) => x.id === day.dataset.day).stops.push(item),
+          false,
         );
+        dayWorkspace.openEntry(Storage.active(), tab, {kind: "activity", id: item.id});
+        render();
         return;
       }
       if (act === "edit-activity") {
@@ -1310,6 +1370,7 @@ import { MAPS_EMBED_API_KEY } from "./maps-config.js";
     const x = e.target.closest("[data-tab]");
     if (x) {
       tab = x.dataset.tab;
+      dayWorkspace.setTab(tab);
       render();
     }
   });
